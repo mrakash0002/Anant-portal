@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anant Electrical - Staff Portal Engine</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gradient-to-br from-[#0c051e] to-[#04193d] text-slate-100 font-sans min-h-screen flex flex-col items-center justify-center px-4 py-6">
+
+    <main class="w-full max-w-md flex-grow flex flex-col justify-center items-center">
+        
+        <div id="login-card" class="w-full bg-white text-slate-800 rounded-2xl shadow-2xl p-8">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-black tracking-tight text-[#4a148c]">AE Staff Workspace</h1>
+                <p class="text-xs text-gray-500 mt-1">Authenticate access parameters.</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Portal Email ID</label>
+                    <input type="email" id="worker-email" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:border-[#0c56ca]" placeholder="name@anantelectrical.in">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Access Password</label>
+                    <input type="password" id="worker-password" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 outline-none focus:border-[#0c56ca]" value="password123">
+                </div>
+                <button onclick="handleWorkerLogin()" class="w-full bg-[#0c56ca] text-white font-bold py-3.5 rounded-xl text-sm tracking-wide cursor-pointer mt-2">
+                    Enter Active Shift Loop
+                </button>
+            </div>
+        </div>
+
+        <div id="portal-app" class="w-full space-y-4 hidden">
+            
+            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-lg flex justify-between items-center">
+                <div>
+                    <h2 class="text-sm font-black tracking-wide text-white" id="profile-display-name">Verifying Profile...</h2>
+                    <p class="text-[10px] text-purple-400 font-mono" id="profile-display-role">Field Associate</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] block font-mono uppercase text-slate-400">Your Daily Base</span>
+                    <span class="text-xs font-mono font-black text-emerald-400" id="profile-display-salary">₹0.00 / Day</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Live Deployment Metrics
+                    </h3>
+                    <span id="shift-timer-badge" class="text-[10px] font-mono bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">Offline</span>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Store Location / Site ID</label>
+                        <input type="text" id="site-location-input" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-white outline-none" placeholder="Koramangala NSO Store">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Operational Progress Field Logs</label>
+                        <textarea id="site-logs-input" rows="2" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 outline-none resize-none" placeholder="Completed laying box fittings routes..."></textarea>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-1">
+                    <button id="btn-punch-in" onclick="executePunchIn()" class="bg-emerald-600 text-white font-bold text-xs py-3 rounded-xl uppercase tracking-wider cursor-pointer">Punch-In Shift</button>
+                    <button id="btn-punch-out" onclick="executePunchOut()" disabled class="bg-slate-800 text-slate-500 font-bold text-xs py-3 rounded-xl uppercase tracking-wider cursor-pointer opacity-50">Checkout & Close</button>
+                </div>
+            </div>
+
+            <div id="expense-matrix-box" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4 opacity-50 pointer-events-none transition-all">
+                <div class="border-b border-slate-800 pb-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">📋 Daily Material Costs & Pocket Expense Ledger</h3>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Transport (₹)</label>
+                        <input type="number" id="exp-transport" oninput="calculateLiveTotalSpent()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded text-xs font-mono font-bold text-white text-center outline-none" value="0">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Food / Meals (₹)</label>
+                        <input type="number" id="exp-food" oninput="calculateLiveTotalSpent()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded text-xs font-mono font-bold text-white text-center outline-none" value="0">
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-bold text-slate-400 uppercase block mb-1">Material Sum (₹)</label>
+                        <input type="number" id="exp-material" oninput="calculateLiveTotalSpent()" class="w-full p-2 bg-slate-950 border border-slate-800 rounded text-xs font-mono font-bold text-white text-center outline-none" value="0">
+                    </div>
+                </div>
+
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                    <div class="max-w-[65%]">
+                        <p class="text-[11px] font-bold text-slate-300">💸 Mid-Day Advance Taken</p>
+                        <p class="text-[9px] text-slate-500 leading-tight">Log any cash advance payments received from management later in the day.</p>
+                    </div>
+                    <div class="relative w-24 shrink-0">
+                        <span class="absolute left-2 top-1.5 text-xs font-mono text-slate-500">₹</span>
+                        <input type="number" id="exp-extra-advance" class="w-full pl-5 pr-1 py-1.5 bg-slate-900 border border-slate-700 rounded text-xs font-bold font-mono text-amber-400 text-center outline-none" value="0">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Procurement Description / Material Notes</label>
+                    <input type="text" id="exp-notes" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-300 outline-none" placeholder="Bought extension cables, PVC pipes box couplings...">
+                </div>
+
+                <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs font-mono">
+                    <span class="text-slate-400">Total Outgoing Spent:</span>
+                    <span class="text-sm font-black text-purple-400" id="pocket-total-display">₹0.00</span>
+                </div>
+            </div>
+
+            <div class="text-center pt-2">
+                <button onclick="handleWorkerLogout()" class="text-[10px] font-mono tracking-widest uppercase text-slate-500 hover:text-rose-400 cursor-pointer">Disconnect Session Engine</button>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="w-full text-center mt-6 pt-4 border-t border-slate-900">
+        <p class="text-[10px] text-slate-600 uppercase tracking-widest">&copy; 2026 Anant Electrical Deployment Network</p>
+    </footer>
+
+    <script>
+        const SUPABASE_URL = "https://xeffbclwniepwbpsvorh.supabase.co/rest/v1/";
+        const SUPABASE_KEY = "sb_publishable_JfBR83l0-TTsig_geq1nUw_hwUeSvaH";
+
+        let sessionWorker = null;
+
+        async function handleWorkerLogin() {
+            const email = document.getElementById('worker-email').value.trim().toLowerCase();
+            if(!email) return alert("Please enter your registered Portal Email ID.");
+
+            const headers = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` };
+            try {
+                const response = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${email}&select=*`, { headers });
+                const data = await response.json();
+                
+                if(!data || data.length === 0) {
+                    return alert("Security Failure: Profile not registered in the system.");
+                }
+
+                sessionWorker = data[0];
+                document.getElementById('login-card').classList.add('hidden');
+                document.getElementById('portal-app').classList.remove('hidden');
+
+                document.getElementById('profile-display-name').innerText = sessionWorker.name;
+                document.getElementById('profile-display-role').innerText = sessionWorker.role;
+                document.getElementById('profile-display-salary').innerText = `₹${parseFloat(sessionWorker.fixed_salary).toFixed(2)} / Day`;
+
+            } catch (err) {
+                alert("Database Connectivity Drop. Try logging in again.");
+            }
+        }
+
+        function handleWorkerLogout() { location.reload(); }
+
+        function executePunchIn() {
+            const loc = document.getElementById('site-location-input').value.trim();
+            if(!loc) return alert("Operational Error: Site location parameters required.");
+
+            document.getElementById('shift-timer-badge').innerText = "Shift Active";
+            document.getElementById('shift-timer-badge').className = "text-[10px] font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800";
+            
+            document.getElementById('btn-punch-in').disabled = true;
+            document.getElementById('btn-punch-in').classList.add('opacity-40', 'pointer-events-none');
+            document.getElementById('btn-punch-out').disabled = false;
+            document.getElementById('btn-punch-out').className = "bg-rose-600 text-white font-bold text-xs py-3 rounded-xl uppercase tracking-wider cursor-pointer";
+            
+            document.getElementById('expense-matrix-box').classList.remove('opacity-50', 'pointer-events-none');
+            alert(`Shift Logged. Successfully punched into: ${loc}`);
+        }
+
+        function calculateLiveTotalSpent() {
+            const t = parseFloat(document.getElementById('exp-transport').value) || 0;
+            const f = parseFloat(document.getElementById('exp-food').value) || 0;
+            const m = parseFloat(document.getElementById('exp-material').value) || 0;
+            document.getElementById('pocket-total-display').innerText = `₹ ${(t + f + m).toFixed(2)}`;
+        }
+
+        async function executePunchOut() {
+            const site_location = document.getElementById('site-location-input').value.trim();
+            const progress_notes = document.getElementById('site-logs-input').value.trim();
+            const transport_expense = parseFloat(document.getElementById('exp-transport').value) || 0;
+            const food_expense = parseFloat(document.getElementById('exp-food').value) || 0;
+            const material_expense = parseFloat(document.getElementById('exp-material').value) || 0;
+            const payment_advance_taken = parseFloat(document.getElementById('exp-extra-advance').value) || 0;
+            const material_notes = document.getElementById('exp-notes').value.trim();
+
+            if(!progress_notes) return alert("Please fill out task details before checking out.");
+
+            const headers = {
+                "apikey": SUPABASE_KEY,
+                "Authorization": `Bearer ${SUPABASE_KEY}`,
+                "Content-Type": "application/json"
+            };
+
+            const payload = {
+                worker_email: sessionWorker.email, site_location, progress_notes,
+                transport_expense, food_expense, material_expense, payment_advance_taken,
+                material_notes, status: 'Pending'
+            };
+
+            try {
+                await fetch(`${SUPABASE_URL}shift_logs`, { method: 'POST', headers, body: JSON.stringify(payload) });
+                alert("Metrics Transmitted Successfully to Akash's Master Console Queue!");
+                location.reload();
+            } catch(e) {
+                alert("Sync Error. Check your internet connection.");
+            }
+        }
+    </script>
+</body>
+</html>
