@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anant Electrical - Central Control Admin Node</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gradient-to-br from-[#1a0e3d] to-[#062c66] text-slate-800 font-sans min-h-screen flex flex-col justify-between p-4 md:p-8">
+
+    <!-- GATEKEEPER INTERCEPT AUTHENTICATION DIALOG -->
+    <div id="admin-auth-shield" class="fixed inset-0 bg-[#1a0e3d]/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-purple-100">
+            <div class="text-center">
+                <h2 class="text-xl font-black tracking-tight text-[#4a148c]">Admin Gateway Secure Vault</h2>
+                <p class="text-[11px] text-gray-400 font-mono mt-1">Authorized Operations Management Nodes Only</p>
+            </div>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Administrative Email ID</label>
+                    <input type="email" id="auth-admin-email" value="akash@anantelectrical.in" disabled class="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-lg text-xs font-mono text-slate-500 outline-none cursor-not-allowed">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Security Authentication Key</label>
+                    <input type="password" id="auth-admin-password" placeholder="••••••••••••" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono tracking-widest outline-none focus:border-[#4a148c]">
+                </div>
+                <button onclick="verifyAdminGatekeeperCredentials()" class="w-full bg-[#4a148c] hover:bg-[#380e6f] text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow">
+                    🔓 Verify Secure Clearance
+                </button>
+                <p id="auth-error-log" class="text-[10px] text-rose-600 font-semibold text-center hidden">⚠️ Absolute credential rejection. Connection dropped.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD CONTENT INTERFACE (HIDDEN BY DEFAULT) -->
+    <div id="main-admin-dashboard-layout" class="max-w-6xl mx-auto w-full space-y-6 hidden flex-grow">
+        
+        <!-- HEADER MODULE -->
+        <header class="bg-white rounded-2xl shadow-xl p-6 flex flex-col md:flex-row justify-between items-center border border-purple-100 gap-4">
+            <div>
+                <h1 class="text-3xl font-black tracking-tight text-[#4a148c]">Anant Electrical</h1>
+                <p class="text-xs text-gray-500 font-mono mt-0.5">Operations Control & Payroll Reconciliation Center</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="fetchAllDataFromNode()" class="bg-[#4a148c] hover:bg-[#380e6f] text-white text-xs font-bold px-4 py-3 rounded-xl tracking-wider uppercase shadow transition cursor-pointer">
+                    🔄 Refresh Server Data
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT GRID -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- LEFT COLUMN: STAFF REGISTRY CONTROL PANEL -->
+            <section class="lg:col-span-1 bg-white rounded-2xl shadow-xl border border-purple-100 p-6 space-y-6">
+                
+                <!-- NEW ACCOUNT CREATION OPTION -->
+                <div class="bg-purple-50/60 p-4 rounded-xl border border-purple-100 space-y-3">
+                    <h3 class="text-xs font-black uppercase tracking-wider text-[#4a148c]">➕ Create New Account</h3>
+                    <div class="space-y-2">
+                        <input type="text" id="new-worker-name" placeholder="Full Name" class="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#4a148c]">
+                        <input type="email" id="new-worker-email" placeholder="Email Address" class="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#4a148c]">
+                        <input type="password" id="new-worker-password" placeholder="Login Password" class="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#4a148c]">
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" id="new-worker-salary" placeholder="Base Rate (₹)" class="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#4a148c]">
+                            <select id="new-worker-role" class="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#4a148c]">
+                                <option value="Field Operator">Operator</option>
+                                <option value="Technician">Technician</option>
+                                <option value="Supervisor">Supervisor</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="createNewWorkerAccount()" class="w-full bg-[#4a148c] hover:bg-[#380e6f] text-white font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition cursor-pointer shadow">
+                        Construct Worker Profile
+                    </button>
+                </div>
+
+                <hr class="border-slate-100" />
+
+                <div>
+                    <h2 class="text-sm font-black tracking-tight text-slate-800">Staff Registry Management</h2>
+                    <p class="text-[11px] text-gray-400">Select a team member to review or adjust balances.</p>
+                </div>
+
+                <!-- DYNAMIC WORKER SELECTOR LIST -->
+                <div id="worker-selection-list" class="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                    <p class="text-xs text-gray-400 italic text-center py-4">Loading active personnel logs...</p>
+                </div>
+
+                <hr class="border-slate-100" />
+
+                <!-- BALANCES EDITING INTERFACE FORM -->
+                <div id="balance-adjustment-card" class="hidden space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h3 class="text-xs font-black uppercase tracking-wider text-purple-900" id="form-selected-worker-title">Adjust Balances</h3>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Daily Base Rate (₹)</label>
+                        <input type="number" id="edit-fixed-salary" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg font-mono text-sm outline-none focus:border-[#4a148c]">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Morning Wallet Balance (₹)</label>
+                        <input type="number" id="edit-morning-advance" class="w-full p-2.5 bg-white border border-amber-200 text-amber-700 rounded-lg font-mono text-sm outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-rose-800 uppercase tracking-wider mb-1">Salary Advance Outstanding (₹)</label>
+                        <input type="number" id="edit-salary-advance-taken" class="w-full p-2.5 bg-white border border-rose-200 text-rose-700 rounded-lg font-mono text-sm outline-none focus:border-rose-500">
+                    </div>
+                    <button onclick="commitWorkerBalanceModifications()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow">
+                        💾 Save Modified Parameters
+                    </button>
+                </div>
+            </section>
+
+            <!-- RIGHT COLUMN: SHIFT WORKLOG ENTRIES MONITOR -->
+            <section class="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-purple-100 p-6 flex flex-col">
+                <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div>
+                        <h2 class="text-lg font-black tracking-tight text-slate-800">Operational Shifts & Expense Logs</h2>
+                        <p class="text-xs text-gray-400">Review deployments, audit logged expenses, and approve cycles.</p>
+                    </div>
+                    <div class="flex gap-1 bg-slate-100 p-1 rounded-xl text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                        <button onclick="filterShiftsByStatus('Pending')" id="tab-Pending" class="px-2.5 py-1.5 rounded-lg transition-all cursor-pointer bg-white text-purple-900 shadow-sm">Pending</button>
+                        <button onclick="filterShiftsByStatus('Approved')" id="tab-Approved" class="px-2.5 py-1.5 rounded-lg transition-all cursor-pointer">Approved</button>
+                        <button onclick="filterShiftsByStatus('Active')" id="tab-Active" class="px-2.5 py-1.5 rounded-lg transition-all cursor-pointer">Active Logs</button>
+                        <button onclick="filterShiftsByStatus('All')" id="tab-All" class="px-2.5 py-1.5 rounded-lg transition-all cursor-pointer">View All</button>
+                    </div>
+                </div>
+
+                <!-- DYNAMIC LOGS CONTAINER -->
+                <div id="shifts-container-stream" class="space-y-4 flex-grow max-h-[620px] overflow-y-auto pr-1">
+                    <p class="text-xs text-gray-400 italic text-center py-8">Fetching remote operations grid charts...</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- RECONCILED CORPORATE SECURE FOOTER MATRIX -->
+    <footer class="mt-8 text-center text-[11px] text-purple-200/60 font-mono tracking-wider w-full py-4 border-t border-purple-500/10 max-w-6xl mx-auto">
+        <div>&copy; 2026 Anant Electrical. All Rights Reserved.</div>
+        <div class="text-[10px] font-sans font-bold text-purple-300/80 mt-0.5">Developed by Akash</div>
+    </footer>
+
+    <script>
+        const SUPABASE_URL = "https://xeffbclwniepwbpsvorh.supabase.co/rest/v1/";
+        const SUPABASE_KEY = "sb_publishable_JfBR83l0-TTsig_geq1nUw_hwUeSvaH";
+        const HEADERS = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=representation" };
+
+        let runtimeWorkers = [];
+        let runtimeShifts = [];
+        let currentlySelectedWorkerEmail = null;
+        let currentFilterStatus = "Pending";
+
+        // GATEKEEPER INTERCEPT EXECUTION
+        function verifyAdminGatekeeperCredentials() {
+            const secretKeyInput = document.getElementById('auth-admin-password').value;
+            const logPanel = document.getElementById('auth-error-log');
+
+            if(secretKeyInput === "9972349924") {
+                logPanel.classList.add('hidden');
+                document.getElementById('admin-auth-shield').classList.add('hidden');
+                document.getElementById('main-admin-dashboard-layout').classList.remove('hidden');
+                fetchAllDataFromNode(); // Run database load once authentication passes
+            } else {
+                logPanel.classList.remove('hidden');
+                document.getElementById('auth-admin-password').value = "";
+            }
+        }
+
+        // FETCH ALL DATA
+        async function fetchAllDataFromNode() {
+            try {
+                const workerRes = await fetch(`${SUPABASE_URL}workers_registry?order=name.asc`, { method: "GET", headers: HEADERS });
+                runtimeWorkers = await workerRes.json();
+
+                const shiftRes = await fetch(`${SUPABASE_URL}shift_logs?order=created_at.desc`, { method: "GET", headers: HEADERS });
+                runtimeShifts = await shiftRes.json();
+
+                renderRegistrySelectorPanel();
+                renderShiftsStreamDisplay();
+                
+                if(currentlySelectedWorkerEmail) {
+                    populateBalanceAdjustmentForm(currentlySelectedWorkerEmail);
+                }
+            } catch(err) {
+                console.error("Critical extraction break: ", err);
+                alert("Database synchronization timeout.");
+            }
+        }
+
+        // CREATE NEW ACCOUNT EXECUTOR
+        async function createNewWorkerAccount() {
+            const name = document.getElementById('new-worker-name').value.trim();
+            const email = document.getElementById('new-worker-email').value.trim().toLowerCase();
+            const password = document.getElementById('new-worker-password').value.trim();
+            const fixed_salary = parseFloat(document.getElementById('new-worker-salary').value) || 0;
+            const role = document.getElementById('new-worker-role').value;
+
+            if(!name || !email || !password) {
+                alert("Please fill in Name, Email, and Password fields to create an account.");
+                return;
+            }
+
+            const newAccountPayload = { name, email, password, fixed_salary, role, morning_advance: 0, salary_advance_taken: 0 };
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}workers_registry`, {
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify(newAccountPayload)
+                });
+                if(!res.ok) {
+                    const errLog = await res.json();
+                    throw new Error(errLog.message || "Failed execution query.");
+                }
+                alert(`Account successfully created for ${name}!`);
+                document.getElementById('new-worker-name').value = '';
+                document.getElementById('new-worker-email').value = '';
+                document.getElementById('new-worker-password').value = '';
+                document.getElementById('new-worker-salary').value = '';
+                await fetchAllDataFromNode();
+            } catch(e) {
+                alert("Error writing profile record to Supabase. Check if email already exists.");
+            }
+        }
+
+        // DISPLAY STAFF REGISTRY
+        function renderRegistrySelectorPanel() {
+            const container = document.getElementById('worker-selection-list');
+            container.innerHTML = '';
+            if(runtimeWorkers.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 italic text-center py-4">No profiles found.</p>`;
+                return;
+            }
+            runtimeWorkers.forEach(w => {
+                const staffApprovedLogs = runtimeShifts.filter(s => s.worker_email === w.email && s.status === 'Approved');
+                const approvedCount = staffApprovedLogs.length;
+                const grossPayable = approvedCount * (parseFloat(w.fixed_salary) || 0);
+                const morningWallet = parseFloat(w.morning_advance || 0);
+                const salaryAdvanceLoan = parseFloat(w.salary_advance_taken || 0);
+                const isSelected = w.email === currentlySelectedWorkerEmail;
+
+                let div = document.createElement('div');
+                div.className = `p-3 rounded-xl border transition cursor-pointer flex flex-col gap-2 ${isSelected ? 'bg-purple-50 border-purple-300 ring-2 ring-purple-100' : 'bg-white border-slate-100 hover:bg-slate-50'}`;
+                div.setAttribute('onclick', `selectActiveWorkerRow('${w.email}')`);
+                div.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="text-xs font-black text-slate-800">${w.name || 'Unnamed Record'}</h4>
+                            <p class="text-[10px] text-gray-400 font-mono">${w.email}</p>
+                        </div>
+                        <span class="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-slate-600">${w.role || 'Field Operator'}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5 text-[10px] font-mono bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <div><span class="text-gray-400">Wallet:</span> <strong class="text-amber-600">₹${morningWallet.toLocaleString('en-IN')}</strong></div>
+                        <div><span class="text-gray-400">Salary Adv:</span> <strong class="text-rose-600">₹${salaryAdvanceLoan.toLocaleString('en-IN')}</strong></div>
+                        <div class="col-span-2 pt-1 border-t border-dashed border-slate-200 flex justify-between">
+                            <span class="text-gray-400">Net Earned:</span> 
+                            <strong class="text-emerald-600">₹${grossPayable.toLocaleString('en-IN')}</strong>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function selectActiveWorkerRow(email) {
+            currentlySelectedWorkerEmail = email;
+            renderRegistrySelectorPanel();
+            populateBalanceAdjustmentForm(email);
+        }
+
+        function populateBalanceAdjustmentForm(email) {
+            const targetWorker = runtimeWorkers.find(w => w.email === email);
+            if(!targetWorker) return;
+            document.getElementById('balance-adjustment-card').classList.remove('hidden');
+            document.getElementById('form-selected-worker-title').innerText = `Adjusting Parameters: ${targetWorker.name}`;
+            document.getElementById('edit-fixed-salary').value = targetWorker.fixed_salary || 0;
+            document.getElementById('edit-morning-advance').value = targetWorker.morning_advance || 0;
+            document.getElementById('edit-salary-advance-taken').value = targetWorker.salary_advance_taken || 0;
+        }
+
+        // SAVE THE MODIFIED BALANCES
+        async function commitWorkerBalanceModifications() {
+            if(!currentlySelectedWorkerEmail) return;
+            const fixed_salary = parseFloat(document.getElementById('edit-fixed-salary').value) || 0;
+            const morning_advance = parseFloat(document.getElementById('edit-morning-advance').value) || 0;
+            const salary_advance_taken = parseFloat(document.getElementById('edit-salary-advance-taken').value) || 0;
+            const updatePayload = { fixed_salary, morning_advance, salary_advance_taken };
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentlySelectedWorkerEmail)}`, {
+                    method: 'PATCH',
+                    headers: HEADERS,
+                    body: JSON.stringify(updatePayload)
+                });
+                if(!res.ok) throw new Error("Processing error");
+                alert("Worker account parameters stored securely!");
+                await fetchAllDataFromNode();
+            } catch(e) {
+                alert("Database store transaction dropped.");
+            }
+        }
+
+        // DISPLAY FILTER STATUS
+        function filterShiftsByStatus(status) {
+            currentFilterStatus = status;
+            ['Pending', 'Approved', 'Active', 'All'].forEach(st => {
+                const tab = document.getElementById(`tab-${st}`);
+                if(st === status) {
+                    tab.className = "px-2.5 py-1.5 rounded-lg transition-all cursor-pointer bg-white text-purple-900 shadow-sm";
+                } else {
+                    tab.className = "px-2.5 py-1.5 rounded-lg transition-all cursor-pointer hover:bg-slate-200/60";
+                }
+            });
+            renderShiftsStreamDisplay();
+        }
+
+        // RENDERS RECOGNIZABLE BALANCES MATRIX STREAM
+        function renderShiftsStreamDisplay() {
+            const container = document.getElementById('shifts-container-stream');
+            container.innerHTML = '';
+            let logsToDisplay = runtimeShifts;
+            if(currentFilterStatus !== 'All') {
+                logsToDisplay = runtimeShifts.filter(s => s.status === currentFilterStatus);
+            }
+            if(logsToDisplay.length === 0) {
+                container.innerHTML = `<div class="text-center py-12 border border-dashed border-slate-200 rounded-2xl bg-slate-50/50"><p class="text-xs text-gray-400 italic">No shifts found for status "${currentFilterStatus}".</p></div>`;
+                return;
+            }
+            logsToDisplay.forEach(log => {
+                const matchingWorker = runtimeWorkers.find(w => w.email === log.worker_email);
+                const nameStr = matchingWorker ? matchingWorker.name : "Unknown Operative";
+                const shiftDateRaw = log.punch_in_time || log.created_at;
+                const dateObj = new Date(shiftDateRaw);
+                const calendarDate = dateObj.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                const timestampClock = dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+                const transport = parseFloat(log.transport_expense || 0);
+                const food = parseFloat(log.food_expense || 0);
+                const material = parseFloat(log.material_expense || 0);
+                const totalExpensesCombined = transport + food + material;
+
+                let statusBadgeColor = "bg-amber-100 text-amber-800 border-amber-200";
+                if(log.status === 'Approved') statusBadgeColor = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                if(log.status === 'Active') statusBadgeColor = "bg-blue-100 text-blue-800 border-blue-200";
+                if(log.status === 'Rejected') statusBadgeColor = "bg-rose-100 text-rose-800 border-rose-200";
+
+                let div = document.createElement('div');
+                div.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4 hover:border-purple-200 transition";
+                div.innerHTML = `
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-slate-100">
+                        <div>
+                            <strong class="text-sm font-black text-slate-800 block">${nameStr}</strong>
+                            <span class="text-[10px] text-slate-400 font-mono">${log.worker_email}</span>
+                        </div>
+                        <div class="text-right flex items-center gap-2">
+                            <span class="bg-purple-100 text-[#4a148c] text-[10px] font-bold px-2.5 py-1 rounded-md font-mono">📅 ${calendarDate}</span>
+                            <span class="px-2 py-1 rounded text-[9px] border font-black uppercase tracking-wider ${statusBadgeColor}">${log.status}</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <div class="space-y-1">
+                            <p class="text-[10px] uppercase tracking-wider font-bold text-gray-400 font-mono">Deployment Coordinates</p>
+                            <p class="font-bold text-slate-700">📍 ${log.site_location || 'Not Specified'}</p>
+                            <p class="text-gray-400 font-mono text-[9px]">Shift Started: ${timestampClock}</p>
+                            <p class="text-gray-500 italic mt-1 text-[11px] bg-slate-50 p-2 rounded-lg border border-slate-100">"${log.progress_notes || 'No work summary documented.'}"</p>
+                        </div>
+                        <div class="space-y-1.5 bg-purple-50/40 p-3 rounded-xl border border-purple-100/50">
+                            <p class="text-[10px] uppercase tracking-wider font-bold text-purple-900 font-mono">Logged Site Operational Expenses</p>
+                            <div class="grid grid-cols-3 gap-1 text-[10px] text-center font-mono">
+                                <div class="bg-white p-1 rounded border border-slate-200"><span class="text-gray-400 block text-[9px]">🛺 Transport</span><strong>₹${transport}</strong></div>
+                                <div class="bg-white p-1 rounded border border-slate-200"><span class="text-amber-800 block text-[9px]">🍲 Food/Meals</span><strong>₹${food}</strong></div>
+                                <div class="bg-white p-1 rounded border border-slate-200"><span class="text-blue-800 block text-[9px]">🧱 Materials</span><strong>₹${material}</strong></div>
+                            </div>
+                            ${log.material_notes ? `<p class="text-[9px] text-purple-700 font-mono mt-1 bg-white px-1.5 py-0.5 rounded border border-purple-100">Material Items: ${log.material_notes}</p>` : ''}
+                            <div class="text-right font-mono text-[11px] pt-1 border-t border-purple-200/40 font-bold text-slate-700">Operational Outflow Total: ₹${totalExpensesCombined.toLocaleString('en-IN')}</div>
+                        </div>
+                    </div>
+                    ${log.status === 'Pending' ? `
+                    <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button onclick="updateShiftStatusResolution('${log.id}', 'Rejected')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-lg transition cursor-pointer">❌ Reject Shift</button>
+                        <button onclick="updateShiftStatusResolution('${log.id}', 'Approved')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-lg transition cursor-pointer shadow">✅ Approve Shift & Log Credits</button>
+                    </div>` : ''}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // UPDATE STATUS
+        async function updateShiftStatusResolution(id, resolveStatus) {
+            if(!confirm(`Are you sure you want to mark this shift status as ${resolveStatus}?`)) return;
+            try {
+                const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ status: resolveStatus }) });
+                if(!res.ok) throw new Error("Faulty transaction execution.");
+                alert(`Shift record stored as: ${resolveStatus}`);
+                await fetchAllDataFromNode();
+            } catch(e) {
+                alert("Failed to change shift status record.");
+            }
+        }
+    </script>
+</body>
+</html>
