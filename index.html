@@ -18,16 +18,17 @@
             <div class="space-y-5 text-left">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Portal Login Email</label>
-                    <input type="email" id="auth-email" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-[#4a148c] focus:ring-2 focus:ring-purple-100 outline-none transition" placeholder="name@anantelectrical.in">
+                    <input type="email" id="auth-email" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-[#4a148c] focus:ring-2 focus:ring-purple-200 outline-none transition" placeholder="your@email.com">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Portal Login Password</label>
-                    <input type="password" id="auth-password" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-[#4a148c] focus:ring-2 focus:ring-purple-100 outline-none transition" placeholder="••••••••">
+                    <input type="password" id="auth-password" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-[#4a148c] focus:ring-2 focus:ring-purple-200 outline-none transition" placeholder="••••••••">
                 </div>
                 <button onclick="attemptAuthenticationSubmit()" class="w-full bg-[#4a148c] hover:bg-[#380e6f] text-white font-bold py-3.5 rounded-xl text-sm tracking-wider uppercase shadow-lg hover:shadow-xl transition cursor-pointer">
                     Secure Dashboard Login
                 </button>
             </div>
+            <p id="auth-error" class="text-xs text-red-600 mt-3 hidden"></p>
         </div>
 
         <!-- PORTAL DASHBOARD -->
@@ -41,10 +42,10 @@
                         <p id="display-worker-email" class="text-xs text-purple-200/80 font-mono mt-0.5">...</p>
                     </div>
                     <div class="flex flex-col gap-2">
-                        <button onclick="syncDashboardPortalState()" class="bg-emerald-600/90 hover:bg-emerald-500 p-2 rounded-lg text-xs font-bold transition cursor-pointer shadow-sm flex items-center justify-center gap-1">
+                        <button onclick="syncDashboardPortalState()" class="bg-emerald-600/90 hover:bg-emerald-500 p-2 rounded-lg text-xs font-bold transition cursor-pointer shadow-sm flex items-center gap-1">
                             🔄 Refresh
                         </button>
-                        <button onclick="location.reload()" class="bg-purple-900/40 hover:bg-purple-900/60 p-2 rounded-lg text-xs transition cursor-pointer">
+                        <button onclick="logoutUser()" class="bg-purple-900/40 hover:bg-purple-900/60 p-2 rounded-lg text-xs transition cursor-pointer">
                             Log Out
                         </button>
                     </div>
@@ -125,11 +126,11 @@
 
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Active Site Location</label>
-                        <input type="text" id="shift-location" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="e.g., Koramangala More Supermarket">
+                        <input type="text" id="shift-location" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="e.g., Site A, Building 5">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Progress Notes / Task Summary</label>
-                        <textarea id="shift-progress" rows="2" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="Describe work completed today..."></textarea>
+                        <textarea id="shift-progress" rows="2" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="Describe your work activities..."></textarea>
                     </div>
 
                     <div class="border-t border-slate-100 pt-3 mt-2 space-y-3">
@@ -138,30 +139,30 @@
                         <div class="grid grid-cols-3 gap-2">
                             <div>
                                 <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Transport</label>
-                                <input type="number" id="exp-transport" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" value="0">
+                                <input type="number" id="exp-transport" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" placeholder="0" min="0">
                             </div>
                             <div>
                                 <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Food/Meals</label>
-                                <input type="number" id="exp-food" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" value="0">
+                                <input type="number" id="exp-food" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" placeholder="0" min="0">
                             </div>
                             <div>
                                 <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Materials</label>
-                                <input type="number" id="exp-material" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" value="0">
+                                <input type="number" id="exp-material" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" placeholder="0" min="0">
                             </div>
                         </div>
 
                         <div class="bg-amber-50/50 p-3 rounded-xl border border-amber-100">
                             <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">💰 Mid-Day Advance Cash Received Today</label>
-                            <input type="number" id="exp-advance" class="w-full p-2.5 bg-white border border-amber-200 rounded-lg font-mono font-bold text-xs text-amber-900 outline-none focus:border-amber-500" value="0">
+                            <input type="number" id="exp-advance" class="w-full p-2.5 bg-white border border-amber-200 rounded-lg font-mono font-bold text-xs text-amber-900 outline-none focus:border-amber-300" placeholder="0" min="0">
                             <p class="text-[9px] text-amber-600/80 mt-1">This will increase your rolling wallet balance availability.</p>
                         </div>
 
                         <div>
-                            <input type="text" id="exp-material-desc" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="List materials bought...">
+                            <input type="text" id="exp-material-desc" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="Material notes (optional)">
                         </div>
                     </div>
 
-                    <button id="punch-out-button" onclick="initiateCameraWorkflow('out')" class="w-full bg-[#4a148c] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer">
+                    <button id="punch-out-button" onclick="initiateCameraWorkflow('out')" class="w-full bg-[#4a148c] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md hover:bg-[#380e6f] transition cursor-pointer">
                         Capture Selfie & Punch Out
                     </button>
                 </div>
@@ -171,7 +172,7 @@
             <div class="space-y-2">
                 <div class="flex justify-between items-center px-1">
                     <p class="text-[10px] uppercase font-bold tracking-wider text-purple-200 font-mono">Verified Ledger Streams</p>
-                    <select id="dashboard-month-filter" onchange="syncDashboardPortalState()" class="bg-purple-950/60 border border-purple-400/40 rounded-lg px-2 py-1 text-[11px] font-bold text-purple-100 font-mono focus:outline-none">
+                    <select id="dashboard-month-filter" onchange="syncDashboardPortalState()" class="bg-purple-950/60 border border-purple-400/40 rounded-lg px-2 py-1 text-[11px] font-bold text-purple-200 outline-none">
                         <option value="ALL">All Records</option>
                         <option value="0">January</option>
                         <option value="1">February</option>
@@ -215,10 +216,10 @@
             <div class="relative w-full aspect-[3/4] bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
                 <video id="camera-stream" autoplay playsinline class="w-full h-full object-cover transform -scale-x-100"></video>
             </div>
-            <button id="btn-capture-photo" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition shadow-lg">
+            <button id="btn-capture-photo" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition shadow-lg cursor-pointer">
                 Confirm & Capture
             </button>
-            <button onclick="closeCameraModal()" class="w-full text-slate-400 hover:text-slate-600 font-bold text-center text-xs uppercase tracking-widest transition">
+            <button onclick="closeCameraModal()" class="w-full text-slate-400 hover:text-slate-600 font-bold text-center text-xs uppercase tracking-widest transition cursor-pointer">
                 Cancel
             </button>
         </div>
@@ -232,9 +233,9 @@
     </footer>
 
     <script>
-        const SUPABASE_URL = "https://xeffbclwniepwbpsvorh.supabase.co/rest/v1/";
-        const SUPABASE_KEY = "sb_publishable_JfBR83l0-TTsig_geq1nUw_hwUeSvaH";
-        const HEADERS = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=representation" };
+        const API_BASE_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:5000/api' 
+            : 'https://api.anantelectrical.com/api';
 
         let currentActiveUser = null;
         let activeShiftLogs = [];
@@ -244,42 +245,101 @@
         let lockTimerInterval = null;
         let currentActiveTab = 'shifts'; 
 
-        async function attemptAuthenticationSubmit() {
-            const emailInput = document.getElementById('auth-email').value.trim().toLowerCase();
-            const passwordInput = document.getElementById('auth-password').value.trim();
+        // Utility: Get JWT from sessionStorage
+        function getAuthToken() {
+            return sessionStorage.getItem('authToken');
+        }
 
-            if(!emailInput || !passwordInput) {
-                return alert("Please enter both email and password.");
+        // Utility: Make authenticated API call
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            const token = getAuthToken();
+            if (!token) {
+                logoutUser();
+                return null;
             }
 
-            try {
-                const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(emailInput)}`, { 
-                    method: "GET", headers: HEADERS 
-                });
-                if (!res.ok) throw new Error(`Status ${res.status}`);
-                const data = await res.json();
-
-                if(data && data.length > 0) {
-                    const worker = data[0];
-                    if(String(worker.password).trim() === String(passwordInput)) {
-                        currentActiveUser = worker;
-                        document.getElementById('auth-section').classList.add('hidden');
-                        document.getElementById('portal-dashboard').classList.remove('hidden');
-                        await syncDashboardPortalState();
-                    } else {
-                        alert("Authentication Failure: Password does not match.");
-                    }
-                } else {
-                    alert("Authentication Failure: No account registered under this email.");
+            const options = {
+                method,
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
-            } catch(err) {
-                console.error("Auth Error:", err);
-                alert("Network communication error.");
+            };
+
+            if (body) options.body = JSON.stringify(body);
+
+            try {
+                const res = await fetch(`${API_BASE_URL}${endpoint}`, options);
+                
+                if (res.status === 403 || res.status === 401) {
+                    logoutUser();
+                    return null;
+                }
+
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                return await res.json();
+            } catch (err) {
+                console.error('API Error:', err);
+                alert('Network error. Please try again.');
+                return null;
             }
         }
 
+        async function attemptAuthenticationSubmit() {
+            const emailInput = document.getElementById('auth-email').value.trim().toLowerCase();
+            const passwordInput = document.getElementById('auth-password').value.trim();
+            const errorEl = document.getElementById('auth-error');
+
+            if (!emailInput || !passwordInput) {
+                errorEl.textContent = 'Please enter both email and password.';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: emailInput, password: passwordInput })
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Login failed');
+                }
+
+                const data = await res.json();
+                
+                // Store token in sessionStorage (secure, auto-cleared on tab close)
+                sessionStorage.setItem('authToken', data.token);
+                currentActiveUser = data.user;
+
+                errorEl.classList.add('hidden');
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('portal-dashboard').classList.remove('hidden');
+                
+                await syncDashboardPortalState();
+            } catch (err) {
+                console.error('Auth Error:', err);
+                errorEl.textContent = err.message;
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        function logoutUser() {
+            sessionStorage.removeItem('authToken');
+            currentActiveUser = null;
+            activeShiftLogs = [];
+            runningActiveShift = null;
+            
+            document.getElementById('portal-dashboard').classList.add('hidden');
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('auth-email').value = '';
+            document.getElementById('auth-password').value = '';
+        }
+
         function runPunchOutLockSystem(startTimeISO) {
-            if(lockTimerInterval) clearInterval(lockTimerInterval);
+            if (lockTimerInterval) clearInterval(lockTimerInterval);
             
             const punchOutBtn = document.getElementById('punch-out-button');
             const startTime = new Date(startTimeISO).getTime();
@@ -337,18 +397,11 @@
 
             if (currentActiveTab === 'shifts') {
                 const nonActiveLogs = filteredShiftLogs.filter(log => log.status !== 'Active');
-                if(nonActiveLogs.length > 0) {
+                if (nonActiveLogs.length > 0) {
                     nonActiveLogs.forEach(log => {
                         let dateText = new Date(log.punch_in_time || log.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
                         let statusColor = log.status === 'Approved' ? "bg-emerald-100 text-emerald-800 border-emerald-200" : (log.status === 'Rejected' ? "bg-rose-100 text-rose-800 border-rose-200" : "bg-amber-100 text-amber-800 border-amber-200");
-                        let localImages = JSON.parse(localStorage.getItem(`selfies_${log.id}`)) || {};
-                        let trackingThumbnailsHtml = '';
-                        if(localImages.in || localImages.out) {
-                            trackingThumbnailsHtml = `<div class="flex gap-3 mt-2 pt-2 border-t border-slate-100 justify-start items-center">`;
-                            if(localImages.in) trackingThumbnailsHtml += `<div class="flex items-center gap-1"><img src="${localImages.in}" class="w-7 h-7 rounded-full object-cover border border-emerald-400"><span class="text-[9px] text-gray-400 uppercase font-mono">In</span></div>`;
-                            if(localImages.out) trackingThumbnailsHtml += `<div class="flex items-center gap-1"><img src="${localImages.out}" class="w-7 h-7 rounded-full object-cover border border-purple-400"><span class="text-[9px] text-gray-400 uppercase font-mono">Out</span></div>`;
-                            trackingThumbnailsHtml += `</div>`;
-                        }
+                        
                         let div = document.createElement('div');
                         div.className = "bg-white p-3.5 rounded-xl border border-purple-100/60 shadow-sm text-xs";
                         div.innerHTML = `
@@ -356,7 +409,6 @@
                                 <div><p class="font-bold text-slate-800">${log.site_location || 'Field Location Site'}</p><p class="text-[10px] text-slate-400">${dateText} • Spent: ₹${parseFloat(log.transport_expense || 0) + parseFloat(log.food_expense || 0) + parseFloat(log.material_expense || 0)}</p></div>
                                 <span class="px-2 py-0.5 rounded text-[9px] border font-bold uppercase tracking-wider ${statusColor}">${log.status}</span>
                             </div>
-                            ${trackingThumbnailsHtml}
                         `;
                         stream.appendChild(div);
                     });
@@ -371,7 +423,7 @@
                     if (morningWalletAmt > 0) {
                         let div = document.createElement('div');
                         div.className = "bg-amber-50 p-3.5 rounded-xl border border-amber-200 shadow-sm text-xs flex justify-between items-center";
-                        div.innerHTML = `<div><p class="font-bold text-amber-900">☀️ Morning Cash (Opening Balance)</p><p class="text-[10px] text-slate-400">Admin Allocated Fund Balance</p></div><strong class="text-amber-600 font-mono font-black text-sm">₹${morningWalletAmt.toLocaleString('en-IN')}</strong>`;
+                        div.innerHTML = `<div><p class="font-bold text-amber-900">☀️ Morning Cash (Opening Balance)</p><p class="text-[10px] text-slate-400">Admin Allocated Fund Balance</p></div><strong class="text-amber-600">₹${morningWalletAmt.toLocaleString('en-IN')}</strong>`;
                         stream.appendChild(div);
                     }
                     
@@ -379,7 +431,7 @@
                         let dateText = new Date(log.punch_in_time || log.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
                         let div = document.createElement('div');
                         div.className = "bg-white p-3.5 rounded-xl border border-amber-100 shadow-sm text-xs flex justify-between items-center";
-                        div.innerHTML = `<div><p class="font-bold text-amber-900">Mid-Day Advance Received</p><p class="text-[10px] text-slate-400">${dateText} • ${log.site_location || 'On-Site entry'}</p></div><strong class="text-amber-600 font-mono font-black text-sm">+ ₹${parseFloat(log.payment_advance_taken).toLocaleString('en-IN')}</strong>`;
+                        div.innerHTML = `<div><p class="font-bold text-amber-900">Mid-Day Advance Received</p><p class="text-[10px] text-slate-400">${dateText} • ${log.site_location || 'On-Site'}</p></div><strong class="text-amber-600">₹${parseFloat(log.payment_advance_taken || 0).toLocaleString('en-IN')}</strong>`;
                         stream.appendChild(div);
                     });
                 } else {
@@ -398,7 +450,7 @@
                                 <p class="font-bold text-rose-900">Active Structural Salary Advance Balance</p>
                                 <strong class="text-rose-600 font-mono text-sm">₹${salaryAdvance.toLocaleString('en-IN')}</strong>
                             </div>
-                            <p class="text-[10px] text-gray-500 leading-relaxed">This ledger tracks long-term lump sum structural advances provided directly via central accounts. Monthly auto-deductions adjust against confirmed net payroll milestones.</p>
+                            <p class="text-[10px] text-gray-500 leading-relaxed">This ledger tracks long-term lump sum structural advances provided directly via central accounts. Monthly auto-deduction applies.</p>
                             <div class="pt-2 border-t border-slate-100 flex justify-between text-[9px] text-slate-400 font-mono uppercase">
                                 <span>Verified: ${verifiedTimestamp}</span>
                                 <span>Ref: AE-STF-${currentActiveUser.id || 'REG'}</span>
@@ -411,15 +463,12 @@
         }
 
         async function syncDashboardPortalState() {
-            if(!currentActiveUser) return;
+            if (!currentActiveUser) return;
 
             try {
-                const userRes = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentActiveUser.email)}`, { 
-                    method: "GET", headers: HEADERS 
-                });
-                const userData = await userRes.json();
-                if(userData && userData.length > 0) currentActiveUser = userData[0];
-            } catch(e) { console.error("Error updating details:", e); }
+                const userData = await apiCall('/worker/profile');
+                if (userData) currentActiveUser = userData;
+            } catch (e) { console.error("Error updating details:", e); }
 
             document.getElementById('display-worker-name').innerText = currentActiveUser.name || "Worker";
             document.getElementById('display-worker-email').innerText = currentActiveUser.email;
@@ -427,10 +476,8 @@
             document.getElementById('display-fixed-salary').innerText = `₹${parseFloat(currentActiveUser.fixed_salary || 0).toLocaleString('en-IN')}`;
 
             try {
-                const res = await fetch(`${SUPABASE_URL}shift_logs?worker_email=eq.${encodeURIComponent(currentActiveUser.email)}&order=created_at.desc`, { 
-                    method: "GET", headers: HEADERS 
-                });
-                activeShiftLogs = await res.json();
+                const shifts = await apiCall('/shifts');
+                activeShiftLogs = shifts || [];
                 runningActiveShift = activeShiftLogs.find(log => log.status === 'Active');
 
                 if (runningActiveShift) {
@@ -439,18 +486,11 @@
                     let startTimeISO = runningActiveShift.punch_in_time || runningActiveShift.created_at;
                     let startTime = new Date(startTimeISO);
                     document.getElementById('punch-in-time-display').innerText = `Started Today at: ${startTime.toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'})}`;
-                    let storedSelfies = JSON.parse(localStorage.getItem(`selfies_${runningActiveShift.id}`)) || {};
-                    if(storedSelfies.in) {
-                        document.getElementById('active-selfie-box').classList.remove('hidden');
-                        document.getElementById('active-selfie-image').src = storedSelfies.in;
-                    } else {
-                        document.getElementById('active-selfie-box').classList.add('hidden');
-                    }
                     runPunchOutLockSystem(startTimeISO);
                 } else {
                     document.getElementById('punch-in-panel').classList.remove('hidden');
                     document.getElementById('punch-out-panel').classList.add('hidden');
-                    if(lockTimerInterval) clearInterval(lockTimerInterval);
+                    if (lockTimerInterval) clearInterval(lockTimerInterval);
                 }
 
                 const selectedMonthFilter = document.getElementById('dashboard-month-filter').value;
@@ -490,14 +530,14 @@
                 document.getElementById('display-total-spent').innerText = `₹${siteSpent.toLocaleString('en-IN')}`;
                 document.getElementById('display-midday-advance').innerText = `₹${combinedTotalAdvances.toLocaleString('en-IN')}`;
                 renderActiveStreamTab();
-            } catch(e) { console.error("Sync error:", e); }
+            } catch (e) { console.error("Sync error:", e); }
         }
 
         async function initiateCameraWorkflow(mode) {
             if (mode === 'out') {
                 const site_location = document.getElementById('shift-location').value.trim();
                 const progress_notes = document.getElementById('shift-progress').value.trim();
-                if(!site_location || !progress_notes) return alert("Validation Failed: Please fill out site location and progress summary fields before capturing your punch-out selfie.");
+                if (!site_location || !progress_notes) return alert("Validation Failed: Please fill out site location and progress summary fields before capturing your punch-out selfie.");
             }
             document.getElementById('camera-modal').classList.remove('hidden');
             document.getElementById('camera-title').innerText = mode === 'in' ? "Punch In Identity Selfie" : "Punch Out Identity Selfie";
@@ -508,10 +548,11 @@
             document.getElementById('btn-capture-photo').onclick = async () => {
                 capturePhotoSnapshotData();
                 closeCameraModal();
-                if(mode === 'in') await executePunchInWorkflow();
+                if (mode === 'in') await executePunchInWorkflow();
                 else await executePunchOutWorkflow();
             };
         }
+
         function capturePhotoSnapshotData() {
             const video = document.getElementById('camera-stream');
             const canvas = document.getElementById('photo-canvas');
@@ -522,57 +563,102 @@
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             temporaryCapturedBase64 = canvas.toDataURL('image/jpeg', 0.55);
         }
+
         function closeCameraModal() {
             document.getElementById('camera-modal').classList.add('hidden');
-            if(mediaStream) { mediaStream.getTracks().forEach(track => track.stop()); mediaStream = null; }
+            if (mediaStream) { mediaStream.getTracks().forEach(track => track.stop()); mediaStream = null; }
         }
+
         async function executePunchInWorkflow() {
-            const payload = { worker_email: currentActiveUser.email, status: "Active", punch_in_time: new Date().toISOString(), site_location: "Not Specified", progress_notes: "", transport_expense: 0, food_expense: 0, material_expense: 0, payment_advance_taken: 0 };
             try {
-                const res = await fetch(`${SUPABASE_URL}shift_logs`, { method: 'POST', headers: HEADERS, body: JSON.stringify(payload) });
-                const data = await res.json();
-                if(data && data.length > 0 && temporaryCapturedBase64) {
-                    let logId = data[0].id;
-                    let record = { in: temporaryCapturedBase64, out: null };
-                    localStorage.setItem(`selfies_${logId}`, JSON.stringify(record));
+                const payload = {
+                    site_location: "Not Specified",
+                    progress_notes: "",
+                    transport_expense: 0,
+                    food_expense: 0,
+                    material_expense: 0,
+                    material_notes: "",
+                    payment_advance_taken: 0
+                };
+
+                const shiftData = await apiCall('/shifts', 'POST', payload);
+                if (!shiftData || shiftData.length === 0) throw new Error('Failed to create shift');
+
+                const shiftId = shiftData[0].id;
+
+                // Upload selfie
+                if (temporaryCapturedBase64) {
+                    await apiCall('/upload-selfie', 'POST', {
+                        image: temporaryCapturedBase64,
+                        shiftId: shiftId,
+                        type: 'in'
+                    });
                 }
-                alert("Shift started! Selfie verified and stored locally on your device.");
+
+                alert("✅ Shift started! Selfie verified and stored securely.");
                 temporaryCapturedBase64 = null;
                 await syncDashboardPortalState();
-            } catch(err) { alert("Network error while logging punch-in."); }
+            } catch (err) {
+                console.error('Punch-in error:', err);
+                alert("❌ Error starting shift. Please try again.");
+            }
         }
+
         async function executePunchOutWorkflow() {
             if (!runningActiveShift) return;
-            const site_location = document.getElementById('shift-location').value.trim();
-            const progress_notes = document.getElementById('shift-progress').value.trim();
-            const transport_expense = parseFloat(document.getElementById('exp-transport').value) || 0;
-            const food_expense = parseFloat(document.getElementById('exp-food').value) || 0;
-            const material_expense = parseFloat(document.getElementById('exp-material').value) || 0;
-            const payment_advance_taken = parseFloat(document.getElementById('exp-advance').value) || 0; 
-            const material_notes = document.getElementById('exp-material-desc').value.trim();
-            const totalShiftExpenses = transport_expense + food_expense + material_expense;
-            const currentWallet = parseFloat(currentActiveUser.morning_advance || 0);
-            const remainingCarryforwardBalance = currentWallet + payment_advance_taken - totalShiftExpenses;
-            const shiftPayload = { site_location, progress_notes, transport_expense, food_expense, material_expense, material_notes, payment_advance_taken, status: "Pending", punch_out_time: new Date().toISOString() };
+            
             try {
-                await fetch(`${SUPABASE_URL}shift_logs?id=eq.${runningActiveShift.id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(shiftPayload) });
-                await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ morning_advance: remainingCarryforwardBalance }) });
-                if(temporaryCapturedBase64) {
-                    let record = JSON.parse(localStorage.getItem(`selfies_${runningActiveShift.id}`)) || { in: null, out: null };
-                    record.out = temporaryCapturedBase64;
-                    localStorage.setItem(`selfies_${runningActiveShift.id}`, JSON.stringify(record));
+                const site_location = document.getElementById('shift-location').value.trim();
+                const progress_notes = document.getElementById('shift-progress').value.trim();
+                const transport_expense = parseFloat(document.getElementById('exp-transport').value) || 0;
+                const food_expense = parseFloat(document.getElementById('exp-food').value) || 0;
+                const material_expense = parseFloat(document.getElementById('exp-material').value) || 0;
+                const payment_advance_taken = parseFloat(document.getElementById('exp-advance').value) || 0;
+                const material_notes = document.getElementById('exp-material-desc').value.trim();
+                const totalShiftExpenses = transport_expense + food_expense + material_expense;
+                const currentWallet = parseFloat(currentActiveUser.morning_advance || 0);
+                const remainingCarryforwardBalance = currentWallet + payment_advance_taken - totalShiftExpenses;
+
+                const shiftPayload = {
+                    site_location,
+                    progress_notes,
+                    transport_expense,
+                    food_expense,
+                    material_expense,
+                    material_notes,
+                    payment_advance_taken,
+                    status: "Pending"
+                };
+
+                await apiCall(`/shifts/${runningActiveShift.id}`, 'PATCH', shiftPayload);
+                await apiCall('/worker/wallet', 'PATCH', { morning_advance: remainingCarryforwardBalance });
+
+                // Upload selfie
+                if (temporaryCapturedBase64) {
+                    await apiCall('/upload-selfie', 'POST', {
+                        image: temporaryCapturedBase64,
+                        shiftId: runningActiveShift.id,
+                        type: 'out'
+                    });
                 }
-                alert("Shift punch-out submitted! Final identity selfie processed and saved locally.");
+
+                alert("✅ Shift punch-out submitted! Final identity selfie processed and saved securely.");
+                
+                // Clear form
                 document.getElementById('shift-location').value = '';
                 document.getElementById('shift-progress').value = '';
                 document.getElementById('exp-transport').value = '0';
                 document.getElementById('exp-food').value = '0';
                 document.getElementById('exp-material').value = '0';
-                document.getElementById('exp-advance').value = '0'; 
+                document.getElementById('exp-advance').value = '0';
                 document.getElementById('exp-material-desc').value = '';
                 temporaryCapturedBase64 = null;
+                
                 await syncDashboardPortalState();
-            } catch(err) { alert("Network error while submitting punch-out."); }
+            } catch (err) {
+                console.error('Punch-out error:', err);
+                alert("❌ Error submitting punch-out. Please try again.");
+            }
         }
     </script>
 </body>
