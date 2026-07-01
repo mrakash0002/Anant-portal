@@ -18,13 +18,13 @@
             <div class="space-y-5 text-left">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Portal Login Email</label>
-                    <input type="email" id="auth-email" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-[#4a148c] focus:ring-2 focus:ring-purple-200 outline-none transition" placeholder="worker@company.com" />
+                    <input type="email" id="auth-email" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-[#4a148c] focus:ring-2 focus:ring-purple-100 outline-none transition" placeholder="name@anantelectrical.in">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Portal Login Password</label>
-                    <input type="password" id="auth-password" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-[#4a148c] focus:ring-2 focus:ring-purple-200 outline-none transition" placeholder="••••••••" />
+                    <input type="password" id="auth-password" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-[#4a148c] focus:ring-2 focus:ring-purple-100 outline-none transition" placeholder="••••••••">
                 </div>
-                <button onclick="attemptAuthenticationSubmit()" class="w-full bg-[#4a148c] hover:bg-[#380e6f] text-white font-bold py-3.5 rounded-xl text-sm tracking-wider uppercase shadow-lg hover:shadow-xl transition">
+                <button onclick="attemptAuthenticationSubmit()" class="w-full bg-[#4a148c] hover:bg-[#380e6f] text-white font-bold py-3.5 rounded-xl text-sm tracking-wider uppercase shadow-lg hover:shadow-xl transition cursor-pointer">
                     Secure Dashboard Login
                 </button>
             </div>
@@ -40,14 +40,7 @@
                         <h2 id="display-worker-name" class="text-2xl font-black tracking-tight">Loading Profile...</h2>
                         <p id="display-worker-email" class="text-xs text-purple-200/80 font-mono mt-0.5">...</p>
                     </div>
-                    <div class="flex flex-col gap-2">
-                        <button onclick="syncDashboardPortalState()" class="bg-emerald-600/90 hover:bg-emerald-500 p-2 rounded-lg text-xs font-bold transition cursor-pointer shadow-sm flex items-center gap-1">
-                            🔄 Refresh
-                        </button>
-                        <button onclick="location.reload()" class="bg-purple-900/40 hover:bg-purple-900/60 p-2 rounded-lg text-xs transition cursor-pointer">
-                            Log Out
-                        </button>
-                    </div>
+                    <button onclick="location.reload()" class="bg-purple-900/40 hover:bg-purple-900/60 p-2 rounded-lg text-xs transition cursor-pointer">Log Out</button>
                 </div>
 
                 <div class="p-5 bg-rose-50/60 border-b border-rose-100">
@@ -107,7 +100,7 @@
                 
                 <div id="punch-in-panel" class="space-y-3">
                     <p class="text-xs text-slate-500">You do not have an active shift running. Punch in to begin tracking your work shift hours.</p>
-                    <button onclick="initiateCameraWorkflow('in')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md hover:shadow-lg transition">
+                    <button onclick="initiateCameraWorkflow('in')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer">
                         Capture Selfie & Punch In
                     </button>
                 </div>
@@ -125,7 +118,7 @@
 
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Active Site Location</label>
-                        <input type="text" id="shift-location" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="e.g. Site A, Building 5" />
+                        <input type="text" id="shift-location" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="e.g., Koramangala More Supermarket">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Progress Notes / Task Summary</label>
@@ -138,30 +131,30 @@
                         <div class="grid grid-cols-3 gap-2">
                             <div>
                                 <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Transport</label>
-                                <input type="number" id="exp-transport" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" placeholder="0" />
+                                <input type="number" id="exp-transport" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" value="0">
                             </div>
                             <div>
                                 <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Food/Meals</label>
-                                <input type="number" id="exp-food" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" placeholder="0" />
+                                <input type="number" id="exp-food" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" value="0">
                             </div>
                             <div>
                                 <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Materials</label>
-                                <input type="number" id="exp-material" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" placeholder="0" />
+                                <input type="number" id="exp-material" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" value="0">
                             </div>
                         </div>
 
                         <div class="bg-amber-50/50 p-3 rounded-xl border border-amber-100">
                             <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">💰 Mid-Day Advance Cash Received Today</label>
-                            <input type="number" id="exp-advance" class="w-full p-2.5 bg-white border border-amber-200 rounded-lg font-mono font-bold text-xs text-amber-900 outline-none focus:border-amber-400" placeholder="0" />
+                            <input type="number" id="exp-advance" class="w-full p-2.5 bg-white border border-amber-200 rounded-lg font-mono font-bold text-xs text-amber-900 outline-none focus:border-amber-500" value="0">
                             <p class="text-[9px] text-amber-600/80 mt-1">This will increase your rolling wallet balance availability.</p>
                         </div>
 
                         <div>
-                            <input type="text" id="exp-material-desc" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="Material description (optional)" />
+                            <input type="text" id="exp-material-desc" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="List materials bought...">
                         </div>
                     </div>
 
-                    <button id="punch-out-button" onclick="initiateCameraWorkflow('out')" class="w-full bg-[#4a148c] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md hover:shadow-lg transition">
+                    <button id="punch-out-button" onclick="initiateCameraWorkflow('out')" class="w-full bg-[#4a148c] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer">
                         Capture Selfie & Punch Out
                     </button>
                 </div>
@@ -171,14 +164,14 @@
             <div class="space-y-2">
                 <div class="flex justify-between items-center px-1">
                     <p class="text-[10px] uppercase font-bold tracking-wider text-purple-200 font-mono">Verified Ledger Streams</p>
-                    <select id="dashboard-month-filter" onchange="syncDashboardPortalState()" class="bg-purple-950/60 border border-purple-400/40 rounded-lg px-2 py-1 text-[11px] font-bold text-purple-200 outline-none">
+                    <select id="dashboard-month-filter" onchange="syncDashboardPortalState()" class="bg-purple-950/60 border border-purple-400/40 rounded-lg px-2 py-1 text-[11px] font-bold text-purple-100 font-mono focus:outline-none">
                         <option value="ALL">All Records</option>
                         <option value="0">January</option>
                         <option value="1">February</option>
                         <option value="2">March</option>
                         <option value="3">April</option>
                         <option value="4">May</option>
-                        <option value="5" selected>June (Current)</option>
+                        <option value="5">June</option>
                         <option value="6">July</option>
                         <option value="7">August</option>
                         <option value="8">September</option>
@@ -340,13 +333,13 @@
                 if(nonActiveLogs.length > 0) {
                     nonActiveLogs.forEach(log => {
                         let dateText = new Date(log.punch_in_time || log.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                        let statusColor = log.status === 'Approved' ? "bg-emerald-100 text-emerald-800 border-emerald-200" : (log.status === 'Rejected' ? "bg-rose-100 text-rose-800 border-rose-200" : "bg-blue-100 text-blue-800 border-blue-200");
+                        let statusColor = log.status === 'Approved' ? "bg-emerald-100 text-emerald-800 border-emerald-200" : (log.status === 'Rejected' ? "bg-rose-100 text-rose-800 border-rose-200" : "bg-amber-100 text-amber-800 border-amber-200");
                         let localImages = JSON.parse(localStorage.getItem(`selfies_${log.id}`)) || {};
                         let trackingThumbnailsHtml = '';
                         if(localImages.in || localImages.out) {
                             trackingThumbnailsHtml = `<div class="flex gap-3 mt-2 pt-2 border-t border-slate-100 justify-start items-center">`;
-                            if(localImages.in) trackingThumbnailsHtml += `<div class="flex items-center gap-1"><img src="${localImages.in}" class="w-7 h-7 rounded-full object-cover border border-emerald-300" title="Punch In" /></div>`;
-                            if(localImages.out) trackingThumbnailsHtml += `<div class="flex items-center gap-1"><img src="${localImages.out}" class="w-7 h-7 rounded-full object-cover border border-purple-300" title="Punch Out" /></div>`;
+                            if(localImages.in) trackingThumbnailsHtml += `<div class="flex items-center gap-1"><img src="${localImages.in}" class="w-7 h-7 rounded-full object-cover border border-emerald-400"><span class="text-[9px] text-gray-400 uppercase font-mono">In</span></div>`;
+                            if(localImages.out) trackingThumbnailsHtml += `<div class="flex items-center gap-1"><img src="${localImages.out}" class="w-7 h-7 rounded-full object-cover border border-purple-400"><span class="text-[9px] text-gray-400 uppercase font-mono">Out</span></div>`;
                             trackingThumbnailsHtml += `</div>`;
                         }
                         let div = document.createElement('div');
@@ -371,7 +364,7 @@
                     if (morningWalletAmt > 0) {
                         let div = document.createElement('div');
                         div.className = "bg-amber-50 p-3.5 rounded-xl border border-amber-200 shadow-sm text-xs flex justify-between items-center";
-                        div.innerHTML = `<div><p class="font-bold text-amber-900">☀️ Morning Cash (Opening Balance)</p><p class="text-[10px] text-slate-400">Admin Allocated Fund Balance</p></div><strong class="text-amber-600 font-mono">₹${morningWalletAmt.toLocaleString('en-IN')}</strong>`;
+                        div.innerHTML = `<div><p class="font-bold text-amber-900">☀️ Morning Cash (Opening Balance)</p><p class="text-[10px] text-slate-400">Admin Allocated Fund Balance</p></div><strong class="text-amber-600 font-mono font-black text-sm">₹${morningWalletAmt.toLocaleString('en-IN')}</strong>`;
                         stream.appendChild(div);
                     }
                     
@@ -379,7 +372,7 @@
                         let dateText = new Date(log.punch_in_time || log.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
                         let div = document.createElement('div');
                         div.className = "bg-white p-3.5 rounded-xl border border-amber-100 shadow-sm text-xs flex justify-between items-center";
-                        div.innerHTML = `<div><p class="font-bold text-amber-900">Mid-Day Advance Received</p><p class="text-[10px] text-slate-400">${dateText} • ${log.site_location || 'On-Site entry'}</p></div><strong class="text-amber-600 font-mono">₹${parseFloat(log.payment_advance_taken || 0).toLocaleString('en-IN')}</strong>`;
+                        div.innerHTML = `<div><p class="font-bold text-amber-900">Mid-Day Advance Received</p><p class="text-[10px] text-slate-400">${dateText} • ${log.site_location || 'On-Site entry'}</p></div><strong class="text-amber-600 font-mono font-black text-sm">+ ₹${parseFloat(log.payment_advance_taken).toLocaleString('en-IN')}</strong>`;
                         stream.appendChild(div);
                     });
                 } else {
@@ -398,7 +391,7 @@
                                 <p class="font-bold text-rose-900">Active Structural Salary Advance Balance</p>
                                 <strong class="text-rose-600 font-mono text-sm">₹${salaryAdvance.toLocaleString('en-IN')}</strong>
                             </div>
-                            <p class="text-[10px] text-gray-500 leading-relaxed">This ledger tracks long-term lump sum structural advances provided directly via central accounts. Monthly auto-deduction applied.</p>
+                            <p class="text-[10px] text-gray-500 leading-relaxed">This ledger tracks long-term lump sum structural advances provided directly via central accounts. Monthly auto-deductions adjust against confirmed net payroll milestones.</p>
                             <div class="pt-2 border-t border-slate-100 flex justify-between text-[9px] text-slate-400 font-mono uppercase">
                                 <span>Verified: ${verifiedTimestamp}</span>
                                 <span>Ref: AE-STF-${currentActiveUser.id || 'REG'}</span>
@@ -411,6 +404,14 @@
         }
 
         async function syncDashboardPortalState() {
+            // --- AUTOMATIC MONTH DETECTION ---
+            const monthFilter = document.getElementById('dashboard-month-filter');
+            if (!sessionStorage.getItem('manualMonthSet')) {
+                const currentMonth = new Date().getMonth();
+                monthFilter.value = currentMonth.toString();
+            }
+            // --- END ---
+
             if(!currentActiveUser) return;
 
             try {
@@ -574,6 +575,11 @@
                 await syncDashboardPortalState();
             } catch(err) { alert("Network error while submitting punch-out."); }
         }
+        
+        // Add this to help the month detection remember if the user clicks a different month
+        document.getElementById('dashboard-month-filter').addEventListener('change', function() {
+            sessionStorage.setItem('manualMonthSet', 'true');
+        });
     </script>
 </body>
 </html>
