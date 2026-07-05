@@ -5,12 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anant Electrical - Central Control Admin Node</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #12092b 0%, #041d44 50%, #0d2a54 100%);
+            background-attachment: fixed;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(14px) saturate(110%);
+            -webkit-backdrop-filter: blur(14px) saturate(110%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .glass-panel-dark {
+            background: rgba(26, 14, 61, 0.9);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-inner-card {
+            background: rgba(255, 255, 255, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        /* Custom Scrollbar for modern photo appearance */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(74, 20, 140, 0.3);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(74, 20, 140, 0.5);
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-[#1a0e3d] to-[#062c66] text-slate-800 font-sans min-h-screen flex flex-col justify-between p-4 md:p-8">
+<body class="text-slate-800 font-sans min-h-screen flex flex-col justify-between p-4 md:p-8 antialiased">
 
     <!-- GATEKEEPER INTERCEPT AUTHENTICATION DIALOG -->
-    <div id="admin-auth-shield" class="fixed inset-0 bg-[#1a0e3d]/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-purple-100">
+    <div id="admin-auth-shield" class="fixed inset-0 glass-panel-dark z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-purple-100">
             <div class="text-center">
                 <h2 class="text-xl font-black tracking-tight text-[#4a148c]">Admin Gateway Secure Vault</h2>
                 <p class="text-[11px] text-gray-400 font-mono mt-1">Authorized Operations Management Nodes Only</p>
@@ -37,7 +73,7 @@
     <div id="main-admin-dashboard-layout" class="max-w-6xl mx-auto w-full space-y-6 hidden flex-grow">
         
         <!-- HEADER MODULE -->
-        <header class="bg-white rounded-2xl shadow-xl p-6 flex flex-col md:flex-row justify-between items-center border border-purple-100 gap-4">
+        <header class="glass-panel rounded-3xl shadow-2xl p-6 flex flex-col md:flex-row justify-between items-center border border-purple-100/30 gap-4">
             <div>
                 <h1 class="text-3xl font-black tracking-tight text-[#4a148c]">Anant Electrical</h1>
                 <p class="text-xs text-gray-500 font-mono mt-0.5">Operations Control & Payroll Reconciliation Center</p>
@@ -49,14 +85,25 @@
             </div>
         </header>
 
+        <!-- SEPARATE MONTHLY RECONCILIATION REPORT MODULE -->
+        <section class="glass-panel rounded-3xl shadow-2xl p-6 border border-purple-100/30">
+            <div class="mb-4">
+                <h2 class="text-base font-black tracking-tight text-slate-900">Monthly Statement Summary</h2>
+                <p class="text-xs text-slate-500">Aggregated worker earnings and confidential broker parameters broken down by months.</p>
+            </div>
+            <div id="monthly-reconciliation-view" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <p class="text-xs text-purple-900/60 italic p-4">Loading statement structures...</p>
+            </div>
+        </section>
+
         <!-- MAIN LAYOUT GRID -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <!-- LEFT COLUMN: STAFF REGISTRY CONTROL PANEL -->
-            <section class="lg:col-span-1 bg-white rounded-2xl shadow-xl border border-purple-100 p-6 space-y-6">
+            <section class="lg:col-span-1 glass-panel rounded-3xl shadow-2xl border border-purple-100/30 p-6 space-y-6">
                 
                 <!-- NEW ACCOUNT CREATION OPTION -->
-                <div class="bg-purple-50/60 p-4 rounded-xl border border-purple-100 space-y-3">
+                <div class="bg-purple-50/70 p-4 rounded-xl border border-purple-100 space-y-3">
                     <h3 class="text-xs font-black uppercase tracking-wider text-[#4a148c]">➕ Create New Account</h3>
                     <div class="space-y-2">
                         <input type="text" id="new-worker-name" placeholder="Full Name" class="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#4a148c]">
@@ -64,7 +111,10 @@
                         <input type="password" id="new-worker-password" placeholder="Login Password" class="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#4a148c]">
                         
                         <div class="grid grid-cols-2 gap-2">
-                            <input type="number" id="new-worker-salary" placeholder="Base Rate (₹)" class="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#4a148c]">
+                            <input type="number" id="new-worker-salary" placeholder="Worker Rate (₹)" class="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#4a148c]">
+                            <input type="number" id="new-broker-rate" placeholder="Broker Cost (₹)" class="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#4a148c]">
+                        </div>
+                        <div>
                             <select id="new-worker-role" class="w-full p-2 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#4a148c]">
                                 <option value="Field Operator">Operator</option>
                                 <option value="Technician">Technician</option>
@@ -77,7 +127,7 @@
                     </button>
                 </div>
 
-                <hr class="border-slate-100" />
+                <hr class="border-slate-200/50" />
 
                 <div>
                     <h2 class="text-sm font-black tracking-tight text-slate-800">Staff Registry Management</h2>
@@ -89,14 +139,18 @@
                     <p class="text-xs text-gray-400 italic text-center py-4">Loading active personnel logs...</p>
                 </div>
 
-                <hr class="border-slate-100" />
+                <hr class="border-slate-200/50" />
 
                 <!-- BALANCES EDITING INTERFACE FORM -->
-                <div id="balance-adjustment-card" class="hidden space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div id="balance-adjustment-card" class="hidden space-y-4 glass-inner-card p-4 rounded-xl border border-slate-200">
                     <h3 class="text-xs font-black uppercase tracking-wider text-purple-900" id="form-selected-worker-title">Adjust Balances</h3>
                     <div>
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Daily Base Rate (₹)</label>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Worker Daily Rate (₹)</label>
                         <input type="number" id="edit-fixed-salary" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg font-mono text-sm outline-none focus:border-[#4a148c]">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-purple-900 uppercase tracking-wider mb-1">Confidential Broker Rate (₹)</label>
+                        <input type="number" id="edit-broker-rate" class="w-full p-2.5 bg-white border border-purple-200 text-purple-900 font-bold rounded-lg font-mono text-sm outline-none focus:border-[#4a148c]">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Morning Wallet Balance (₹)</label>
@@ -113,13 +167,13 @@
             </section>
 
             <!-- RIGHT COLUMN: SHIFT WORKLOG ENTRIES MONITOR -->
-            <section class="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-purple-100 p-6 flex flex-col">
+            <section class="lg:col-span-2 glass-panel rounded-3xl shadow-2xl border border-purple-100/30 p-6 flex flex-col">
                 <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <div>
                         <h2 class="text-lg font-black tracking-tight text-slate-800">Operational Shifts & Expense Logs</h2>
                         <p class="text-xs text-gray-400">Review deployments, audit logged expenses, and approve cycles.</p>
                     </div>
-                    <div class="flex gap-1 bg-slate-100 p-1 rounded-xl text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                    <div class="flex gap-1 bg-slate-200/60 p-1 rounded-xl text-[10px] font-bold uppercase tracking-wider text-gray-500 backdrop-blur-sm">
                         <button onclick="filterShiftsByStatus('Pending')" id="tab-Pending" class="px-2.5 py-1.5 rounded-lg transition-all cursor-pointer bg-white text-purple-900 shadow-sm">Pending</button>
                         <button onclick="filterShiftsByStatus('Approved')" id="tab-Approved" class="px-2.5 py-1.5 rounded-lg transition-all cursor-pointer">Approved</button>
                         <button onclick="filterShiftsByStatus('Active')" id="tab-Active" class="px-2.5 py-1.5 rounded-lg transition-all cursor-pointer">Active Logs</button>
@@ -178,6 +232,7 @@
 
                 renderRegistrySelectorPanel();
                 renderShiftsStreamDisplay();
+                renderMonthlyReport();
                 
                 if(currentlySelectedWorkerEmail) {
                     populateBalanceAdjustmentForm(currentlySelectedWorkerEmail);
@@ -188,12 +243,13 @@
             }
         }
 
-        // CREATE NEW ACCOUNT EXECUTOR
+        // CREATE NEW ACCOUNT EXECUTOR WITH BROKER PARAMETERS
         async function createNewWorkerAccount() {
             const name = document.getElementById('new-worker-name').value.trim();
             const email = document.getElementById('new-worker-email').value.trim().toLowerCase();
             const password = document.getElementById('new-worker-password').value.trim();
             const fixed_salary = parseFloat(document.getElementById('new-worker-salary').value) || 0;
+            const broker_rate = parseFloat(document.getElementById('new-broker-rate').value) || 0;
             const role = document.getElementById('new-worker-role').value;
 
             if(!name || !email || !password) {
@@ -201,7 +257,7 @@
                 return;
             }
 
-            const newAccountPayload = { name, email, password, fixed_salary, role, morning_advance: 0, salary_advance_taken: 0 };
+            const newAccountPayload = { name, email, password, fixed_salary, broker_rate, role, morning_advance: 0, salary_advance_taken: 0 };
 
             try {
                 const res = await fetch(`${SUPABASE_URL}workers_registry`, {
@@ -218,13 +274,104 @@
                 document.getElementById('new-worker-email').value = '';
                 document.getElementById('new-worker-password').value = '';
                 document.getElementById('new-worker-salary').value = '';
+                document.getElementById('new-broker-rate').value = '';
                 await fetchAllDataFromNode();
             } catch(e) {
                 alert("Error writing profile record to Supabase. Check if email already exists.");
             }
         }
 
-        // DISPLAY STAFF REGISTRY
+        // SEPARATED SEPARATE MONTHLY RECONCILIATION DISPLAY
+        function renderMonthlyReport() {
+            const container = document.getElementById('monthly-reconciliation-view');
+            container.innerHTML = '';
+
+            const monthlyAggregation = {};
+
+            // Accumulate calculations specifically from approved entries
+            runtimeShifts.filter(shift => shift.status === 'Approved').forEach(shift => {
+                const shiftDateRaw = shift.punch_in_time || shift.created_at;
+                const dateObj = new Date(shiftDateRaw);
+                const monthKey = dateObj.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+                
+                const associatedWorker = runtimeWorkers.find(w => w.email === shift.worker_email);
+                if (!associatedWorker) return;
+
+                if (!monthlyAggregation[monthKey]) {
+                    monthlyAggregation[monthKey] = {};
+                }
+
+                if (!monthlyAggregation[monthKey][associatedWorker.email]) {
+                    monthlyAggregation[monthKey][associatedWorker.email] = {
+                        name: associatedWorker.name,
+                        shiftCount: 0,
+                        workerSalaryRate: parseFloat(associatedWorker.fixed_salary || 0),
+                        brokerTotalRate: parseFloat(associatedWorker.broker_rate || 0)
+                    };
+                }
+
+                monthlyAggregation[monthKey][associatedWorker.email].shiftCount += 1;
+            });
+
+            const sortingMonths = Object.keys(monthlyAggregation);
+            if(sortingMonths.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 italic col-span-full text-center py-4">No approved shifts available to generate monthly indices.</p>`;
+                return;
+            }
+
+            sortingMonths.forEach(month => {
+                let monthHtmlBlock = `
+                    <div class="glass-inner-card p-4 rounded-2xl shadow-sm border border-purple-100 flex flex-col justify-between space-y-3">
+                        <div class="border-b border-purple-200/40 pb-1.5 flex justify-between items-center">
+                            <h3 class="text-xs font-black tracking-wider uppercase text-purple-950">📅 ${month}</h3>
+                            <span class="text-[9px] font-mono font-bold bg-purple-100 text-[#4a148c] px-2 py-0.5 rounded-full">Statement</span>
+                        </div>
+                        <div class="space-y-2.5 max-h-[160px] overflow-y-auto pr-1">
+                `;
+
+                let grandWorkerTotal = 0;
+                let grandBrokerTotal = 0;
+
+                Object.values(monthlyAggregation[month]).forEach(item => {
+                    const totalWorkerEarnings = item.shiftCount * item.workerSalaryRate;
+                    const totalBrokerOutflow = item.shiftCount * item.brokerTotalRate;
+                    
+                    grandWorkerTotal += totalWorkerEarnings;
+                    grandBrokerTotal += totalBrokerOutflow;
+
+                    monthHtmlBlock += `
+                        <div class="text-[11px] bg-white/60 p-2 rounded-lg border border-slate-200/60">
+                            <div class="flex justify-between font-bold text-slate-800">
+                                <span>${item.name}</span>
+                                <span class="text-purple-700 font-mono text-[10px]">${item.shiftCount} Shifts</span>
+                            </div>
+                            <div class="flex justify-between text-gray-500 font-mono text-[10px] mt-0.5">
+                                <span>Pay: ₹${totalWorkerEarnings.toLocaleString('en-IN')}</span>
+                                <span class="text-rose-700 font-bold">Confidential: ₹${totalBrokerOutflow.toLocaleString('en-IN')}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                monthHtmlBlock += `
+                        </div>
+                        <div class="pt-2 border-t border-dashed border-purple-300 font-mono text-[11px] space-y-0.5">
+                            <div class="flex justify-between text-slate-600">
+                                <span>Total Workers Salary:</span>
+                                <strong>₹${grandWorkerTotal.toLocaleString('en-IN')}</strong>
+                            </div>
+                            <div class="flex justify-between text-rose-800 font-black">
+                                <span>Total Broker Invoiced:</span>
+                                <strong>₹${grandBrokerTotal.toLocaleString('en-IN')}</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += monthHtmlBlock;
+            });
+        }
+
+        // DISPLAY STAFF REGISTRY WITH CONFIDENTIAL MARKUP DATA
         function renderRegistrySelectorPanel() {
             const container = document.getElementById('worker-selection-list');
             container.innerHTML = '';
@@ -276,17 +423,19 @@
             document.getElementById('balance-adjustment-card').classList.remove('hidden');
             document.getElementById('form-selected-worker-title').innerText = `Adjusting Parameters: ${targetWorker.name}`;
             document.getElementById('edit-fixed-salary').value = targetWorker.fixed_salary || 0;
+            document.getElementById('edit-broker-rate').value = targetWorker.broker_rate || 0;
             document.getElementById('edit-morning-advance').value = targetWorker.morning_advance || 0;
             document.getElementById('edit-salary-advance-taken').value = targetWorker.salary_advance_taken || 0;
         }
 
-        // SAVE THE MODIFIED BALANCES
+        // SAVE THE MODIFIED BALANCES WITH BROKER RATE INCREMENTATION
         async function commitWorkerBalanceModifications() {
             if(!currentlySelectedWorkerEmail) return;
             const fixed_salary = parseFloat(document.getElementById('edit-fixed-salary').value) || 0;
+            const broker_rate = parseFloat(document.getElementById('edit-broker-rate').value) || 0;
             const morning_advance = parseFloat(document.getElementById('edit-morning-advance').value) || 0;
             const salary_advance_taken = parseFloat(document.getElementById('edit-salary-advance-taken').value) || 0;
-            const updatePayload = { fixed_salary, morning_advance, salary_advance_taken };
+            const updatePayload = { fixed_salary, broker_rate, morning_advance, salary_advance_taken };
 
             try {
                 const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentlySelectedWorkerEmail)}`, {
@@ -295,7 +444,7 @@
                     body: JSON.stringify(updatePayload)
                 });
                 if(!res.ok) throw new Error("Processing error");
-                alert("Worker account parameters stored securely!");
+                alert("Worker account and broker structural parameters stored securely!");
                 await fetchAllDataFromNode();
             } catch(e) {
                 alert("Database store transaction dropped.");
@@ -347,7 +496,7 @@
                 if(log.status === 'Rejected') statusBadgeColor = "bg-rose-100 text-rose-800 border-rose-200";
 
                 let div = document.createElement('div');
-                div.className = "bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4 hover:border-purple-200 transition";
+                div.className = "bg-white/90 p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4 hover:border-purple-200 transition";
                 div.innerHTML = `
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-slate-100">
                         <div>
