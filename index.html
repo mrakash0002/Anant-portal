@@ -5,11 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anant Electrical - Staff Node Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Embedded Client-Side OCR Engine Core -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         @keyframes scan-motion {
-            0 { transform: translateY(0); }
+            0% { transform: translateY(0); }
             50% { transform: translateY(270px); }
             100% { transform: translateY(0); }
         }
@@ -22,7 +21,6 @@
 
     <main class="flex-grow flex flex-col items-center justify-center w-full max-w-md relative">
         
-        <!-- AUTH SECTION -->
         <div id="auth-section" class="w-full max-w-[420px] bg-white rounded-2xl shadow-2xl p-10 transition-all duration-300 text-center">
             <h1 class="text-3xl font-bold tracking-tight text-[#4a148c] mb-1">Anant Electrical</h1>
             <p class="text-sm text-gray-500 mb-8">Sign in using your email and password.</p>
@@ -42,7 +40,6 @@
             </div>
         </div>
 
-        <!-- PORTAL DASHBOARD -->
         <div id="portal-dashboard" class="hidden w-full space-y-6">
             
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-purple-100">
@@ -104,7 +101,6 @@
                 </div>
             </div>
 
-            <!-- OPERATIONAL SHIFT LOG PANELS -->
             <div class="bg-white rounded-2xl shadow-xl p-6 space-y-4">
                 <h3 class="text-sm font-black uppercase tracking-wider text-gray-700 flex items-center gap-2">
                     Shift Operational Log System
@@ -165,14 +161,12 @@
                             <input type="text" id="exp-material-desc" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="List materials bought...">
                         </div>
 
-                        <!-- DYNAMIC AI EXPENSE BILL VERIFICATION SECTION -->
                         <div id="bill-verification-section" class="bg-purple-50 p-4 rounded-xl border border-purple-100 space-y-3 hidden">
                             <div class="bg-purple-950 text-white p-2.5 rounded-lg text-[9px] font-mono leading-tight">
                                 ℹ️ <strong>Rules Summary:</strong> Printed shop name/GST bills with handwritten line entries are <strong>automatically approved</strong>. Messy handwriting OCR errors are bypassed if a clear shop header is present. Plain white notes with no shop profile <strong>must have a seal</strong>.
                             </div>
                             <label class="block text-[10px] font-black text-purple-800 uppercase tracking-wider">📄 Required Claims Verification</label>
                             
-                            <!-- Transport Bill Box -->
                             <div id="bill-req-transport" class="hidden space-y-2 bg-white p-3 rounded-xl border border-purple-100/60 shadow-sm">
                                 <div class="flex justify-between items-center">
                                     <span class="text-[10px] font-bold text-purple-900/80 block">Transportation Receipts / UPI Screenshots:</span>
@@ -188,7 +182,6 @@
                                 </div>
                             </div>
 
-                            <!-- Food / Hostel Bill Box -->
                             <div id="bill-req-food" class="hidden space-y-2 bg-white p-3 rounded-xl border border-purple-100/60 shadow-sm">
                                 <div class="flex justify-between items-center">
                                     <span class="text-[10px] font-bold text-purple-900/80 block">Food, Meals & Hostel Bills / UPI Screenshots:</span>
@@ -204,7 +197,6 @@
                                 </div>
                             </div>
 
-                            <!-- Material Bill Box -->
                             <div id="bill-req-material" class="hidden space-y-2 bg-white p-3 rounded-xl border border-purple-100/60 shadow-sm">
                                 <div class="flex justify-between items-center">
                                     <span class="text-[10px] font-bold text-purple-900/80 block">Materials Invoices / UPI Screenshots:</span>
@@ -233,7 +225,6 @@
                 </div>
             </div>
 
-            <!-- HISTORICAL DATA ARCHIVE STREAMS -->
             <div class="space-y-2">
                 <div class="flex justify-between items-center px-1">
                     <p class="text-[10px] uppercase font-bold tracking-wider text-purple-200 font-mono">Verified Ledger Streams</p>
@@ -254,7 +245,6 @@
                     </select>
                 </div>
 
-                <!-- SUB-TAB TOGGLES -->
                 <div class="flex bg-purple-950/40 p-1 rounded-xl border border-purple-400/20 gap-1">
                     <button onclick="switchStreamTab('shifts')" id="tab-btn-shifts" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer bg-white text-[#4a148c] shadow-sm">
                         Shifts
@@ -267,21 +257,18 @@
                     </button>
                 </div>
 
-                <!-- DYNAMIC STREAM CONTAINER -->
                 <div id="personal-logs-stream" class="space-y-3 max-h-[350px] overflow-y-auto pr-1"></div>
             </div>
 
         </div>
     </main>
 
-    <!-- CAMERA VERIFICATION UTILITY MODAL -->
     <div id="camera-modal" class="fixed inset-0 bg-slate-900/90 z-50 hidden flex flex-col items-center justify-center p-6 backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4 relative">
             <h3 class="text-sm font-black text-center text-slate-800 uppercase tracking-widest" id="camera-title">Identity Verification</h3>
             <div class="relative w-full aspect-[3/4] bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
                 <video id="camera-stream" autoplay playsinline class="w-full h-full object-cover transform -scale-x-100"></video>
                 
-                <!-- Glowing High-Tech AI Laser Scanner Effect Line -->
                 <div id="camera-laser" class="hidden absolute inset-x-0 h-1 bg-cyan-400 shadow-[0_0_15px_#22d3ee] animate-laser"></div>
             </div>
             <button id="btn-capture-photo" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition shadow-lg">
@@ -523,7 +510,12 @@
                     document.getElementById('punch-out-panel').classList.remove('hidden');
                     let startTimeISO = runningActiveShift.punch_in_time || runningActiveShift.created_at;
                     let startTime = new Date(startTimeISO);
-                    document.getElementById('punch-in-time-display').innerText = `Started Today at: ${startTime.toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit'})}`;
+                    
+                    let dateStr = startTime.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                    let timeStr = startTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                    
+                    document.getElementById('punch-in-time-display').innerText = `Started: ${dateStr} at ${timeStr}`;
+                    
                     let storedSelfies = JSON.parse(localStorage.getItem(`selfies_${runningActiveShift.id}`)) || {};
                     if(storedSelfies.in) {
                         document.getElementById('active-selfie-box').classList.remove('hidden');
@@ -743,150 +735,73 @@
             if (statusDiv) statusDiv.innerHTML = '';
         }
 
-        // UPGRADED AI BILL PROCESSING MATRIX WITH PRINTED SHOP PROFILE OVERRIDE
         async function verifyExpensesBillsWithAI() {
             const transportAmt = parseFloat(document.getElementById('exp-transport').value) || 0;
             const foodAmt = parseFloat(document.getElementById('exp-food').value) || 0;
             const materialAmt = parseFloat(document.getElementById('exp-material').value) || 0;
 
-            if (transportAmt > 0 && !billsVerificationResults.transport && capturedBillImages.transport.length === 0) return alert("Claim Blocked: Please add your Transportation bills or UPI snapshots.");
-            if (foodAmt > 0 && !billsVerificationResults.food && capturedBillImages.food.length === 0) return alert("Claim Blocked: Please add your Food/Hostel receipts.");
-            if (materialAmt > 0 && !billsVerificationResults.material && capturedBillImages.material.length === 0) return alert("Claim Blocked: Please add your Material invoices.");
-
             const statusDiv = document.getElementById('bills-verification-status');
             statusDiv.className = "text-[10px] font-mono text-left bg-slate-900 text-cyan-400 p-3.5 rounded-xl border border-slate-800 space-y-1 block mt-3 max-h-48 overflow-y-auto";
-            statusDiv.innerHTML = "";
+            statusDiv.innerHTML = "🤖 [Core] Booting Document Vision Neural Parser...";
 
-            function updateLogStream(msg) {
-                const line = document.createElement('p');
-                line.innerText = msg;
-                statusDiv.appendChild(line);
-                statusDiv.scrollTop = statusDiv.scrollHeight;
-            }
+            const today = new Date();
+            const d = today.getDate().toString(); 
+            const m = (today.getMonth() + 1).toString(); 
+            const y = today.getFullYear().toString(); 
+            const mShort = today.toLocaleString('default', { month: 'short' }).toLowerCase(); 
 
-            updateLogStream("🤖 [Core] Booting Document Vision Neural Parser...");
-            await new Promise(r => setTimeout(r, 300));
+            const dateVariations = [
+                `${d}/${m}`, `${d}-${m}`, 
+                `${d}/${m.padStart(2, '0')}`, `${d}-${m.padStart(2, '0')}`, 
+                `${d}/${m}/${y}`, `${d}-${m}-${y}`,
+                `${d}/${m.padStart(2, '0')}/${y}`, `${d}-${m.padStart(2, '0')}-${y}`,
+                `${d} ${mShort}`, `${d}${mShort}`, `${d}${mShort}${y}`
+            ];
 
-            let verifiedLabels = [];
-            let tasks = [];
-
-            if (transportAmt > 0 && !checkDailyBillCache('transport', transportAmt)) tasks.push({ type: 'transport', amount: transportAmt, title: 'Transportation Claim' });
-            if (foodAmt > 0 && !checkDailyBillCache('food', foodAmt)) tasks.push({ type: 'food', amount: foodAmt, title: 'Food/Hostel Claim' });
-            if (materialAmt > 0 && !checkDailyBillCache('material', materialAmt)) tasks.push({ type: 'material', amount: materialAmt, title: 'Materials Claim' });
+            let tasks = [
+                { type: 'transport', amt: transportAmt, title: 'Transport' },
+                { type: 'food', amt: foodAmt, title: 'Food' },
+                { type: 'material', amt: materialAmt, title: 'Material' }
+            ].filter(t => t.amt > 0);
 
             for (let task of tasks) {
-                updateLogStream(`📦 [Transform] Analyzing image data stream for ${task.title}...`);
-                
-                let aggregatedCleanText = "";
                 let aggregatedRawText = "";
-                let fileCounter = 1;
-
-                for (let imageBase64 of capturedBillImages[task.type]) {
-                    updateLogStream(`⏳ [OCR] Reading invoice paper layout index [${fileCounter}/${capturedBillImages[task.type].length}]...`);
-                    try {
-                        const result = await Tesseract.recognize(imageBase64, 'eng');
-                        const textChunk = result.data.text || "";
-                        aggregatedRawText += " " + textChunk;
-                        aggregatedCleanText += " " + textChunk.replace(/[\s,]/g, '').toLowerCase();
-                        fileCounter++;
-                    } catch(ocrErr) {
-                        console.error("OCR Exception:", ocrErr);
-                        updateLogStream(`⚠️ [Warning] Render context limits skipped partial stream index.`);
-                    }
+                for (let img of capturedBillImages[task.type]) {
+                    const result = await Tesseract.recognize(img, 'eng');
+                    aggregatedRawText += " " + result.data.text.toLowerCase();
                 }
 
-                const normalizedRaw = aggregatedRawText.toLowerCase();
+                const cleanRaw = aggregatedRawText.replace(/[\s,]/g, '');
+                let isTodayDate = dateVariations.some(v => cleanRaw.includes(v.replace(/[\s,]/g, '')));
                 
-                // UPI Digital Check
-                const upiKeywords = ["upi", "transaction", "txn", "gpay", "phonepe", "paytm", "successfully", "debited", "paidto", "refno", "utr", "bhim", "completed", "transfer", "paid", "sent to"];
-                const matchedKeywordsCount = upiKeywords.filter(keyword => normalizedRaw.includes(keyword)).length;
-                const isAPaymentScreenshot = matchedKeywordsCount >= 2;
-
-                // Printed Commercial Shop Identification Profile Lookups
-                const hasGSTIN = normalizedRaw.includes("gstin") || /[0-9]{2}[a-z]{5}[0-9]{4}[a-z]{1}[1-9a-z]{1}z[0-9a-z]{1}/i.test(normalizedRaw);
-                const shopKeywords = ["hotel", "restaurant", "store", "mart", "electrical", "enterprise", "dhaba", "canteen", "lodge", "pg", "mess", "bazaar", "medical", "cafe", "bakery", "agency", "billing", "invoice", "cash bill", "gstin", "supermarket", "travels", "fuel", "petroleum", "shop", "stall", "hardware", "tea"];
-                const hasShopOrHotelName = shopKeywords.some(keyword => normalizedRaw.includes(keyword)) || hasGSTIN;
-                
-                // Stamped Plain Paper Seal Lookups
-                const sealKeywords = ["seal", "stamp", "signature", "sign", "proprietor", "received", "authorized", "signature of"];
-                const hasSealOrStamp = sealKeywords.some(keyword => normalizedRaw.includes(keyword));
-
-                // Verification Constraints
-                const targetAmountStr = String(task.amount);
-                const matchesAmount = aggregatedCleanText.includes(targetAmountStr);
-                const dateRegex = /\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}|\b(202\d)\b|[jJ]an|[fF]eb|[mM]ar|[aA]pr|[mY]ay|[jJ]un|[jJ]ul|[aA]ug|[sS]ep|[oO]ct|[nN]ov|[dD]ec/;
-                const matchesDate = dateRegex.test(aggregatedRawText);
-
-                let structuralFraudAlert = false;
-                let failureReason = "";
-                let successTypeLabel = "";
-
-                if (isAPaymentScreenshot) {
-                    successTypeLabel = "Digital UPI Signature";
-                } else if (hasShopOrHotelName) {
-                    // With shop name bill is OK without rubber seal layout lines
-                    successTypeLabel = "Commercial Shop Header Approved";
-                } else if (hasSealOrStamp) {
-                    successTypeLabel = "Stamped Plain Page Receipt";
-                } else {
-                    structuralFraudAlert = true;
-                    failureReason = "Validation Blocked: Plain paper notes with no printed commercial shop profile require an official rubber stamp or shop seal.";
-                }
-
-                // Handwriting Tolerance Logic for Verified Shops
-                if (!matchesAmount && !isAPaymentScreenshot) {
-                    if (hasShopOrHotelName) {
-                        updateLogStream(`ℹ️ [Handwriting Bypass] Shop identity verified. Bypassing strict handwritten amount parsing.`);
-                    } else {
-                        structuralFraudAlert = true;
-                        failureReason = `Numeric total mismatch: Stated claim amount (₹${task.amount}) not parsed in plain paper text context.`;
-                    }
-                }
-
-                if (!structuralFraudAlert && (matchesDate || isAPaymentScreenshot || hasShopOrHotelName)) {
-                    billsVerificationResults[task.type] = true;
-                    verifiedLabels.push(`• ${task.title} passed [${successTypeLabel}]: ₹${task.amount}`);
+                // --- ADAPTIVE SYSTEM: Institutional Backup Parser ---
+                // If strict verification layout fails due to table lines/noise but the image is clearly an invoice or payment record
+                if (!isTodayDate) {
+                    const structuralSignatures = [
+                        'invoice', 'bill', 'gst', 'tax', 'sales', 'total', 'amt', 
+                        'rupees', 'phonepe', 'gpay', 'upi', 'paytm', 'transfer', 'success'
+                    ];
+                    const containsSignature = structuralSignatures.some(sig => aggregatedRawText.includes(sig));
                     
-                    const cacheKey = getTodayCacheKeyString(task.type);
-                    if(cacheKey) {
-                        localStorage.setItem(cacheKey, JSON.stringify({ amount: task.amount, verified: true }));
-                    }
+                    // Soft Date: Confirm current calendar month signature string or current day matches anywhere near text blocks
+                    const softDayMatch = aggregatedRawText.includes(d) || cleanRaw.includes(d);
+                    const softMonthMatch = aggregatedRawText.includes(mShort) || aggregatedRawText.includes(m);
 
-                    document.getElementById(`badge-status-${task.type}`).className = "text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-emerald-600 text-white uppercase tracking-wider";
-                    document.getElementById(`badge-status-${task.type}`).innerText = "AI Verified & Cached";
-                    document.getElementById(`action-block-${task.type}`).classList.add('hidden');
-                    document.getElementById(`preview-container-${task.type}`).classList.add('hidden');
-                    updateLogStream(`✅ [Success] Document matches workflow criteria for ₹${task.amount}.`);
-                } else {
-                    billsVerificationResults[task.type] = false;
-                    document.getElementById(`badge-status-${task.type}`).className = "text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 uppercase tracking-wider";
-                    document.getElementById(`badge-status-${task.type}`).innerText = "Failed Verification";
-                    
-                    if(!failureReason) {
-                        if(!matchesDate) failureReason = "Missing valid invoice timeline markers or active digital context.";
+                    if (containsSignature && (softDayMatch || softMonthMatch)) {
+                        isTodayDate = true; 
                     }
-                    updateLogStream(`❌ [Rejected] ${task.title}: ${failureReason}`);
                 }
-                await new Promise(r => setTimeout(r, 200));
+
+                if (!isTodayDate) {
+                    statusDiv.innerHTML += `<br>❌ [Date Rejected] ${task.title}. AI Read: "${aggregatedRawText.substring(0, 50)}...". Please ensure bill is from today.`;
+                    continue;
+                }
+
+                billsVerificationResults[task.type] = true;
+                document.getElementById(`badge-status-${task.type}`).className = "text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-emerald-600 text-white uppercase tracking-wider";
+                document.getElementById(`badge-status-${task.type}`).innerText = "AI Verified";
+                statusDiv.innerHTML += `<br>✅ [Success] ${task.title} verified.`;
             }
-
-            const currentTransportAmt = parseFloat(document.getElementById('exp-transport').value) || 0;
-            const currentFoodAmt = parseFloat(document.getElementById('exp-food').value) || 0;
-            const currentMaterialAmt = parseFloat(document.getElementById('exp-material').value) || 0;
-
-            let transportOk = currentTransportAmt > 0 ? (billsVerificationResults.transport || checkDailyBillCache('transport', currentTransportAmt)) : true;
-            let foodOk = currentFoodAmt > 0 ? (billsVerificationResults.food || checkDailyBillCache('food', currentFoodAmt)) : true;
-            let materialOk = currentMaterialAmt > 0 ? (billsVerificationResults.material || checkDailyBillCache('material', currentMaterialAmt)) : true;
-
-            setTimeout(() => {
-                if (transportOk && foodOk && materialOk) {
-                    statusDiv.className = "text-[10px] font-bold mt-3 text-left bg-emerald-50 text-emerald-800 p-3 rounded-xl border border-emerald-200";
-                    statusDiv.innerHTML = `<div class="font-black text-slate-800 mb-1">✅ System Status: All Expenses Approved</div>` + (verifiedLabels.length > 0 ? verifiedLabels.join("<br>") : "Verified via matrix cache storage lines.");
-                } else {
-                    statusDiv.className = "text-[10px] font-bold mt-3 text-left bg-rose-50 text-rose-800 p-3 rounded-xl border border-rose-200";
-                    statusDiv.innerHTML = `<div class="font-black text-slate-800 mb-1">❌ System Status: Claims Rejected</div>Plain text notes require a physical rubber stamp seal to bypass.`;
-                }
-            }, 200);
         }
 
         async function initiateCameraWorkflow(mode) {
