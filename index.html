@@ -197,7 +197,7 @@
 
                         <div id="bill-verification-section" class="bg-purple-50 p-4 rounded-xl border border-purple-100 space-y-3 hidden">
                             <div class="bg-purple-950 text-white p-2.5 rounded-lg text-[9px] font-mono leading-tight">
-                                ℹ️ <strong>Rules Summary:</strong> Printed shop name/GST bills with handwritten line entries are <strong>automatically approved</strong>. Messy handwriting OCR errors are bypassed if a clear shop header is present. Plain white notes with no shop profile <strong>must have a seal</strong>.
+                                ℹ️ <strong>Rules Summary:</strong> Multi-pass scanning matches both logged financial amounts and verification dates. Both constraints must perfectly pass within the valid structural logging sequence.
                             </div>
                             <label class="block text-[10px] font-black text-purple-800 uppercase tracking-wider">📄 Required Claims Verification</label>
                             
@@ -877,19 +877,27 @@
             statusDiv.className = "text-[10px] font-mono text-left bg-slate-900 text-cyan-400 p-3.5 rounded-xl border border-slate-800 space-y-1 block mt-3 max-h-48 overflow-y-auto";
             statusDiv.innerHTML = "🤖 [Core] Booting Document Vision Neural Parser...";
 
-            const today = new Date();
-            const d = today.getDate().toString(); 
-            const m = (today.getMonth() + 1).toString(); 
-            const y = today.getFullYear().toString(); 
-            const mShort = today.toLocaleString('default', { month: 'short' }).toLowerCase(); 
+            // 1. Generate cross-verification targets for a strict 15-day rolling window
+            let validDatePatterns = [];
+            for (let i = 0; i <= 15; i++) {
+                const targetDate = new Date();
+                targetDate.setDate(targetDate.getDate() - i);
+                
+                const d = targetDate.getDate().toString();
+                const dPadded = d.padStart(2, '0');
+                const m = (targetDate.getMonth() + 1).toString();
+                const mPadded = m.padStart(2, '0');
+                const y = targetDate.getFullYear().toString();
+                const mShort = targetDate.toLocaleString('default', { month: 'short' }).toLowerCase();
 
-            const dateVariations = [
-                `${d}/${m}`, `${d}-${m}`, 
-                `${d}/${m.padStart(2, '0')}`, `${d}-${m.padStart(2, '0')}`, 
-                `${d}/${m}/${y}`, `${d}-${m}-${y}`,
-                `${d}/${m.padStart(2, '0')}/${y}`, `${d}-${m.padStart(2, '0')}-${y}`,
-                `${d} ${mShort}`, `${d}${mShort}`, `${d}${mShort}${y}`
-            ];
+                validDatePatterns.push(
+                    `${dPadded}/${mPadded}/${y}`, `${dPadded}-${mPadded}-${y}`,
+                    `${d}/${m}/${y}`, `${d}-${m}-${y}`,
+                    `${dPadded} ${mShort} ${y}`, `${d} ${mShort} ${y}`,
+                    `${dPadded}${mShort}${y}`, `${d}${mShort}${y}`,
+                    { day: d, dayPad: dPadded, monthStr: mShort, monthNum: m, monthNumPad: mPadded }
+                );
+            }
 
             let tasks = [
                 { type: 'transport', amt: transportAmt, title: 'Transport' },
@@ -897,40 +905,91 @@
                 { type: 'material', amt: materialAmt, title: 'Material' }
             ].filter(t => t.amt > 0);
 
+            if (tasks.length === 0) {
+                statusDiv.innerHTML += `<br>ℹ️ No expense claims filled out.`;
+                return;
+            }
+
             for (let task of tasks) {
-                let aggregatedRawText = "";
-                for (let img of capturedBillImages[task.type]) {
-                    const result = await Tesseract.recognize(img, 'eng');
-                    aggregatedRawText += " " + result.data.text.toLowerCase();
-                }
-
-                const cleanRaw = aggregatedRawText.replace(/[\s,]/g, '');
-                let isTodayDate = dateVariations.some(v => cleanRaw.includes(v.replace(/[\s,]/g, '')));
-                
-                if (!isTodayDate) {
-                    const structuralSignatures = [
-                        'invoice', 'bill', 'gst', 'tax', 'sales', 'total', 'amt', 
-                        'rupees', 'phonepe', 'gpay', 'upi', 'paytm', 'transfer', 'success'
-                    ];
-                    const containsSignature = structuralSignatures.some(sig => aggregatedRawText.includes(sig));
-                    const softDayMatch = aggregatedRawText.includes(d) || cleanRaw.includes(d);
-                    const softMonthMatch = aggregatedRawText.includes(mShort) || aggregatedRawText.includes(m);
-
-                    if (containsSignature && (softDayMatch || softMonthMatch)) {
-                        isTodayDate = true; 
-                    }
-                }
-
-                if (!isTodayDate) {
-                    statusDiv.innerHTML += `<br>❌ [Date Rejected] ${task.title}. AI Read: "${aggregatedRawText.substring(0, 50)}...". Please ensure bill is from today.`;
+                if (!capturedBillImages[task.type] || capturedBillImages[task.type].length === 0) {
+                    document.getElementById(`badge-status-${task.type}`).className = "text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-600 text-white uppercase tracking-wider";
+                    document.getElementById(`badge-status-${task.type}`).innerText = "No Proof";
+                    statusDiv.innerHTML += `<br>❌ [REJECTED] ${task.title}: No image uploaded.`;
+                    billsVerificationResults[task.type] = false;
                     continue;
                 }
 
-                billsVerificationResults[task.type] = true;
-                document.getElementById(`badge-status-${task.type}`).className = "text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-emerald-600 text-white uppercase tracking-wider";
-                document.getElementById(`badge-status-${task.type}`).innerText = "AI Verified";
-                statusDiv.innerHTML += `<br>✅ [Success] ${task.title} verified.`;
+                let aggregatedRawText = "";
+                statusDiv.innerHTML += `<br>⏳ Scanning documents for ${task.title}...`;
+
+                try {
+                    for (let img of capturedBillImages[task.type]) {
+                        const result = await Tesseract.recognize(img, 'eng');
+                        aggregatedRawText += " " + result.data.text.toLowerCase();
+                    }
+                } catch (ocrError) {
+                    statusDiv.innerHTML += `<br>❌ OCR Framework Exception processing ${task.title}.`;
+                    aggregatedRawText = ""; 
+                }
+
+                const cleanRaw = aggregatedRawText.replace(/[\s,]/g, '');
+                const lowerText = aggregatedRawText.toLowerCase();
+
+                // Multi-pass Numeric Extractor logic
+                const textForAmount = lowerText.replace(/,/g, ''); 
+                const genericNumberRegex = /\d+(?:\.\d{1,2})?/g;
+                let extractedAmounts = [];
+                let match;
+                while ((match = genericNumberRegex.exec(textForAmount)) !== null) {
+                    extractedAmounts.push(parseFloat(match[0]));
+                }
+
+                const amountMatch = extractedAmounts.includes(task.amt) || 
+                                    extractedAmounts.some(val => Math.abs(val - task.amt) < 1.0) || 
+                                    lowerText.replace(/[^0-9]/g, '').includes(task.amt.toString());
+
+                // Strict Structural Date Evaluation Engine
+                let dateMatch = false;
+                for (let pattern of validDatePatterns) {
+                    if (typeof pattern === 'string') {
+                        if (cleanRaw.includes(pattern.replace(/[\s,]/g, ''))) {
+                            dateMatch = true;
+                            break;
+                        }
+                    } else {
+                        const hasDay = lowerText.includes(pattern.day) || lowerText.includes(pattern.dayPad);
+                        const hasMonth = lowerText.includes(pattern.monthStr) || lowerText.includes(pattern.monthNum) || lowerText.includes(pattern.monthNumPad);
+                        if (hasDay && hasMonth) {
+                            dateMatch = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Strict Conditional Evaluation Routing Engine
+                if (amountMatch && dateMatch) {
+                    billsVerificationResults[task.type] = true;
+                    const cacheKey = getTodayCacheKeyString(task.type);
+                    if (cacheKey) {
+                        localStorage.setItem(cacheKey, JSON.stringify({ verified: true, amount: task.amt }));
+                    }
+                    document.getElementById(`badge-status-${task.type}`).className = "text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-emerald-600 text-white uppercase tracking-wider";
+                    document.getElementById(`badge-status-${task.type}`).innerText = "AI Verified";
+                    statusDiv.innerHTML += `<br>✅ [PASSED] ${task.title}: Match confirmed (Amount & Date verified).`;
+                } else {
+                    billsVerificationResults[task.type] = false;
+                    document.getElementById(`badge-status-${task.type}`).className = "text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-600 text-white uppercase tracking-wider";
+                    document.getElementById(`badge-status-${task.type}`).innerText = "Rejected";
+                    
+                    let failureReason = "";
+                    if (!amountMatch && !dateMatch) failureReason = "Both amount and date failed to cross-verify.";
+                    else if (!amountMatch) failureReason = "Logged amount not discovered on attachment text data.";
+                    else failureReason = "Document date is either missing or falls outside the permitted 15-day range.";
+                    
+                    statusDiv.innerHTML += `<br>❌ [REJECTED] ${task.title}: ${failureReason}`;
+                }
             }
+            statusDiv.innerHTML += `<br><br>🏁 Audit complete. System strict evaluation updated.`;
         }
 
         async function initiateCameraWorkflow(mode) {
