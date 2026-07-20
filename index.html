@@ -6,6 +6,10 @@
     <title>Anant Electrical - Staff Node Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- Chart.js CDN Added for Data Visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js DataLabels Plugin for amounts on bars -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <style>
         @keyframes scan-motion {
             0% { transform: translateY(0); }
@@ -21,6 +25,7 @@
 
     <main class="flex-grow flex flex-col items-center justify-center w-full max-w-md relative">
         
+        <!-- Auth Section -->
         <div id="auth-section" class="w-full max-w-[420px] bg-white rounded-2xl shadow-2xl p-10 transition-all duration-300 text-center">
             <h1 class="text-3xl font-bold tracking-tight text-[#4a148c] mb-1">Anant Electrical</h1>
             <p class="text-sm text-gray-500 mb-8">Sign in using your email and password.</p>
@@ -40,6 +45,7 @@
             </div>
         </div>
 
+        <!-- Dashboard Section -->
         <div id="portal-dashboard" class="hidden w-full space-y-6">
             
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-purple-100">
@@ -90,7 +96,7 @@
                     </div>
 
                     <div class="flex justify-between items-center bg-purple-900 text-white p-4 rounded-xl shadow-md">
-                        <span class="text-xs font-black uppercase tracking-wider">Net Salary Earned:</span>
+                        <span id="display-net-payable-label" class="text-xs font-black uppercase tracking-wider">Net Salary Earned:</span>
                         <strong id="display-net-payable" class="text-lg font-black font-mono text-emerald-400">₹0</strong>
                     </div>
                 </div>
@@ -98,6 +104,34 @@
                 <div class="p-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center text-[11px] text-gray-500 font-mono">
                     <span>On-Site Total Spent: <strong id="display-total-spent" class="text-slate-700">₹0</strong></span>
                     <span>Total Mid-Day Advances: <strong id="display-midday-advance" class="text-amber-600 font-bold">₹0</strong></span>
+                </div>
+            </div>
+
+            <!-- Visual Analytics Container for Pie and Bar Chart Elements -->
+            <div class="bg-white rounded-2xl shadow-xl p-5 space-y-6 border border-purple-100">
+                <div>
+                    <h3 class="text-xs font-black uppercase tracking-wider text-gray-700 flex items-center gap-2">
+                        📈 Visual Ledger Insights
+                    </h3>
+                    <p class="text-[10px] text-gray-400 font-mono mt-0.5">Dynamic charts synchronized with system state metrics</p>
+                </div>
+                
+                <div class="space-y-6">
+                    <!-- Pie Chart Layout -->
+                    <div class="bg-slate-50/60 p-3 rounded-xl border border-slate-100 flex flex-col items-center">
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-2 font-mono">Ledger Proportion Split</span>
+                        <div class="w-full max-w-[210px] aspect-square">
+                            <canvas id="dashboardPieChartCanvas"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Bar Chart Layout -->
+                    <div class="bg-slate-50/60 p-3 rounded-xl border border-slate-100 flex flex-col items-center">
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-2 font-mono">Volumetric Metrics Flow Comparison</span>
+                        <div class="w-full h-52">
+                            <canvas id="dashboardBarChartCanvas"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -263,12 +297,12 @@
         </div>
     </main>
 
+    <!-- Camera Workflow Modal -->
     <div id="camera-modal" class="fixed inset-0 bg-slate-900/90 z-50 hidden flex flex-col items-center justify-center p-6 backdrop-blur-sm">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4 relative">
             <h3 class="text-sm font-black text-center text-slate-800 uppercase tracking-widest" id="camera-title">Identity Verification</h3>
             <div class="relative w-full aspect-[3/4] bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
                 <video id="camera-stream" autoplay playsinline class="w-full h-full object-cover transform -scale-x-100"></video>
-                
                 <div id="camera-laser" class="hidden absolute inset-x-0 h-1 bg-cyan-400 shadow-[0_0_15px_#22d3ee] animate-laser"></div>
             </div>
             <button id="btn-capture-photo" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition shadow-lg">
@@ -288,6 +322,9 @@
     </footer>
 
     <script>
+        // Register the DataLabels plugin globally for Chart.js
+        Chart.register(ChartDataLabels);
+
         const SUPABASE_URL = "https://xeffbclwniepwbpsvorh.supabase.co/rest/v1/";
         const SUPABASE_KEY = "sb_publishable_JfBR83l0-TTsig_geq1nUw_hwUeSvaH";
         const HEADERS = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=representation" };
@@ -303,6 +340,9 @@
 
         let capturedBillImages = { transport: [], food: [], material: [] };
         let billsVerificationResults = { transport: false, food: false, material: false };
+
+        let runtimePieChartInstance = null;
+        let runtimeBarChartInstance = null;
 
         function getTodayCacheKeyString(type) {
             if(!currentActiveUser) return '';
@@ -548,6 +588,13 @@
                 document.getElementById('display-gross-salary').innerText = `₹${allTimeGrossEarned.toLocaleString('en-IN')}`;
                 document.getElementById('display-net-payable').innerText = `₹${monthlyNetSalary.toLocaleString('en-IN')}`;
 
+                const selectedMonthText = monthFilter.options[monthFilter.selectedIndex].text;
+                if (selectedMonthFilter === 'ALL') {
+                    document.getElementById('display-net-payable-label').innerText = "TOTAL LIFETIME EARNED:";
+                } else {
+                    document.getElementById('display-net-payable-label').innerText = `${selectedMonthText.toUpperCase()} EARNED:`;
+                }
+
                 const walletBalance = currentActiveUser.morning_advance ? parseFloat(currentActiveUser.morning_advance) : 0;
                 document.getElementById('display-salary-advance').innerText = `₹${walletBalance.toLocaleString('en-IN')}`;
                 const majorAdvanceTaken = currentActiveUser.salary_advance_taken ? parseFloat(currentActiveUser.salary_advance_taken) : 0;
@@ -566,8 +613,94 @@
 
                 document.getElementById('display-total-spent').innerText = `₹${siteSpent.toLocaleString('en-IN')}`;
                 document.getElementById('display-midday-advance').innerText = `₹${combinedTotalAdvances.toLocaleString('en-IN')}`;
-                renderActiveStreamTab();
                 
+                const chartLabels = ['Gross Salary', 'Net Earnings', 'Total Spent', 'Total Advances', 'Outstanding Adv'];
+                const chartValues = [allTimeGrossEarned, monthlyNetSalary, siteSpent, combinedTotalAdvances, majorAdvanceTaken];
+                const chartColorsPalette = ['#4a148c', '#10b981', '#3b82f6', '#f59e0b', '#f43f5e'];
+
+                if (runtimePieChartInstance) runtimePieChartInstance.destroy();
+                const ctxPie = document.getElementById('dashboardPieChartCanvas').getContext('2d');
+                runtimePieChartInstance = new Chart(ctxPie, {
+                    type: 'pie',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            data: chartValues,
+                            backgroundColor: chartColorsPalette,
+                            borderWidth: 1.5,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            // Hide data labels on the pie chart to avoid cluttering it
+                            datalabels: { display: false },
+                            legend: {
+                                position: 'bottom',
+                                labels: { boxWidth: 10, font: { size: 9, family: 'monospace' }, color: '#4b5563' }
+                            },
+                            tooltip: { callbacks: { label: (ctx) => ` ₹${ctx.raw.toLocaleString('en-IN')}` } }
+                        }
+                    }
+                });
+
+                if (runtimeBarChartInstance) runtimeBarChartInstance.destroy();
+                const ctxBar = document.getElementById('dashboardBarChartCanvas').getContext('2d');
+                runtimeBarChartInstance = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            label: 'Amount (₹)',
+                            data: chartValues,
+                            backgroundColor: chartColorsPalette,
+                            borderWidth: 1,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                            padding: { top: 25 } // Added padding so text labels don't get cut off
+                        },
+                        scales: {
+                            y: { 
+                                beginAtZero: true, 
+                                grid: { color: '#e5e7eb' }, 
+                                ticks: { font: { size: 8, family: 'monospace' } } 
+                            },
+                            x: { 
+                                grid: { display: false }, 
+                                ticks: { font: { size: 9, fontStyle: 'bold' } } 
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            // Datalabels plugin configuration for the bar chart
+                            datalabels: {
+                                anchor: 'end',
+                                align: 'top',
+                                font: { weight: 'bold', size: 10, family: 'monospace' },
+                                color: '#374151',
+                                formatter: function(value, context) {
+                                    if(value === 0) return ''; // Hides 0 values if preferred
+                                    return '₹' + value.toLocaleString('en-IN');
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: (ctx) => chartLabels[ctx[0].dataIndex],
+                                    label: (ctx) => ` Value: ₹${ctx.raw.toLocaleString('en-IN')}`
+                                }
+                            }
+                        }
+                    }
+                });
+
+                renderActiveStreamTab();
                 updateRequiredBillsUI();
             } catch(e) { console.error("Sync error:", e); }
         }
@@ -774,16 +907,12 @@
                 const cleanRaw = aggregatedRawText.replace(/[\s,]/g, '');
                 let isTodayDate = dateVariations.some(v => cleanRaw.includes(v.replace(/[\s,]/g, '')));
                 
-                // --- ADAPTIVE SYSTEM: Institutional Backup Parser ---
-                // If strict verification layout fails due to table lines/noise but the image is clearly an invoice or payment record
                 if (!isTodayDate) {
                     const structuralSignatures = [
                         'invoice', 'bill', 'gst', 'tax', 'sales', 'total', 'amt', 
                         'rupees', 'phonepe', 'gpay', 'upi', 'paytm', 'transfer', 'success'
                     ];
                     const containsSignature = structuralSignatures.some(sig => aggregatedRawText.includes(sig));
-                    
-                    // Soft Date: Confirm current calendar month signature string or current day matches anywhere near text blocks
                     const softDayMatch = aggregatedRawText.includes(d) || cleanRaw.includes(d);
                     const softMonthMatch = aggregatedRawText.includes(mShort) || aggregatedRawText.includes(m);
 
