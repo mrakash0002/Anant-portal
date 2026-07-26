@@ -152,8 +152,22 @@
                 </div>
             </div>
 
-            <!-- Profile & ID Card Management Section -->
-            <div class="bg-white rounded-2xl shadow-xl p-6 space-y-6 border border-purple-100">
+            <!-- Profile & ID Card Toggle Button Header -->
+            <div class="bg-white rounded-2xl shadow-xl p-5 border border-purple-100 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">👤</span>
+                    <div>
+                        <h3 class="text-xs font-black uppercase tracking-wider text-gray-700">Staff Profile & ID Card</h3>
+                        <p class="text-[10px] text-gray-400 font-mono">Tap button to view or edit digital ID card</p>
+                    </div>
+                </div>
+                <button onclick="toggleProfileSection()" id="toggle-profile-section-btn" class="bg-purple-100 text-[#4a148c] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-purple-200 transition cursor-pointer">
+                    Show ID Card
+                </button>
+            </div>
+
+            <!-- Profile & ID Card Management Section (Hidden by Default) -->
+            <div id="profile-container" class="hidden bg-white rounded-2xl shadow-xl p-6 space-y-6 border border-purple-100">
                 <div class="flex justify-between items-center border-b border-purple-100 pb-3">
                     <h3 class="text-sm font-black uppercase tracking-wider text-gray-700 flex items-center gap-2">
                         👤 Staff Profile & ID Card
@@ -488,6 +502,7 @@
         let runtimePieChartInstance = null;
         let runtimeBarChartInstance = null;
         let isEditingProfile = false;
+        let isProfileVisible = false;
 
         // --- MOCK DATA DATASET (EMP-102 Ramesh Kumar - July 2026) ---
         const rameshKumarMockUser = {
@@ -693,7 +708,25 @@
             });
         }
 
-        // --- PROFILE & ID CARD LOGIC ---
+        // --- PROFILE & ID CARD TOGGLE & LOGIC ---
+        function toggleProfileSection() {
+            isProfileVisible = !isProfileVisible;
+            const container = document.getElementById('profile-container');
+            const btn = document.getElementById('toggle-profile-section-btn');
+
+            if (isProfileVisible) {
+                container.classList.remove('hidden');
+                btn.innerText = "Hide ID Card";
+                btn.classList.replace('bg-purple-100', 'bg-rose-100');
+                btn.classList.replace('text-[#4a148c]', 'text-rose-800');
+            } else {
+                container.classList.add('hidden');
+                btn.innerText = "Show ID Card";
+                btn.classList.replace('bg-rose-100', 'bg-purple-100');
+                btn.classList.replace('text-rose-800', 'text-[#4a148c]');
+            }
+        }
+
         function toggleEditProfile() {
             isEditingProfile = !isEditingProfile;
             const viewSection = document.getElementById('id-card-view');
@@ -810,7 +843,6 @@
             const approvedDaysCount = approvedShifts.length;
             const fixedSalaryRate = parseFloat(currentActiveUser.fixed_salary || 0);
             
-            // If Ramesh Kumar in July 2026, adhere precisely to JSON summary
             let grossEarned = approvedDaysCount * fixedSalaryRate;
             let totalTransport = 0, totalFood = 0, totalMaterial = 0, totalMiddayAdvance = 0;
 
@@ -835,7 +867,6 @@
             const salaryAdvanceOutstanding = parseFloat(currentActiveUser.salary_advance_taken || 0);
             const netPayout = (currentActiveUser.emp_no === 'EMP-102' && selectedMonthVal === '6') ? 2400.00 : (grossEarned + totalReimbursements - totalMiddayAdvance);
 
-            // PDF Banner Header
             doc.setFillColor(74, 20, 140);
             doc.rect(0, 0, 210, 38, 'F');
             doc.setTextColor(255, 255, 255);
@@ -847,7 +878,6 @@
             doc.text("Official Field Operations Payslip & Ledger Statement", 14, 26);
             doc.text(`Period: ${selectedMonthName} ${currentYear}`, 196, 26, { align: "right" });
 
-            // Employee Summary Table
             doc.setTextColor(30, 41, 59);
             doc.autoTable({
                 startY: 45, theme: 'plain', styles: { fontSize: 9, cellPadding: 2 },
@@ -858,7 +888,6 @@
                 ]
             });
 
-            // Earnings Table
             doc.autoTable({
                 startY: doc.lastAutoTable.finalY + 6,
                 head: [['Description / Earning Item', 'Units / Days', 'Amount (INR)']],
@@ -873,7 +902,6 @@
                 alternateRowStyles: { fillColor: [248, 245, 255] }
             });
 
-            // Deductions Table
             doc.autoTable({
                 startY: doc.lastAutoTable.finalY + 6,
                 head: [['Deductions & Advance Adjustments', 'Reference / Status', 'Amount (INR)']],
@@ -885,7 +913,6 @@
                 alternateRowStyles: { fillColor: [255, 241, 242] }
             });
 
-            // Net Payable Callout
             const finalY = doc.lastAutoTable.finalY + 10;
             doc.setFillColor(236, 253, 245);
             doc.setDrawColor(16, 185, 129);
@@ -897,7 +924,6 @@
             doc.setFontSize(14);
             doc.text(`Rs. ${netPayout.toLocaleString('en-IN')}`, 190, finalY + 14, { align: "right" });
 
-            // Shift Activity List
             doc.setFontSize(10);
             doc.setFont("helvetica", "bold");
             doc.setTextColor(74, 20, 140);
@@ -942,7 +968,6 @@
 
             if(!emailInput || !passwordInput) return alert("Please enter both email and password.");
 
-            // Bypass for Ramesh Kumar mock login if offline or testing
             if ((emailInput === "ramesh@anantelectrical.in" || emailInput === "emp-102") && passwordInput === "password123") {
                 currentActiveUser = rameshKumarMockUser;
                 document.getElementById('auth-section').classList.add('hidden');
@@ -1090,7 +1115,7 @@
         async function syncDashboardPortalState() {
             const monthFilter = document.getElementById('dashboard-month-filter');
             if (!sessionStorage.getItem('manualMonthSet')) {
-                monthFilter.value = "6"; // July default for testing EMP-102 Ramesh Kumar
+                monthFilter.value = "6"; 
             }
 
             if(!currentActiveUser) return;
