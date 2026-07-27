@@ -7,7 +7,7 @@
     <!-- Web App Capability for Mobile Browsers -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#4a148c">
+    <meta name="theme-color" content="#1e3a5f">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -28,25 +28,25 @@
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-[#3b1c8c] to-[#0c56ca] text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center px-4 py-8">
+<body class="bg-gradient-to-br from-[#0f2942] to-[#1e3a5f] text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center px-4 py-8">
 
     <main class="flex-grow flex flex-col items-center justify-center w-full max-w-md relative">
         
         <!-- Auth Section -->
         <div id="auth-section" class="w-full max-w-[420px] bg-white rounded-2xl shadow-2xl p-10 transition-all duration-300 text-center">
-            <h1 class="text-3xl font-bold tracking-tight text-[#4a148c] mb-1">Anant Electrical</h1>
+            <h1 class="text-3xl font-bold tracking-tight text-[#1e3a5f] mb-1">Anant Electrical</h1>
             <p class="text-sm text-gray-500 mb-8">Sign in using your email and password.</p>
             
             <div class="space-y-5 text-left">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Portal Login Email</label>
-                    <input type="email" id="auth-email" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-[#4a148c] focus:ring-2 focus:ring-purple-100 outline-none transition" placeholder="name@anantelectrical.in">
+                    <input type="email" id="auth-email" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-[#1e3a5f] focus:ring-2 focus:ring-slate-100 outline-none transition" placeholder="name@anantelectrical.in">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Portal Login Password</label>
-                    <input type="password" id="auth-password" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-[#4a148c] focus:ring-2 focus:ring-purple-100 outline-none transition" placeholder="••••••••">
+                    <input type="password" id="auth-password" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-[#1e3a5f] focus:ring-2 focus:ring-slate-100 outline-none transition" placeholder="••••••••">
                 </div>
-                <button onclick="attemptAuthenticationSubmit()" class="w-full bg-[#4a148c] hover:bg-[#380e6f] text-white font-bold py-3.5 rounded-xl text-sm tracking-wider uppercase shadow-lg hover:shadow-xl transition cursor-pointer">
+                <button onclick="attemptAuthenticationSubmit()" class="w-full bg-[#1e3a5f] hover:bg-[#14283f] text-white font-bold py-3.5 rounded-xl text-sm tracking-wider uppercase shadow-lg hover:shadow-xl transition cursor-pointer">
                     Secure Dashboard Login
                 </button>
             </div>
@@ -55,21 +55,21 @@
         <!-- Dashboard Section -->
         <div id="portal-dashboard" class="hidden w-full space-y-6">
             
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-purple-100">
-                <div class="bg-gradient-to-r from-[#4a148c] to-[#6a1b9a] p-6 text-white flex justify-between items-start">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+                <div class="bg-gradient-to-r from-[#1e3a5f] to-[#2f5480] p-6 text-white flex justify-between items-start">
                     <div>
                         <div class="flex items-center gap-2 mb-2">
-                            <span id="display-role-badge" class="inline-block text-[10px] uppercase font-bold tracking-widest bg-purple-950 text-purple-200 px-2 py-0.5 rounded-md">Worker Portal</span>
+                            <span id="display-role-badge" class="inline-block text-[10px] uppercase font-bold tracking-widest bg-slate-900 text-slate-300 px-2 py-0.5 rounded-md">Worker Portal</span>
                             <!-- Live Network Indicator Badge -->
-                            <div class="flex items-center gap-1.5 bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-400/30">
+                            <div class="flex items-center gap-1.5 bg-slate-900/60 px-2 py-0.5 rounded-full border border-slate-500/30">
                                 <span id="network-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                                 <span id="network-text" class="text-[9px] font-mono uppercase font-bold text-emerald-200">Online</span>
                             </div>
                         </div>
                         <h2 id="display-worker-name" class="text-2xl font-black tracking-tight">Loading Profile...</h2>
-                        <p id="display-worker-email" class="text-xs text-purple-200/80 font-mono mt-0.5">...</p>
+                        <p id="display-worker-email" class="text-xs text-slate-300/80 font-mono mt-0.5">...</p>
                     </div>
-                    <button onclick="location.reload()" class="bg-purple-900/40 hover:bg-purple-900/60 p-2 rounded-lg text-xs transition cursor-pointer">Log Out</button>
+                    <button onclick="location.reload()" class="bg-slate-800/40 hover:bg-slate-800/60 p-2 rounded-lg text-xs transition cursor-pointer">Log Out</button>
                 </div>
 
                 <div class="p-5 bg-rose-50/60 border-b border-rose-100">
@@ -92,7 +92,7 @@
                     </div>
                 </div>
 
-                <div class="p-5 bg-purple-50/30 border-b border-purple-100 grid grid-cols-2 gap-4">
+                <div class="p-5 bg-slate-50/30 border-b border-slate-100 grid grid-cols-2 gap-4">
                     <div>
                         <span class="text-[10px] text-gray-400 font-mono uppercase block">Daily Base Rate</span>
                         <span id="display-fixed-salary" class="text-base font-black text-slate-800 font-mono">₹0</span>
@@ -109,14 +109,14 @@
                         <strong id="display-gross-salary" class="font-mono text-slate-800">₹0</strong>
                     </div>
 
-                    <div class="flex justify-between items-center bg-purple-900 text-white p-4 rounded-xl shadow-md">
+                    <div class="flex justify-between items-center bg-slate-800 text-white p-4 rounded-xl shadow-md">
                         <span id="display-net-payable-label" class="text-xs font-black uppercase tracking-wider">Net Salary Earned:</span>
                         <strong id="display-net-payable" class="text-lg font-black font-mono text-emerald-400">₹0</strong>
                     </div>
 
                     <!-- PDF Generation Button -->
                     <button onclick="downloadMonthlyPayslipPDF()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-sm flex items-center justify-center gap-2 cursor-pointer mt-2">
-                        📥 Download Payslip & Expense Statement
+                        Download Payslip & Expense Statement
                     </button>
                 </div>
 
@@ -127,10 +127,10 @@
             </div>
 
             <!-- Visual Analytics Container -->
-            <div class="bg-white rounded-2xl shadow-xl p-5 space-y-6 border border-purple-100">
+            <div class="bg-white rounded-2xl shadow-xl p-5 space-y-6 border border-slate-100">
                 <div>
                     <h3 class="text-xs font-black uppercase tracking-wider text-gray-700 flex items-center gap-2">
-                        📈 Visual Ledger Insights
+                        Visual Ledger Insights
                     </h3>
                     <p class="text-[10px] text-gray-400 font-mono mt-0.5">Dynamic charts synchronized with system state metrics</p>
                 </div>
@@ -153,26 +153,28 @@
             </div>
 
             <!-- Profile & ID Card Toggle Button Header -->
-            <div class="bg-white rounded-2xl shadow-xl p-5 border border-purple-100 flex justify-between items-center">
+            <div class="bg-white rounded-2xl shadow-xl p-5 border border-slate-100 flex justify-between items-center">
                 <div class="flex items-center gap-3">
-                    <span class="text-xl">👤</span>
+                    <span class="flex items-center justify-center w-9 h-9 rounded-lg bg-slate-100 text-[#1e3a5f]">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </span>
                     <div>
                         <h3 class="text-xs font-black uppercase tracking-wider text-gray-700">Staff Profile & ID Card</h3>
                         <p class="text-[10px] text-gray-400 font-mono">Tap button to view or edit digital ID card</p>
                     </div>
                 </div>
-                <button onclick="toggleProfileSection()" id="toggle-profile-section-btn" class="bg-purple-100 text-[#4a148c] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-purple-200 transition cursor-pointer">
+                <button onclick="toggleProfileSection()" id="toggle-profile-section-btn" class="bg-slate-100 text-[#1e3a5f] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-300 transition cursor-pointer">
                     Show ID Card
                 </button>
             </div>
 
             <!-- Profile & ID Card Management Section (Hidden by Default) -->
-            <div id="profile-container" class="hidden bg-white rounded-2xl shadow-xl p-6 space-y-6 border border-purple-100">
-                <div class="flex justify-between items-center border-b border-purple-100 pb-3">
+            <div id="profile-container" class="hidden bg-white rounded-2xl shadow-xl p-6 space-y-6 border border-slate-100">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-3">
                     <h3 class="text-sm font-black uppercase tracking-wider text-gray-700 flex items-center gap-2">
-                        👤 Staff Profile & ID Card
+                        Staff Profile & ID Card
                     </h3>
-                    <button onclick="toggleEditProfile()" id="edit-profile-btn" class="bg-purple-100 text-purple-800 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-purple-200 transition">
+                    <button onclick="toggleEditProfile()" id="edit-profile-btn" class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-slate-300 transition">
                         Edit Profile
                     </button>
                 </div>
@@ -180,16 +182,16 @@
                 <!-- View Mode: Digital ID Card -->
                 <div id="id-card-view" class="flex flex-col items-center">
                     <div class="w-full max-w-sm bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden relative">
-                        <div class="bg-[#4a148c] p-4 text-center">
+                        <div class="bg-[#1e3a5f] p-4 text-center">
                             <h2 class="text-white text-lg font-black tracking-widest uppercase">Anant Electrical</h2>
-                            <p class="text-purple-200 text-[9px] uppercase tracking-widest font-mono mt-0.5">Official Staff Identification</p>
+                            <p class="text-slate-300 text-[9px] uppercase tracking-widest font-mono mt-0.5">Official Staff Identification</p>
                         </div>
                         <div class="p-5 flex flex-col items-center relative">
-                            <div class="w-24 h-24 bg-gray-100 rounded-lg border-2 border-[#4a148c] mb-3 overflow-hidden shadow-sm">
+                            <div class="w-24 h-24 bg-gray-100 rounded-lg border-2 border-[#1e3a5f] mb-3 overflow-hidden shadow-sm">
                                 <img id="id-card-photo" src="https://via.placeholder.com/150" alt="Staff Photo" class="w-full h-full object-cover">
                             </div>
                             <h3 id="id-card-name" class="text-xl font-bold text-slate-800 uppercase">Loading...</h3>
-                            <p id="id-card-role" class="text-xs font-bold text-[#4a148c] tracking-widest uppercase mb-4">Field Associate</p>
+                            <p id="id-card-role" class="text-xs font-bold text-[#1e3a5f] tracking-widest uppercase mb-4">Field Associate</p>
                             
                             <div class="w-full space-y-2 text-xs font-mono">
                                 <div class="flex justify-between border-b border-gray-100 pb-1">
@@ -236,20 +238,20 @@
                 <div id="profile-edit-form" class="hidden space-y-4">
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Full Name</label>
-                        <input type="text" id="prof-name" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]">
+                        <input type="text" id="prof-name" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Employee Number / ID</label>
-                        <input type="text" id="prof-empno" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium font-mono outline-none focus:border-[#4a148c]" placeholder="AE-001">
+                        <input type="text" id="prof-empno" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium font-mono outline-none focus:border-[#1e3a5f]" placeholder="AE-001">
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Date of Birth</label>
-                            <input type="date" id="prof-dob" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]">
+                            <input type="date" id="prof-dob" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]">
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Blood Group</label>
-                            <select id="prof-blood" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]">
+                            <select id="prof-blood" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]">
                                 <option value="">Select...</option>
                                 <option value="A+">A+</option><option value="A-">A-</option>
                                 <option value="B+">B+</option><option value="B-">B-</option>
@@ -261,34 +263,34 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Primary Phone</label>
-                            <input type="tel" id="prof-phone" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]">
+                            <input type="tel" id="prof-phone" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]">
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Secondary (WhatsApp)</label>
-                            <input type="tel" id="prof-whatsapp" class="w-full p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]">
+                            <input type="tel" id="prof-whatsapp" class="w-full p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]">
                         </div>
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Gmail ID</label>
-                        <input type="email" id="prof-gmail" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium font-mono outline-none focus:border-[#4a148c]" placeholder="name@gmail.com">
+                        <input type="email" id="prof-gmail" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium font-mono outline-none focus:border-[#1e3a5f]" placeholder="name@gmail.com">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">UAN Number</label>
-                        <input type="text" id="prof-uan" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium font-mono outline-none focus:border-[#4a148c]">
+                        <input type="text" id="prof-uan" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium font-mono outline-none focus:border-[#1e3a5f]">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Residential Address</label>
-                        <textarea id="prof-address" rows="2" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]"></textarea>
+                        <textarea id="prof-address" rows="2" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]"></textarea>
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">ID Card Photo</label>
                         <div class="flex items-center gap-2">
-                            <input type="url" id="prof-photo-url" class="flex-1 p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="https:// or take selfie">
-                            <button type="button" onclick="initiateCameraWorkflow('idcard')" class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold px-3 py-2.5 rounded-xl text-[10px] uppercase tracking-wider transition whitespace-nowrap cursor-pointer">📸 Take Selfie</button>
+                            <input type="url" id="prof-photo-url" class="flex-1 p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]" placeholder="https:// or take selfie">
+                            <button type="button" onclick="initiateCameraWorkflow('idcard')" class="bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold px-3 py-2.5 rounded-xl text-[10px] uppercase tracking-wider transition whitespace-nowrap cursor-pointer">Take Selfie</button>
                         </div>
                     </div>
                     
-                    <button onclick="saveUserProfile()" class="w-full bg-[#4a148c] hover:bg-[#380e6f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer mt-2">
+                    <button onclick="saveUserProfile()" class="w-full bg-[#1e3a5f] hover:bg-[#14283f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer mt-2">
                         Save Profile Data
                     </button>
                 </div>
@@ -319,54 +321,54 @@
 
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Active Site Location</label>
-                        <input type="text" id="shift-location" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="e.g., Koramangala More Supermarket">
+                        <input type="text" id="shift-location" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]" placeholder="e.g., Koramangala More Supermarket">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Progress Notes / Task Summary</label>
-                        <textarea id="shift-progress" rows="2" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="Describe work completed today..."></textarea>
+                        <textarea id="shift-progress" rows="2" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]" placeholder="Describe work completed today..."></textarea>
                     </div>
 
                     <div class="border-t border-slate-100 pt-3 mt-2 space-y-3">
-                        <label class="block text-[10px] font-black text-gray-700 uppercase tracking-wider">💸 Log Site Expenses & Mid-Day Advances</label>
+                        <label class="block text-[10px] font-black text-gray-700 uppercase tracking-wider">Log Site Expenses & Mid-Day Advances</label>
                         
                         <div class="grid grid-cols-3 gap-2">
                             <div>
                                 <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Transport</label>
-                                <input type="number" id="exp-transport" oninput="updateRequiredBillsUI()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" value="0">
+                                <input type="number" id="exp-transport" oninput="updateRequiredBillsUI()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#1e3a5f]" value="0">
                             </div>
                             <div>
                                 <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Food/Hostel</label>
-                                <input type="number" id="exp-food" oninput="updateRequiredBillsUI()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" value="0">
+                                <input type="number" id="exp-food" oninput="updateRequiredBillsUI()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#1e3a5f]" value="0">
                             </div>
                             <div>
                                 <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Materials</label>
-                                <input type="number" id="exp-material" oninput="updateRequiredBillsUI()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#4a148c]" value="0">
+                                <input type="number" id="exp-material" oninput="updateRequiredBillsUI()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#1e3a5f]" value="0">
                             </div>
                         </div>
 
                         <div class="bg-amber-50/50 p-3 rounded-xl border border-amber-100">
-                            <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">💰 Mid-Day Advance Cash Received Today</label>
+                            <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Mid-Day Advance Cash Received Today</label>
                             <input type="number" id="exp-advance" class="w-full p-2.5 bg-white border border-amber-200 rounded-lg font-mono font-bold text-xs text-amber-900 outline-none focus:border-amber-500" value="0">
                             <p class="text-[9px] text-amber-600/80 mt-1">This will increase your rolling wallet balance availability.</p>
                         </div>
 
                         <div>
-                            <input type="text" id="exp-material-desc" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#4a148c]" placeholder="List materials bought...">
+                            <input type="text" id="exp-material-desc" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]" placeholder="List materials bought...">
                         </div>
 
-                        <div id="bill-verification-section" class="bg-purple-50 p-4 rounded-xl border border-purple-100 space-y-3 hidden">
-                            <div class="bg-purple-950 text-white p-2.5 rounded-lg text-[9px] font-mono leading-tight">
-                                ℹ️ <strong>Rules Summary:</strong> Printed shop name/GST bills with handwritten line entries are <strong>automatically approved</strong>. Messy handwriting OCR errors are bypassed if a clear shop header is present. Plain white notes with no shop profile <strong>must have a seal</strong>.
+                        <div id="bill-verification-section" class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3 hidden">
+                            <div class="bg-slate-900 text-white p-2.5 rounded-lg text-[9px] font-mono leading-tight">
+                                <strong>Rules Summary:</strong> Printed shop name/GST bills with handwritten line entries are <strong>automatically approved</strong>. Messy handwriting OCR errors are bypassed if a clear shop header is present. Plain white notes with no shop profile <strong>must have a seal</strong>.
                             </div>
-                            <label class="block text-[10px] font-black text-purple-800 uppercase tracking-wider">📄 Required Claims Verification</label>
+                            <label class="block text-[10px] font-black text-slate-700 uppercase tracking-wider">Required Claims Verification</label>
                             
-                            <div id="bill-req-transport" class="hidden space-y-2 bg-white p-3 rounded-xl border border-purple-100/60 shadow-sm">
+                            <div id="bill-req-transport" class="hidden space-y-2 bg-white p-3 rounded-xl border border-slate-100/60 shadow-sm">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-[10px] font-bold text-purple-900/80 block">Transportation Receipts / UPI Screenshots:</span>
+                                    <span class="text-[10px] font-bold text-slate-800/80 block">Transportation Receipts / UPI Screenshots:</span>
                                     <span id="badge-status-transport" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase tracking-wider">Missing Image</span>
                                 </div>
                                 <div id="action-block-transport" class="flex gap-2">
-                                    <button type="button" onclick="initiateCameraWorkflow('transport')" class="flex-1 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">📸 Add Photo</button>
+                                    <button type="button" onclick="initiateCameraWorkflow('transport')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
                                     <input type="file" id="bill-file-transport" accept="image/*" multiple onchange="handleBillFileSelected('transport')" class="hidden">
                                     <button type="button" onclick="document.getElementById('bill-file-transport').click()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-3 rounded-lg text-[10px] uppercase transition">Upload Multiple</button>
                                 </div>
@@ -375,13 +377,13 @@
                                 </div>
                             </div>
 
-                            <div id="bill-req-food" class="hidden space-y-2 bg-white p-3 rounded-xl border border-purple-100/60 shadow-sm">
+                            <div id="bill-req-food" class="hidden space-y-2 bg-white p-3 rounded-xl border border-slate-100/60 shadow-sm">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-[10px] font-bold text-purple-900/80 block">Food, Meals & Hostel Bills / UPI Screenshots:</span>
+                                    <span class="text-[10px] font-bold text-slate-800/80 block">Food, Meals & Hostel Bills / UPI Screenshots:</span>
                                     <span id="badge-status-food" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase tracking-wider">Missing Image</span>
                                 </div>
                                 <div id="action-block-food" class="flex gap-2">
-                                    <button type="button" onclick="initiateCameraWorkflow('food')" class="flex-1 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">📸 Add Photo</button>
+                                    <button type="button" onclick="initiateCameraWorkflow('food')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
                                     <input type="file" id="bill-file-food" accept="image/*" multiple onchange="handleBillFileSelected('food')" class="hidden">
                                     <button type="button" onclick="document.getElementById('bill-file-food').click()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-3 rounded-lg text-[10px] uppercase transition">Upload Multiple</button>
                                 </div>
@@ -390,13 +392,13 @@
                                 </div>
                             </div>
 
-                            <div id="bill-req-material" class="hidden space-y-2 bg-white p-3 rounded-xl border border-purple-100/60 shadow-sm">
+                            <div id="bill-req-material" class="hidden space-y-2 bg-white p-3 rounded-xl border border-slate-100/60 shadow-sm">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-[10px] font-bold text-purple-900/80 block">Materials Invoices / UPI Screenshots:</span>
+                                    <span class="text-[10px] font-bold text-slate-800/80 block">Materials Invoices / UPI Screenshots:</span>
                                     <span id="badge-status-material" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase tracking-wider">Missing Image</span>
                                 </div>
                                 <div id="action-block-material" class="flex gap-2">
-                                    <button type="button" onclick="initiateCameraWorkflow('material')" class="flex-1 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">📸 Add Photo</button>
+                                    <button type="button" onclick="initiateCameraWorkflow('material')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
                                     <input type="file" id="bill-file-material" accept="image/*" multiple onchange="handleBillFileSelected('material')" class="hidden">
                                     <button type="button" onclick="document.getElementById('bill-file-material').click()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-3 rounded-lg text-[10px] uppercase transition">Upload Multiple</button>
                                 </div>
@@ -405,14 +407,14 @@
                                 </div>
                             </div>
 
-                            <button type="button" onclick="verifyExpensesBillsWithAI()" id="verify-bills-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-lg text-[10px] uppercase tracking-widest transition shadow-sm">
+                            <button type="button" onclick="verifyExpensesBillsWithAI()" id="verify-bills-btn" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-2.5 rounded-lg text-[10px] uppercase tracking-widest transition shadow-sm">
                                 Scan & Verify Bills with AI
                             </button>
                             <div id="bills-verification-status"></div>
                         </div>
                     </div>
 
-                    <button id="punch-out-button" onclick="initiateCameraWorkflow('out')" class="w-full bg-[#4a148c] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer">
+                    <button id="punch-out-button" onclick="initiateCameraWorkflow('out')" class="w-full bg-[#1e3a5f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer">
                         Capture Selfie & Punch Out
                     </button>
                 </div>
@@ -420,8 +422,8 @@
 
             <div class="space-y-2">
                 <div class="flex justify-between items-center px-1">
-                    <p class="text-[10px] uppercase font-bold tracking-wider text-purple-200 font-mono">Verified Ledger Streams</p>
-                    <select id="dashboard-month-filter" onchange="syncDashboardPortalState()" class="bg-purple-950/60 border border-purple-400/40 rounded-lg px-2 py-1 text-[11px] font-bold text-purple-100 font-mono focus:outline-none">
+                    <p class="text-[10px] uppercase font-bold tracking-wider text-slate-300 font-mono">Verified Ledger Streams</p>
+                    <select id="dashboard-month-filter" onchange="syncDashboardPortalState()" class="bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-100 font-mono focus:outline-none">
                         <option value="ALL">All Records</option>
                         <option value="0">January</option>
                         <option value="1">February</option>
@@ -438,14 +440,14 @@
                     </select>
                 </div>
 
-                <div class="flex bg-purple-950/40 p-1 rounded-xl border border-purple-400/20 gap-1">
-                    <button onclick="switchStreamTab('shifts')" id="tab-btn-shifts" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer bg-white text-[#4a148c] shadow-sm">
+                <div class="flex bg-slate-900/40 p-1 rounded-xl border border-slate-500/20 gap-1">
+                    <button onclick="switchStreamTab('shifts')" id="tab-btn-shifts" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer bg-white text-[#1e3a5f] shadow-sm">
                         Shifts
                     </button>
-                    <button onclick="switchStreamTab('midday')" id="tab-btn-midday" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer text-purple-200 hover:text-white">
+                    <button onclick="switchStreamTab('midday')" id="tab-btn-midday" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer text-slate-300 hover:text-white">
                         Mid-Day Adv
                     </button>
-                    <button onclick="switchStreamTab('salary')" id="tab-btn-salary" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer text-purple-200 hover:text-white">
+                    <button onclick="switchStreamTab('salary')" id="tab-btn-salary" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer text-slate-300 hover:text-white">
                         Salary Adv
                     </button>
                 </div>
@@ -475,9 +477,9 @@
     
     <canvas id="photo-canvas" class="hidden"></canvas>
 
-    <footer class="mt-12 text-center text-[11px] text-purple-200/40 font-mono tracking-wider w-full py-4 border-t border-purple-500/10 max-w-md mx-auto">
+    <footer class="mt-12 text-center text-[11px] text-slate-300/40 font-mono tracking-wider w-full py-4 border-t border-slate-500/10 max-w-md mx-auto">
         <div>&copy; 2026 Anant Electrical. All Rights Reserved.</div>
-        <div class="text-[10px] font-sans font-bold text-purple-300/80 mt-0.5">Developed by Akash</div>
+        <div class="text-[10px] font-sans font-bold text-slate-400/80 mt-0.5">Developed by Akash</div>
     </footer>
 
     <script>
@@ -639,7 +641,7 @@
                     }
 
                     updateNetworkBadge(true, "Online");
-                    alert("📶 Offline shifts synchronized with cloud server!");
+                    alert("Offline shifts synchronized with cloud server!");
                     await syncDashboardPortalState();
                 };
             } catch(e) { console.error("Sync error:", e); }
@@ -717,13 +719,13 @@
             if (isProfileVisible) {
                 container.classList.remove('hidden');
                 btn.innerText = "Hide ID Card";
-                btn.classList.replace('bg-purple-100', 'bg-rose-100');
-                btn.classList.replace('text-[#4a148c]', 'text-rose-800');
+                btn.classList.replace('bg-slate-100', 'bg-rose-100');
+                btn.classList.replace('text-[#1e3a5f]', 'text-rose-800');
             } else {
                 container.classList.add('hidden');
                 btn.innerText = "Show ID Card";
-                btn.classList.replace('bg-rose-100', 'bg-purple-100');
-                btn.classList.replace('text-rose-800', 'text-[#4a148c]');
+                btn.classList.replace('bg-rose-100', 'bg-slate-100');
+                btn.classList.replace('text-rose-800', 'text-[#1e3a5f]');
             }
         }
 
@@ -737,8 +739,8 @@
                 viewSection.classList.add('hidden');
                 editSection.classList.remove('hidden');
                 btn.innerText = "Cancel Edit";
-                btn.classList.replace('bg-purple-100', 'bg-rose-100');
-                btn.classList.replace('text-purple-800', 'text-rose-800');
+                btn.classList.replace('bg-slate-100', 'bg-rose-100');
+                btn.classList.replace('text-slate-700', 'text-rose-800');
                 
                 document.getElementById('prof-name').value = currentActiveUser.name || '';
                 document.getElementById('prof-empno').value = currentActiveUser.emp_no || '';
@@ -754,8 +756,8 @@
                 viewSection.classList.remove('hidden');
                 editSection.classList.add('hidden');
                 btn.innerText = "Edit Profile";
-                btn.classList.replace('bg-rose-100', 'bg-purple-100');
-                btn.classList.replace('text-rose-800', 'text-purple-800');
+                btn.classList.replace('bg-rose-100', 'bg-slate-100');
+                btn.classList.replace('text-rose-800', 'text-slate-700');
             }
         }
 
@@ -1011,7 +1013,7 @@
                     punchOutBtn.innerText = `Locked (Min Shift 4 Hrs) — ${hours}h ${minutes}m left`;
                 } else {
                     punchOutBtn.disabled = false;
-                    punchOutBtn.className = "w-full bg-[#4a148c] hover:bg-[#380e6f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest cursor-pointer shadow-md transition";
+                    punchOutBtn.className = "w-full bg-[#1e3a5f] hover:bg-[#14283f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest cursor-pointer shadow-md transition";
                     punchOutBtn.innerText = "Capture Selfie & Punch Out";
                     clearInterval(lockTimerInterval);
                 }
@@ -1025,8 +1027,8 @@
             ['shifts', 'midday', 'salary'].forEach(t => {
                 const btn = document.getElementById(`tab-btn-${t}`);
                 btn.className = t === tabName 
-                    ? "flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer bg-white text-[#4a148c] shadow-sm"
-                    : "flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer text-purple-200 hover:text-white";
+                    ? "flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer bg-white text-[#1e3a5f] shadow-sm"
+                    : "flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer text-slate-300 hover:text-white";
             });
             renderActiveStreamTab();
         }
@@ -1055,11 +1057,11 @@
                         if(inImg || outImg) {
                             trackingThumbnailsHtml = `<div class="flex gap-3 mt-2 pt-2 border-t border-slate-100 justify-start items-center">`;
                             if(inImg) trackingThumbnailsHtml += `<div class="flex items-center gap-1"><img src="${inImg}" class="w-7 h-7 rounded-full object-cover border border-emerald-400"><span class="text-[9px] text-gray-400 uppercase font-mono">In</span></div>`;
-                            if(outImg) trackingThumbnailsHtml += `<div class="flex items-center gap-1"><img src="${outImg}" class="w-7 h-7 rounded-full object-cover border border-purple-400"><span class="text-[9px] text-gray-400 uppercase font-mono">Out</span></div>`;
+                            if(outImg) trackingThumbnailsHtml += `<div class="flex items-center gap-1"><img src="${outImg}" class="w-7 h-7 rounded-full object-cover border border-slate-500"><span class="text-[9px] text-gray-400 uppercase font-mono">Out</span></div>`;
                             trackingThumbnailsHtml += `</div>`;
                         }
                         let div = document.createElement('div');
-                        div.className = "bg-white p-3.5 rounded-xl border border-purple-100/60 shadow-sm text-xs";
+                        div.className = "bg-white p-3.5 rounded-xl border border-slate-100/60 shadow-sm text-xs";
                         div.innerHTML = `
                             <div class="flex justify-between items-center w-full">
                                 <div><p class="font-bold text-slate-800">${log.site_location || 'Field Location Site'}</p><p class="text-[10px] text-slate-400">${dateText} • Spent: ₹${parseFloat(log.transport_expense || 0) + parseFloat(log.food_expense || 0) + parseFloat(log.material_expense || 0)}</p></div>
@@ -1069,7 +1071,7 @@
                         `;
                         stream.appendChild(div);
                     });
-                } else { stream.innerHTML = `<p class="text-xs text-purple-200 italic text-center py-4">No shift logs found for this selection.</p>`; }
+                } else { stream.innerHTML = `<p class="text-xs text-slate-300 italic text-center py-4">No shift logs found for this selection.</p>`; }
             } else if (currentActiveTab === 'midday') {
                 const recordsWithAdvances = filteredShiftLogs.filter(log => parseFloat(log.payment_advance_taken || 0) > 0 && log.status !== 'Active');
                 const morningWalletAmt = parseFloat(currentActiveUser.morning_advance || 0);
@@ -1078,7 +1080,7 @@
                     if (morningWalletAmt > 0) {
                         let div = document.createElement('div');
                         div.className = "bg-amber-50 p-3.5 rounded-xl border border-amber-200 shadow-sm text-xs flex justify-between items-center";
-                        div.innerHTML = `<div><p class="font-bold text-amber-900">☀️ Morning Cash (Opening Balance)</p><p class="text-[10px] text-slate-400">Admin Allocated Fund Balance</p></div><strong class="text-amber-600 font-mono font-black text-sm">₹${morningWalletAmt.toLocaleString('en-IN')}</strong>`;
+                        div.innerHTML = `<div><p class="font-bold text-amber-900">Morning Cash (Opening Balance)</p><p class="text-[10px] text-slate-400">Admin Allocated Fund Balance</p></div><strong class="text-amber-600 font-mono font-black text-sm">₹${morningWalletAmt.toLocaleString('en-IN')}</strong>`;
                         stream.appendChild(div);
                     }
                     recordsWithAdvances.forEach(log => {
@@ -1088,7 +1090,7 @@
                         div.innerHTML = `<div><p class="font-bold text-amber-900">Mid-Day Advance Received</p><p class="text-[10px] text-slate-400">${dateText} • ${log.site_location || 'On-Site entry'}</p></div><strong class="text-amber-600 font-mono font-black text-sm">+ ₹${parseFloat(log.payment_advance_taken).toLocaleString('en-IN')}</strong>`;
                         stream.appendChild(div);
                     });
-                } else { stream.innerHTML = `<p class="text-xs text-purple-200 italic text-center py-4">No Mid-Day advances logged in this month range.</p>`; }
+                } else { stream.innerHTML = `<p class="text-xs text-slate-300 italic text-center py-4">No Mid-Day advances logged in this month range.</p>`; }
             } else if (currentActiveTab === 'salary') {
                 const salaryAdvance = parseFloat(currentActiveUser.salary_advance_taken || 0);
                 if (salaryAdvance > 0) {
@@ -1108,7 +1110,7 @@
                                 <span>Ref: AE-STF-${currentActiveUser.id || 'REG'}</span>
                             </div>
                         </div>`;
-                } else { stream.innerHTML = `<p class="text-xs text-purple-200 italic text-center py-4">No long-term outstanding salary advance balances found.</p>`; }
+                } else { stream.innerHTML = `<p class="text-xs text-slate-300 italic text-center py-4">No long-term outstanding salary advance balances found.</p>`; }
             }
         }
 
@@ -1211,7 +1213,7 @@
             
             const chartLabels = ['Gross Salary', 'Net Earnings', 'Total Spent', 'Total Advances', 'Outstanding Adv'];
             const chartValues = [allTimeGrossEarned, monthlyNetSalary, siteSpent, combinedTotalAdvances, majorAdvanceTaken];
-            const chartColorsPalette = ['#4a148c', '#10b981', '#3b82f6', '#f59e0b', '#f43f5e'];
+            const chartColorsPalette = ['#1e3a5f', '#10b981', '#3b82f6', '#f59e0b', '#f43f5e'];
 
             if (runtimePieChartInstance) runtimePieChartInstance.destroy();
             runtimePieChartInstance = new Chart(document.getElementById('dashboardPieChartCanvas').getContext('2d'), {
@@ -1349,7 +1351,7 @@
         async function verifyExpensesBillsWithAI() {
             const statusDiv = document.getElementById('bills-verification-status');
             statusDiv.className = "text-[10px] font-mono text-left bg-slate-900 text-cyan-400 p-3.5 rounded-xl border border-slate-800 space-y-1 block mt-3 max-h-48 overflow-y-auto";
-            statusDiv.innerHTML = "🤖 [Core] Booting Document Vision Neural Parser...";
+            statusDiv.innerHTML = "[Core] Booting Document Vision Neural Parser...";
 
             const today = new Date();
             const d = today.getDate().toString(); 
