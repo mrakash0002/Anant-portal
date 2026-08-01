@@ -159,7 +159,7 @@
                         <h2 id="display-worker-name" class="text-2xl font-black tracking-tight">Loading Profile...</h2>
                         <p id="display-worker-email" class="text-xs text-slate-300/80 font-mono mt-0.5">...</p>
                     </div>
-                    <button onclick="location.reload()" class="bg-slate-800/40 hover:bg-slate-800/60 p-2 rounded-lg text-xs transition cursor-pointer">Log Out</button>
+                    <button onclick="localStorage.removeItem('anant_active_session'); location.reload();" class="bg-slate-800/40 hover:bg-slate-800/60 p-2 rounded-lg text-xs transition cursor-pointer">Log Out</button>
                 </div>
 
                 <div class="p-5 bg-rose-50/60 border-b border-rose-100">
@@ -220,21 +220,21 @@
             <div class="mb-6 break-inside-avoid bg-white rounded-2xl shadow-xl p-5 space-y-6 border border-slate-100">
                 <div>
                     <h3 class="text-xs font-black uppercase tracking-wider text-gray-700 flex items-center gap-2">
-                        Visual Ledger Insights
+                        Earnings Overview
                     </h3>
-                    <p class="text-[10px] text-gray-400 font-mono mt-0.5">Dynamic charts synchronized with system state metrics</p>
+                    <p class="text-[10px] text-gray-400 font-mono mt-0.5">A visual breakdown of your salary and expenses</p>
                 </div>
                 
                 <div class="space-y-6">
                     <div class="bg-slate-50/60 p-3 rounded-xl border border-slate-100 flex flex-col items-center">
-                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-2 font-mono">Ledger Proportion Split</span>
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-2 font-mono">Earnings Breakdown</span>
                         <div class="w-full max-w-[210px] aspect-square">
                             <canvas id="dashboardPieChartCanvas"></canvas>
                         </div>
                     </div>
                     
                     <div class="bg-slate-50/60 p-3 rounded-xl border border-slate-100 flex flex-col items-center">
-                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-2 font-mono">Volumetric Metrics Flow Comparison</span>
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-2 font-mono">Amount Comparison</span>
                         <div class="w-full h-52">
                             <canvas id="dashboardBarChartCanvas"></canvas>
                         </div>
@@ -1069,6 +1069,48 @@
             return `bill_cache_${currentActiveUser.email}_${todayStr}_${type}`;
         }
 
+        function saveActiveSession(email) {
+            try {
+                localStorage.setItem('anant_active_session', JSON.stringify({ email: String(email).toLowerCase(), ts: Date.now() }));
+            } catch(e) { console.error("Could not persist session:", e); }
+        }
+
+        async function restoreSessionOnLoad() {
+            let saved;
+            try {
+                saved = JSON.parse(localStorage.getItem('anant_active_session'));
+            } catch(e) { saved = null; }
+
+            if (!saved || !saved.email) return;
+
+            if (saved.email === rameshKumarMockUser.email.toLowerCase()) {
+                currentActiveUser = rameshKumarMockUser;
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('portal-dashboard').classList.remove('hidden');
+                await syncDashboardPortalState();
+                return;
+            }
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(saved.email)}`, { method: "GET", headers: HEADERS });
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    currentActiveUser = data[0];
+                    document.getElementById('auth-section').classList.add('hidden');
+                    document.getElementById('portal-dashboard').classList.remove('hidden');
+                    await syncDashboardPortalState();
+                    syncOfflineQueue();
+                } else {
+                    localStorage.removeItem('anant_active_session');
+                }
+            } catch(err) {
+                // Network unavailable on load — leave the login screen up rather than
+                // silently discarding a session the person may still be entitled to.
+                console.error("Session restore failed:", err);
+            }
+        }
+
         function playWelcomeIntroThenShowDashboard(userName) {
             return new Promise(resolve => {
                 document.getElementById('auth-section').classList.add('hidden');
@@ -1093,6 +1135,7 @@
 
             if ((emailInput === "ramesh@anantelectrical.in" || emailInput === "emp-102") && passwordInput === "password123") {
                 currentActiveUser = rameshKumarMockUser;
+                saveActiveSession(rameshKumarMockUser.email);
                 await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
                 await syncDashboardPortalState();
                 return;
@@ -1107,6 +1150,7 @@
                     const worker = data[0];
                     if(String(worker.password).trim() === String(passwordInput)) {
                         currentActiveUser = worker;
+                        saveActiveSession(worker.email);
                         await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
                         await syncDashboardPortalState();
                         syncOfflineQueue();
@@ -1712,7 +1756,9 @@
             
             syncDashboardPortalState();
         }
-        
+
+        restoreSessionOnLoad();
+
     </script>
 </body>
 </html>
