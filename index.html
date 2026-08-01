@@ -1063,6 +1063,9 @@
         }
 
         // --- AUTH & SHIFT WORKFLOW LOGIC ---
+        const SESSION_DURATION_MS = 5 * 60 * 1000; // 5 minute login session limit
+        let sessionExpiryTimer = null;
+
         function getTodayCacheKeyString(type) {
             if(!currentActiveUser) return '';
             const todayStr = new Date().toISOString().split('T')[0];
@@ -1075,6 +1078,32 @@
             } catch(e) { console.error("Could not persist session:", e); }
         }
 
+        function expireActiveSession(showAlert) {
+            if (sessionExpiryTimer) { clearTimeout(sessionExpiryTimer); sessionExpiryTimer = null; }
+            if (lockTimerInterval) { clearInterval(lockTimerInterval); lockTimerInterval = null; }
+            localStorage.removeItem('anant_active_session');
+            currentActiveUser = null;
+
+            document.getElementById('portal-dashboard').classList.add('hidden');
+            document.getElementById('welcome-intro').classList.add('hidden');
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('auth-email').value = '';
+            document.getElementById('auth-password').value = '';
+
+            if (showAlert) alert("Your session has expired after 5 minutes. Please log in again.");
+        }
+
+        function scheduleSessionExpiry(sessionStartTs) {
+            if (sessionExpiryTimer) clearTimeout(sessionExpiryTimer);
+            const remainingMs = SESSION_DURATION_MS - (Date.now() - sessionStartTs);
+
+            if (remainingMs <= 0) {
+                expireActiveSession(false);
+                return;
+            }
+            sessionExpiryTimer = setTimeout(() => expireActiveSession(true), remainingMs);
+        }
+
         async function restoreSessionOnLoad() {
             let saved;
             try {
@@ -1083,11 +1112,17 @@
 
             if (!saved || !saved.email) return;
 
+            if (!saved.ts || (Date.now() - saved.ts) >= SESSION_DURATION_MS) {
+                localStorage.removeItem('anant_active_session');
+                return;
+            }
+
             if (saved.email === rameshKumarMockUser.email.toLowerCase()) {
                 currentActiveUser = rameshKumarMockUser;
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('portal-dashboard').classList.remove('hidden');
                 await syncDashboardPortalState();
+                scheduleSessionExpiry(saved.ts);
                 return;
             }
 
@@ -1101,6 +1136,7 @@
                     document.getElementById('portal-dashboard').classList.remove('hidden');
                     await syncDashboardPortalState();
                     syncOfflineQueue();
+                    scheduleSessionExpiry(saved.ts);
                 } else {
                     localStorage.removeItem('anant_active_session');
                 }
@@ -1136,6 +1172,7 @@
             if ((emailInput === "ramesh@anantelectrical.in" || emailInput === "emp-102") && passwordInput === "password123") {
                 currentActiveUser = rameshKumarMockUser;
                 saveActiveSession(rameshKumarMockUser.email);
+                scheduleSessionExpiry(Date.now());
                 await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
                 await syncDashboardPortalState();
                 return;
@@ -1151,6 +1188,7 @@
                     if(String(worker.password).trim() === String(passwordInput)) {
                         currentActiveUser = worker;
                         saveActiveSession(worker.email);
+                        scheduleSessionExpiry(Date.now());
                         await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
                         await syncDashboardPortalState();
                         syncOfflineQueue();
