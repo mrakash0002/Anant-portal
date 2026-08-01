@@ -34,7 +34,6 @@
             }
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <!-- jsPDF & AutoTable for PDF Payslip Generation -->
@@ -450,27 +449,23 @@
                             <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm space-y-2.5">
                                 <div class="flex items-center gap-1.5">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-[#1e3a5f]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                    <span class="text-[10px] font-black text-slate-700 uppercase tracking-wider">Verification Rules</span>
+                                    <span class="text-[10px] font-black text-slate-700 uppercase tracking-wider">Bill Submission Rules</span>
                                 </div>
                                 <div class="flex items-start gap-2.5">
                                     <span class="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[9px] font-bold">✓</span>
-                                    <p class="text-[10px] leading-snug text-slate-600"><span class="font-bold text-slate-800">Printed shop bills</span> with a GST number and handwritten line items are approved automatically.</p>
+                                    <p class="text-[10px] leading-snug text-slate-600">Attach a clear photo or UPI screenshot for <span class="font-bold text-slate-800">every expense entered above</span> before you can punch out.</p>
                                 </div>
                                 <div class="flex items-start gap-2.5">
                                     <span class="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[9px] font-bold">i</span>
-                                    <p class="text-[10px] leading-snug text-slate-600">Messy handwriting is fine as long as a <span class="font-bold text-slate-800">clear shop header</span> is visible on the bill.</p>
-                                </div>
-                                <div class="flex items-start gap-2.5">
-                                    <span class="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[9px] font-bold">!</span>
-                                    <p class="text-[10px] leading-snug text-slate-600"><span class="font-bold text-slate-800">Plain notes</span> with no shop name or letterhead need a stamp or seal.</p>
+                                    <p class="text-[10px] leading-snug text-slate-600"><span class="font-bold text-slate-800">Akash will review</span> these bills against your shift. Your expense is only payable once the shift is approved.</p>
                                 </div>
                             </div>
-                            <label class="block text-[10px] font-black text-slate-700 uppercase tracking-wider">Required Claims Verification</label>
+                            <label class="block text-[10px] font-black text-slate-700 uppercase tracking-wider">Required Claims Submission</label>
                             
                             <div id="bill-req-transport" class="hidden space-y-2 bg-white p-3 rounded-xl border border-slate-100/60 shadow-sm">
                                 <div class="flex justify-between items-center">
                                     <span class="text-[10px] font-bold text-slate-800/80 block">Transportation Receipts / UPI Screenshots:</span>
-                                    <span id="badge-status-transport" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase tracking-wider">Missing Image</span>
+                                    <span id="badge-status-transport" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 uppercase tracking-wider">Missing Receipt</span>
                                 </div>
                                 <div id="action-block-transport" class="flex gap-2">
                                     <button type="button" onclick="initiateCameraWorkflow('transport')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
@@ -485,7 +480,7 @@
                             <div id="bill-req-food" class="hidden space-y-2 bg-white p-3 rounded-xl border border-slate-100/60 shadow-sm">
                                 <div class="flex justify-between items-center">
                                     <span class="text-[10px] font-bold text-slate-800/80 block">Food, Meals & Hostel Bills / UPI Screenshots:</span>
-                                    <span id="badge-status-food" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase tracking-wider">Missing Image</span>
+                                    <span id="badge-status-food" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 uppercase tracking-wider">Missing Receipt</span>
                                 </div>
                                 <div id="action-block-food" class="flex gap-2">
                                     <button type="button" onclick="initiateCameraWorkflow('food')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
@@ -500,7 +495,7 @@
                             <div id="bill-req-material" class="hidden space-y-2 bg-white p-3 rounded-xl border border-slate-100/60 shadow-sm">
                                 <div class="flex justify-between items-center">
                                     <span class="text-[10px] font-bold text-slate-800/80 block">Materials Invoices / UPI Screenshots:</span>
-                                    <span id="badge-status-material" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase tracking-wider">Missing Image</span>
+                                    <span id="badge-status-material" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 uppercase tracking-wider">Missing Receipt</span>
                                 </div>
                                 <div id="action-block-material" class="flex gap-2">
                                     <button type="button" onclick="initiateCameraWorkflow('material')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
@@ -512,10 +507,7 @@
                                 </div>
                             </div>
 
-                            <button type="button" onclick="verifyExpensesBillsWithAI()" id="verify-bills-btn" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-2.5 rounded-lg text-[10px] uppercase tracking-widest transition shadow-sm">
-                                Scan & Verify Bills with AI
-                            </button>
-                            <div id="bills-verification-status"></div>
+                            <p id="bills-verification-status" class="text-[10px] text-slate-500 italic px-1">Bills are submitted with your shift for admin review — no scan needed.</p>
                         </div>
                     </div>
 
@@ -604,7 +596,6 @@
         let currentCameraMode = null; 
 
         let capturedBillImages = { transport: [], food: [], material: [] };
-        let billsVerificationResults = { transport: false, food: false, material: false };
 
         let runtimePieChartInstance = null;
         let runtimeBarChartInstance = null;
@@ -690,12 +681,12 @@
             });
         }
 
-        async function savePunchToOfflineQueue(type, payload, imageBase64) {
+        async function savePunchToOfflineQueue(type, payload, imageBase64, billImages) {
             const db = await openOfflineDB();
             return new Promise((resolve, reject) => {
                 const tx = db.transaction("offline_queue", "readwrite");
                 const store = tx.objectStore("offline_queue");
-                store.add({ type, payload, imageBase64, timestamp: Date.now() });
+                store.add({ type, payload, imageBase64, billImages: billImages || null, timestamp: Date.now() });
                 tx.oncomplete = () => resolve();
                 tx.onerror = (e) => reject(e.target.error);
             });
@@ -729,6 +720,18 @@
                                 await fetch(`${SUPABASE_URL}shift_logs`, { method: 'POST', headers: HEADERS, body: JSON.stringify(item.payload) });
                             } else if (item.type === 'out') {
                                 item.payload.punch_out_image_url = selfieUrl;
+                                if (item.billImages) {
+                                    const billUrls = { transport: [], food: [], material: [] };
+                                    for (const type of ['transport', 'food', 'material']) {
+                                        let idx = 0;
+                                        for (const img of (item.billImages[type] || [])) {
+                                            const billFileName = `${type}_${currentActiveUser?.id || 'usr'}_${Date.now()}_${idx}.jpg`;
+                                            billUrls[type].push(await uploadSelfieToSupabase(img, billFileName, 'bill-photos'));
+                                            idx++;
+                                        }
+                                    }
+                                    item.payload.bill_photo_urls = JSON.stringify(billUrls);
+                                }
                                 const shiftId = item.payload.shift_id;
                                 const remBal = item.payload.remaining_balance;
                                 delete item.payload.shift_id;
@@ -785,10 +788,10 @@
             return new Blob(byteArrays, { type: mimeType });
         }
 
-        async function uploadSelfieToSupabase(base64Image, fileName) {
+        async function uploadSelfieToSupabase(base64Image, fileName, bucket = 'shift-selfies') {
             const blob = base64ToBlob(base64Image);
             const storageBaseUrl = SUPABASE_URL.replace('/rest/v1/', '/storage/v1/object');
-            const uploadUrl = `${storageBaseUrl}/shift-selfies/${fileName}`;
+            const uploadUrl = `${storageBaseUrl}/${bucket}/${fileName}`;
 
             const res = await fetch(uploadUrl, {
                 method: 'POST',
@@ -801,7 +804,23 @@
                 throw new Error(errData.message || "Storage bucket upload failed");
             }
             const publicBaseUrl = SUPABASE_URL.replace('/rest/v1/', '/storage/v1/object/public');
-            return `${publicBaseUrl}/shift-selfies/${fileName}`;
+            return `${publicBaseUrl}/${bucket}/${fileName}`;
+        }
+
+        // Uploads every captured bill photo (transport/food/material) to the bill-photos
+        // bucket and returns { transport: [urls], food: [urls], material: [urls] }.
+        async function uploadAllBillPhotos() {
+            const urls = { transport: [], food: [], material: [] };
+            for (const type of ['transport', 'food', 'material']) {
+                let idx = 0;
+                for (const img of capturedBillImages[type]) {
+                    const fileName = `${type}_${currentActiveUser?.id || 'usr'}_${Date.now()}_${idx}.jpg`;
+                    const url = await uploadSelfieToSupabase(img, fileName, 'bill-photos');
+                    urls[type].push(url);
+                    idx++;
+                }
+            }
+            return urls;
         }
 
         function fetchCurrentGPSLocation() {
@@ -1066,12 +1085,6 @@
         const SESSION_DURATION_MS = 5 * 60 * 1000; // 5 minute login session limit
         let sessionExpiryTimer = null;
 
-        function getTodayCacheKeyString(type) {
-            if(!currentActiveUser) return '';
-            const todayStr = new Date().toISOString().split('T')[0];
-            return `bill_cache_${currentActiveUser.email}_${todayStr}_${type}`;
-        }
-
         function saveActiveSession(email) {
             try {
                 localStorage.setItem('anant_active_session', JSON.stringify({ email: String(email).toLowerCase(), ts: Date.now() }));
@@ -1248,8 +1261,13 @@
                 if(nonActiveLogs.length > 0) {
                     nonActiveLogs.forEach(log => {
                         let dateText = new Date(log.punch_in_time || log.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                        let statusColor = log.status === 'Approved' ? "bg-emerald-100 text-emerald-800 border-emerald-200" : (log.status === 'Rejected' ? "bg-amber-100 text-amber-800 border-amber-200" : "bg-amber-100 text-amber-800 border-amber-200");
-                        
+                        let statusColor = log.status === 'Approved' ? "bg-emerald-100 text-emerald-800 border-emerald-200" : (log.status === 'Rejected' ? "bg-rose-100 text-rose-800 border-rose-200" : "bg-amber-100 text-amber-800 border-amber-200");
+
+                        const totalSpent = parseFloat(log.transport_expense || 0) + parseFloat(log.food_expense || 0) + parseFloat(log.material_expense || 0);
+                        const hasExpenseClaim = totalSpent > 0;
+                        const expenseStatus = log.expense_status || (hasExpenseClaim ? 'Pending' : 'N/A');
+                        let expenseColor = expenseStatus === 'Approved' ? "bg-emerald-100 text-emerald-800 border-emerald-200" : (expenseStatus === 'Rejected' ? "bg-rose-100 text-rose-800 border-rose-200" : "bg-amber-100 text-amber-800 border-amber-200");
+
                         let localImages = JSON.parse(localStorage.getItem(`selfies_${log.id}`)) || {};
                         let inImg = log.punch_in_image_url || localImages.in;
                         let outImg = log.punch_out_image_url || localImages.out;
@@ -1265,8 +1283,11 @@
                         div.className = "bg-white p-3.5 rounded-xl border border-slate-100/60 shadow-sm text-xs";
                         div.innerHTML = `
                             <div class="flex justify-between items-center w-full">
-                                <div><p class="font-bold text-slate-800">${log.site_location || 'Field Location Site'}</p><p class="text-[10px] text-slate-400">${dateText} • Spent: ₹${parseFloat(log.transport_expense || 0) + parseFloat(log.food_expense || 0) + parseFloat(log.material_expense || 0)}</p></div>
-                                <span class="px-2 py-0.5 rounded text-[9px] border font-bold uppercase tracking-wider ${statusColor}">${log.status}</span>
+                                <div><p class="font-bold text-slate-800">${log.site_location || 'Field Location Site'}</p><p class="text-[10px] text-slate-400">${dateText} • Spent: ₹${totalSpent}</p></div>
+                                <div class="flex flex-col items-end gap-1">
+                                    <span class="px-2 py-0.5 rounded text-[9px] border font-bold uppercase tracking-wider ${statusColor}">Shift: ${log.status}</span>
+                                    ${hasExpenseClaim ? `<span class="px-2 py-0.5 rounded text-[9px] border font-bold uppercase tracking-wider ${expenseColor}">Expense: ${expenseStatus}</span>` : ''}
+                                </div>
                             </div>
                             ${trackingThumbnailsHtml}
                         `;
@@ -1439,19 +1460,6 @@
             renderIDCard();
         }
 
-        function checkDailyBillCache(type, inputAmount) {
-            const cacheKey = getTodayCacheKeyString(type);
-            if(!cacheKey) return false;
-            const cachedData = localStorage.getItem(cacheKey);
-            if(cachedData) {
-                try {
-                    const parsed = JSON.parse(cachedData);
-                    return parsed && parsed.verified === true && parseFloat(parsed.amount) === parseFloat(inputAmount);
-                } catch(e) { return false; }
-            }
-            return false;
-        }
-
         function updateRequiredBillsUI() {
             const transportAmt = parseFloat(document.getElementById('exp-transport').value) || 0;
             const foodAmt = parseFloat(document.getElementById('exp-food').value) || 0;
@@ -1465,19 +1473,11 @@
                 if (amt > 0) {
                     reqEl.classList.remove('hidden');
                     anyExpenseActive = true;
-                    if(checkDailyBillCache(type, amt)) {
-                        billsVerificationResults[type] = true;
-                        document.getElementById(`badge-status-${type}`).className = "text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-emerald-600 text-white uppercase tracking-wider";
-                        document.getElementById(`badge-status-${type}`).innerText = "Daily Cache Lock Verified";
-                        document.getElementById(`action-block-${type}`).classList.add('hidden');
-                    } else {
-                        document.getElementById(`action-block-${type}`).classList.remove('hidden');
-                        if(!billsVerificationResults[type]) renderBillPreviews(type);
-                    }
+                    document.getElementById(`action-block-${type}`).classList.remove('hidden');
+                    renderBillPreviews(type);
                 } else {
                     reqEl.classList.add('hidden');
                     capturedBillImages[type] = [];
-                    billsVerificationResults[type] = false;
                 }
             });
 
@@ -1511,15 +1511,13 @@
             const container = document.getElementById(`preview-container-${type}`);
             const list = document.getElementById(`preview-list-${type}`);
             const badge = document.getElementById('badge-status-' + type);
-            
-            if(checkDailyBillCache(type, parseFloat(document.getElementById(`exp-${type}`).value))) return;
 
             list.innerHTML = '';
             if (capturedBillImages[type].length > 0) {
                 container.classList.remove('hidden');
                 badge.innerText = `${capturedBillImages[type].length} Image(s) Attached`;
-                badge.className = "text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wider";
-                
+                badge.className = "text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-emerald-600 text-white uppercase tracking-wider";
+
                 capturedBillImages[type].forEach((imgData, index) => {
                     const thumbWrapper = document.createElement('div');
                     thumbWrapper.className = "relative w-16 h-16 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 shadow-sm";
@@ -1531,11 +1529,9 @@
                 });
             } else {
                 container.classList.add('hidden');
-                badge.innerText = "Missing Image";
-                badge.className = "text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase tracking-wider";
+                badge.innerText = "Missing Receipt";
+                badge.className = "text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 uppercase tracking-wider";
             }
-            billsVerificationResults[type] = false;
-            document.getElementById('bills-verification-status').innerHTML = '';
         }
 
         function removeBillImage(type, index) {
@@ -1544,79 +1540,24 @@
         }
 
         function resetBillsVerificationState() {
-            billsVerificationResults = { transport: false, food: false, material: false };
-            const statusDiv = document.getElementById('bills-verification-status');
-            if (statusDiv) statusDiv.innerHTML = '';
+            capturedBillImages = { transport: [], food: [], material: [] };
         }
 
-        async function verifyExpensesBillsWithAI() {
-            const statusDiv = document.getElementById('bills-verification-status');
-            statusDiv.className = "text-[10px] font-mono text-left bg-slate-900 text-cyan-400 p-3.5 rounded-xl border border-slate-800 space-y-1 block mt-3 max-h-48 overflow-y-auto";
-            statusDiv.innerHTML = "[Core] Booting Document Vision Neural Parser...";
-
-            const today = new Date();
-            const todayDay = today.getDate();
-            const todayMonth = today.getMonth() + 1;
-            const todayYear = today.getFullYear();
-
-            // Pulls out any dd/mm(/yyyy) style tokens from the OCR text and compares the
-            // actual numeric values against today's date, instead of exact-string matching
-            // (which breaks on padded/unpadded digits, stray spacing, or separator noise).
-            function textContainsTodayDate(rawText) {
-                const dateTokenRegex = /(\d{1,2})\s*[\/\-.]\s*(\d{1,2})(?:\s*[\/\-.]\s*(\d{2,4}))?/g;
-                let match;
-                while ((match = dateTokenRegex.exec(rawText)) !== null) {
-                    const a = parseInt(match[1], 10);
-                    const b = parseInt(match[2], 10);
-                    const yearRaw = match[3];
-                    const yearPart = yearRaw ? parseInt(yearRaw.length === 2 ? '20' + yearRaw : yearRaw, 10) : null;
-                    const yearOk = yearPart === null || yearPart === todayYear;
-                    const asDDMM = (a === todayDay && b === todayMonth);
-                    const asMMDD = (a === todayMonth && b === todayDay);
-                    if ((asDDMM || asMMDD) && yearOk) return true;
-                }
-                return false;
-            }
-
-            let tasks = [
+        // Returns true only if every expense category with an amount > 0 has at least one
+        // attached bill photo / screenshot. Called before punch-out is allowed to proceed.
+        function allRequiredBillsAttached() {
+            const tasks = [
                 { type: 'transport', amt: parseFloat(document.getElementById('exp-transport').value) || 0, title: 'Transport' },
                 { type: 'food', amt: parseFloat(document.getElementById('exp-food').value) || 0, title: 'Food' },
                 { type: 'material', amt: parseFloat(document.getElementById('exp-material').value) || 0, title: 'Material' }
-            ].filter(t => t.amt > 0);
-
-            for (let task of tasks) {
-                let aggregatedRawText = "";
-                try {
-                    for (let img of capturedBillImages[task.type]) {
-                        const result = await Tesseract.recognize(img, 'eng');
-                        aggregatedRawText += " " + result.data.text;
-                    }
-                } catch (err) {
-                    statusDiv.innerHTML += `<br>⚠️ [Scan Error] ${task.title}: could not read the image. Try retaking the photo with better lighting.`;
-                    continue;
+            ];
+            for (const task of tasks) {
+                if (task.amt > 0 && capturedBillImages[task.type].length === 0) {
+                    alert(`Please attach a bill photo or screenshot for your ${task.title} expense before punching out.`);
+                    return false;
                 }
-
-                const lowerText = aggregatedRawText.toLowerCase();
-                let isTodayDate = textContainsTodayDate(aggregatedRawText);
-
-                if (!isTodayDate) {
-                    const structuralSignatures = ['invoice', 'bill', 'gst', 'tax', 'sales', 'total', 'amt', 'rupees', 'phonepe', 'gpay', 'upi', 'paytm', 'transfer', 'success'];
-                    const digitsOnly = lowerText.replace(/\D/g, '');
-                    if (structuralSignatures.some(sig => lowerText.includes(sig)) && digitsOnly.includes(todayDay.toString())) {
-                        isTodayDate = true;
-                    }
-                }
-
-                if (!isTodayDate) {
-                    statusDiv.innerHTML += `<br>❌ [Date Rejected] ${task.title}. Ensure receipt is from today.`;
-                    continue;
-                }
-
-                billsVerificationResults[task.type] = true;
-                document.getElementById(`badge-status-${task.type}`).className = "text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-emerald-600 text-white uppercase tracking-wider";
-                document.getElementById(`badge-status-${task.type}`).innerText = "AI Verified";
-                statusDiv.innerHTML += `<br>✅ [Success] ${task.title} verified.`;
             }
+            return true;
         }
 
         async function initiateCameraWorkflow(mode) {
@@ -1627,6 +1568,7 @@
                 const site_location = document.getElementById('shift-location').value.trim();
                 const progress_notes = document.getElementById('shift-progress').value.trim();
                 if(!site_location || !progress_notes) return alert("Validation Failed: Core input fields are empty.");
+                if(!allRequiredBillsAttached()) return;
             }
 
             document.getElementById('camera-modal').classList.remove('hidden');
@@ -1635,7 +1577,7 @@
                 document.getElementById('camera-title').innerText = `${mode === 'in' ? 'Punch In' : (mode === 'out' ? 'Punch Out' : 'ID Card')} Identity Selfie`;
                 laser.classList.add('hidden');
             } else {
-                document.getElementById('camera-title').innerText = `AI Scan: ${mode.toUpperCase()} Proof`;
+                document.getElementById('camera-title').innerText = `Capture Proof: ${mode.toUpperCase()}`;
                 laser.classList.remove('hidden');
             }
 
@@ -1760,11 +1702,12 @@
                 shift_id: runningActiveShift.id,
                 site_location, progress_notes, transport_expense, food_expense, material_expense, material_notes, 
                 payment_advance_taken, remaining_balance: remainingCarryforwardBalance, status: "Pending", 
-                punch_out_time: new Date().toISOString(), punch_out_image_url: null
+                expense_status: totalShiftExpenses > 0 ? "Pending" : "N/A",
+                punch_out_time: new Date().toISOString(), punch_out_image_url: null, bill_photo_urls: null
             };
 
             if (!navigator.onLine) {
-                await savePunchToOfflineQueue('out', shiftPayload, temporaryCapturedBase64);
+                await savePunchToOfflineQueue('out', shiftPayload, temporaryCapturedBase64, capturedBillImages);
                 updateNetworkBadge(false);
             } else {
                 try {
@@ -1774,6 +1717,7 @@
                         selfieUrl = await uploadSelfieToSupabase(temporaryCapturedBase64, fileName);
                     }
                     shiftPayload.punch_out_image_url = selfieUrl;
+                    shiftPayload.bill_photo_urls = JSON.stringify(await uploadAllBillPhotos());
 
                     const shiftId = shiftPayload.shift_id;
                     delete shiftPayload.shift_id;
@@ -1783,11 +1727,12 @@
                     await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ morning_advance: remainingCarryforwardBalance }) });
                     
                 } catch(err) { 
-                    await savePunchToOfflineQueue('out', shiftPayload, temporaryCapturedBase64);
+                    await savePunchToOfflineQueue('out', shiftPayload, temporaryCapturedBase64, capturedBillImages);
                 }
             }
             
             temporaryCapturedBase64 = null;
+            resetBillsVerificationState();
             
             document.getElementById('punch-out-panel').classList.add('hidden');
             document.getElementById('punch-in-panel').classList.remove('hidden');
