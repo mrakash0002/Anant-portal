@@ -1,2 +1,1 @@
-# Anant-portal
-attedance server is in maintenance
+# Anant-portal server is in maintenance
