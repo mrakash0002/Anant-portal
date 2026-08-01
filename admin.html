@@ -553,9 +553,11 @@
                 }
 
                 monthlyAggregation[monthKey][associatedWorker.email].shiftCount += 1;
-                monthlyAggregation[monthKey][associatedWorker.email].totalTransport += parseFloat(shift.transport_expense || 0);
-                monthlyAggregation[monthKey][associatedWorker.email].totalFood += parseFloat(shift.food_expense || 0);
-                monthlyAggregation[monthKey][associatedWorker.email].totalMaterial += parseFloat(shift.material_expense || 0);
+                if (shift.expense_status === 'Approved') {
+                    monthlyAggregation[monthKey][associatedWorker.email].totalTransport += parseFloat(shift.transport_expense || 0);
+                    monthlyAggregation[monthKey][associatedWorker.email].totalFood += parseFloat(shift.food_expense || 0);
+                    monthlyAggregation[monthKey][associatedWorker.email].totalMaterial += parseFloat(shift.material_expense || 0);
+                }
             });
 
             monthlyAggregationStore = monthlyAggregation;
