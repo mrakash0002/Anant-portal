@@ -50,6 +50,43 @@
         .animate-laser {
             animation: scan-motion 2.2s linear infinite;
         }
+        @keyframes emblem-flip-in {
+            0% { transform: rotateY(-110deg) scale(0.65); opacity: 0; }
+            55% { transform: rotateY(18deg) scale(1.06); opacity: 1; }
+            75% { transform: rotateY(-6deg) scale(0.99); }
+            100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+        }
+        .animate-emblem-flip-in {
+            animation: emblem-flip-in 1s cubic-bezier(.2,.8,.2,1) both;
+        }
+        @keyframes emblem-idle-tilt {
+            0%, 100% { transform: rotateY(0deg) rotateX(0deg); }
+            50% { transform: rotateY(8deg) rotateX(-3deg); }
+        }
+        .animate-emblem-idle {
+            animation: emblem-idle-tilt 3.2s ease-in-out 1s infinite;
+        }
+        @keyframes glow-pulse {
+            0%, 100% { opacity: 0.35; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.15); }
+        }
+        .animate-glow-pulse {
+            animation: glow-pulse 2s ease-in-out infinite;
+        }
+        @keyframes fade-rise {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-rise {
+            animation: fade-rise 0.7s ease-out both;
+        }
+        @keyframes loading-bar-fill {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+        .animate-loading-bar {
+            animation: loading-bar-fill 1.5s ease-in-out 0.9s both;
+        }
         body {
             background-color: #0f1c2e;
             background-image:
@@ -84,6 +121,24 @@
                 <button onclick="attemptAuthenticationSubmit()" class="w-full bg-[#1e3a5f] hover:bg-[#14283f] text-white font-bold py-3.5 rounded-xl text-sm tracking-wider uppercase shadow-lg hover:shadow-xl transition cursor-pointer">
                     Secure Dashboard Login
                 </button>
+            </div>
+        </div>
+
+        <!-- Welcome Intro (shown briefly after successful login, before the dashboard) -->
+        <div id="welcome-intro" class="hidden fixed inset-0 z-50 flex items-center justify-center overflow-hidden" style="background: linear-gradient(180deg, #0a1220 0%, #14243a 55%, #0f1c2e 100%);">
+            <div class="absolute inset-0" style="background-image: radial-gradient(circle at 20% 15%, rgba(209,134,63,0.18), transparent 45%), radial-gradient(circle at 85% 80%, rgba(52,90,133,0.4), transparent 50%);"></div>
+            <div class="relative text-center px-6" style="perspective: 1200px;">
+                <div class="relative mx-auto mb-6 w-24 h-24">
+                    <div class="absolute inset-0 rounded-2xl bg-copper-500 blur-2xl animate-glow-pulse"></div>
+                    <div class="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-copper-400 to-copper-700 flex items-center justify-center shadow-2xl border border-copper-300/40 animate-emblem-flip-in animate-emblem-idle" style="transform-style: preserve-3d;">
+                        <span class="text-4xl font-black text-white">A</span>
+                    </div>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight opacity-0 animate-fade-rise" style="animation-delay: 0.55s;">Welcome to Anant Staff Portal</h1>
+                <p id="welcome-subtitle" class="text-copper-300 text-xs font-mono uppercase tracking-widest mt-2.5 opacity-0 animate-fade-rise" style="animation-delay: 0.8s;">Preparing your dashboard...</p>
+                <div class="mt-7 w-44 h-1 mx-auto rounded-full bg-slate-700/60 overflow-hidden opacity-0 animate-fade-rise" style="animation-delay: 1s;">
+                    <div class="h-full bg-copper-400 rounded-full animate-loading-bar"></div>
+                </div>
             </div>
         </div>
 
@@ -392,8 +447,23 @@
                         </div>
 
                         <div id="bill-verification-section" class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3 hidden">
-                            <div class="bg-slate-900 text-white p-2.5 rounded-lg text-[9px] font-mono leading-tight">
-                                <strong>Rules Summary:</strong> Printed shop name/GST bills with handwritten line entries are <strong>automatically approved</strong>. Messy handwriting OCR errors are bypassed if a clear shop header is present. Plain white notes with no shop profile <strong>must have a seal</strong>.
+                            <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm space-y-2.5">
+                                <div class="flex items-center gap-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-[#1e3a5f]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    <span class="text-[10px] font-black text-slate-700 uppercase tracking-wider">Verification Rules</span>
+                                </div>
+                                <div class="flex items-start gap-2.5">
+                                    <span class="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[9px] font-bold">✓</span>
+                                    <p class="text-[10px] leading-snug text-slate-600"><span class="font-bold text-slate-800">Printed shop bills</span> with a GST number and handwritten line items are approved automatically.</p>
+                                </div>
+                                <div class="flex items-start gap-2.5">
+                                    <span class="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[9px] font-bold">i</span>
+                                    <p class="text-[10px] leading-snug text-slate-600">Messy handwriting is fine as long as a <span class="font-bold text-slate-800">clear shop header</span> is visible on the bill.</p>
+                                </div>
+                                <div class="flex items-start gap-2.5">
+                                    <span class="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[9px] font-bold">!</span>
+                                    <p class="text-[10px] leading-snug text-slate-600"><span class="font-bold text-slate-800">Plain notes</span> with no shop name or letterhead need a stamp or seal.</p>
+                                </div>
                             </div>
                             <label class="block text-[10px] font-black text-slate-700 uppercase tracking-wider">Required Claims Verification</label>
                             
@@ -999,6 +1069,22 @@
             return `bill_cache_${currentActiveUser.email}_${todayStr}_${type}`;
         }
 
+        function playWelcomeIntroThenShowDashboard(userName) {
+            return new Promise(resolve => {
+                document.getElementById('auth-section').classList.add('hidden');
+                const welcome = document.getElementById('welcome-intro');
+                const subtitle = document.getElementById('welcome-subtitle');
+                subtitle.innerText = userName ? `Signing in as ${userName}...` : 'Preparing your dashboard...';
+                welcome.classList.remove('hidden');
+
+                setTimeout(() => {
+                    welcome.classList.add('hidden');
+                    document.getElementById('portal-dashboard').classList.remove('hidden');
+                    resolve();
+                }, 2200);
+            });
+        }
+
         async function attemptAuthenticationSubmit() {
             const emailInput = document.getElementById('auth-email').value.trim().toLowerCase();
             const passwordInput = document.getElementById('auth-password').value.trim();
@@ -1007,8 +1093,7 @@
 
             if ((emailInput === "ramesh@anantelectrical.in" || emailInput === "emp-102") && passwordInput === "password123") {
                 currentActiveUser = rameshKumarMockUser;
-                document.getElementById('auth-section').classList.add('hidden');
-                document.getElementById('portal-dashboard').classList.remove('hidden');
+                await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
                 await syncDashboardPortalState();
                 return;
             }
@@ -1022,8 +1107,7 @@
                     const worker = data[0];
                     if(String(worker.password).trim() === String(passwordInput)) {
                         currentActiveUser = worker;
-                        document.getElementById('auth-section').classList.add('hidden');
-                        document.getElementById('portal-dashboard').classList.remove('hidden');
+                        await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
                         await syncDashboardPortalState();
                         syncOfflineQueue();
                     } else { alert("Authentication Failure: Password does not match."); }
@@ -1389,11 +1473,28 @@
             statusDiv.innerHTML = "[Core] Booting Document Vision Neural Parser...";
 
             const today = new Date();
-            const d = today.getDate().toString(); 
-            const m = (today.getMonth() + 1).toString(); 
-            const y = today.getFullYear().toString(); 
+            const todayDay = today.getDate();
+            const todayMonth = today.getMonth() + 1;
+            const todayYear = today.getFullYear();
 
-            const dateVariations = [`${d}/${m}`, `${d}-${m}`, `${d}/${m.padStart(2, '0')}`, `${d}-${m.padStart(2, '0')}`, `${d}/${m}/${y}`, `${d}-${m}-${y}`];
+            // Pulls out any dd/mm(/yyyy) style tokens from the OCR text and compares the
+            // actual numeric values against today's date, instead of exact-string matching
+            // (which breaks on padded/unpadded digits, stray spacing, or separator noise).
+            function textContainsTodayDate(rawText) {
+                const dateTokenRegex = /(\d{1,2})\s*[\/\-.]\s*(\d{1,2})(?:\s*[\/\-.]\s*(\d{2,4}))?/g;
+                let match;
+                while ((match = dateTokenRegex.exec(rawText)) !== null) {
+                    const a = parseInt(match[1], 10);
+                    const b = parseInt(match[2], 10);
+                    const yearRaw = match[3];
+                    const yearPart = yearRaw ? parseInt(yearRaw.length === 2 ? '20' + yearRaw : yearRaw, 10) : null;
+                    const yearOk = yearPart === null || yearPart === todayYear;
+                    const asDDMM = (a === todayDay && b === todayMonth);
+                    const asMMDD = (a === todayMonth && b === todayDay);
+                    if ((asDDMM || asMMDD) && yearOk) return true;
+                }
+                return false;
+            }
 
             let tasks = [
                 { type: 'transport', amt: parseFloat(document.getElementById('exp-transport').value) || 0, title: 'Transport' },
@@ -1403,18 +1504,24 @@
 
             for (let task of tasks) {
                 let aggregatedRawText = "";
-                for (let img of capturedBillImages[task.type]) {
-                    const result = await Tesseract.recognize(img, 'eng');
-                    aggregatedRawText += " " + result.data.text.toLowerCase();
+                try {
+                    for (let img of capturedBillImages[task.type]) {
+                        const result = await Tesseract.recognize(img, 'eng');
+                        aggregatedRawText += " " + result.data.text;
+                    }
+                } catch (err) {
+                    statusDiv.innerHTML += `<br>⚠️ [Scan Error] ${task.title}: could not read the image. Try retaking the photo with better lighting.`;
+                    continue;
                 }
 
-                const cleanRaw = aggregatedRawText.replace(/[\s,]/g, '');
-                let isTodayDate = dateVariations.some(v => cleanRaw.includes(v.replace(/[\s,]/g, '')));
-                
+                const lowerText = aggregatedRawText.toLowerCase();
+                let isTodayDate = textContainsTodayDate(aggregatedRawText);
+
                 if (!isTodayDate) {
                     const structuralSignatures = ['invoice', 'bill', 'gst', 'tax', 'sales', 'total', 'amt', 'rupees', 'phonepe', 'gpay', 'upi', 'paytm', 'transfer', 'success'];
-                    if (structuralSignatures.some(sig => aggregatedRawText.includes(sig)) && (aggregatedRawText.includes(d) || cleanRaw.includes(d))) {
-                        isTodayDate = true; 
+                    const digitsOnly = lowerText.replace(/\D/g, '');
+                    if (structuralSignatures.some(sig => lowerText.includes(sig)) && digitsOnly.includes(todayDay.toString())) {
+                        isTodayDate = true;
                     }
                 }
 
