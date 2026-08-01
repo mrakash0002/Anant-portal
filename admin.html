@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=1280">
     <title>Anant Electrical - Admin Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
         body {
             background: #f4f5f7;
@@ -116,8 +118,11 @@
                     <h2 class="text-base font-bold tracking-tight text-slate-900">Monthly Statement</h2>
                     <p class="text-xs text-slate-500">Monthly summary of shifts and expenses per employee.</p>
                 </div>
+                <button onclick="downloadFullMonthlyReportPDF()" class="bg-[#4a148c] hover:bg-[#380e6f] text-white text-[10px] font-semibold px-3.5 py-2 rounded-lg tracking-wide uppercase transition cursor-pointer shadow-sm whitespace-nowrap">
+                    Download Full Report (PDF)
+                </button>
             </div>
-            <div id="monthly-reconciliation-view" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div id="monthly-reconciliation-view" class="grid grid-cols-1 lg:grid-cols-2 gap-6"
                 <p class="text-xs text-purple-900/60 italic p-4">Loading monthly statements...</p>
             </div>
         </section>
@@ -283,6 +288,7 @@
         let currentlySelectedWorkerEmail = null;
         let currentFilterStatus = "Pending";
         let analyticsVisible = true;
+        let monthlyAggregationStore = {};
 
         function verifyAdminGatekeeperCredentials() {
             const secretKeyInput = document.getElementById('auth-admin-password').value;
@@ -552,6 +558,8 @@
                 monthlyAggregation[monthKey][associatedWorker.email].totalMaterial += parseFloat(shift.material_expense || 0);
             });
 
+            monthlyAggregationStore = monthlyAggregation;
+
             const sortingMonths = Object.keys(monthlyAggregation);
             if(sortingMonths.length === 0) {
                 container.innerHTML = `<p class="text-xs text-gray-400 italic col-span-full text-center py-4">No approved shifts available to generate monthly statements.</p>`;
@@ -559,15 +567,9 @@
             }
 
             sortingMonths.forEach(month => {
-                let monthHtmlBlock = `
-                    <div class="inner-card p-5 rounded-2xl border border-purple-100 flex flex-col justify-between space-y-4">
-                        <div class="border-b border-purple-100 pb-2.5 flex justify-between items-center">
-                            <h3 class="text-sm font-bold tracking-wide uppercase text-purple-950">Statement Period: ${month}</h3>
-                            <span class="text-[10px] font-semibold bg-purple-100 text-[#4a148c] px-2.5 py-1 rounded-full">Monthly</span>
-                        </div>
-                        <div class="space-y-3 max-h-[340px] overflow-y-auto pr-1">
-                `;
+                const monthSlug = month.replace(/[^a-zA-Z0-9]/g, '-');
 
+                // First pass: compute grand totals for the month (this is the Monthly Turnover)
                 let grandMonthWorkerSalary = 0;
                 let grandMonthBrokerInvoiced = 0;
                 let grandMonthTransport = 0;
@@ -575,32 +577,65 @@
                 let grandMonthMaterial = 0;
 
                 Object.values(monthlyAggregation[month]).forEach(item => {
-                    const totalWorkerEarnings = item.shiftCount * item.workerSalaryRate;
-                    const totalBrokerOutflow = item.shiftCount * item.brokerTotalRate;
-
-                    grandMonthWorkerSalary += totalWorkerEarnings;
-                    grandMonthBrokerInvoiced += totalBrokerOutflow;
+                    grandMonthWorkerSalary += item.shiftCount * item.workerSalaryRate;
+                    grandMonthBrokerInvoiced += item.shiftCount * item.brokerTotalRate;
                     grandMonthTransport += item.totalTransport;
                     grandMonthFood += item.totalFood;
                     grandMonthMaterial += item.totalMaterial;
+                });
+
+                const monthlyTurnover = grandMonthWorkerSalary + grandMonthBrokerInvoiced + grandMonthTransport + grandMonthFood + grandMonthMaterial;
+
+                let monthHtmlBlock = `
+                    <div class="inner-card p-5 rounded-2xl border border-purple-100 flex flex-col justify-between space-y-4">
+                        <div class="border-b border-purple-100 pb-2.5 flex justify-between items-center gap-2">
+                            <h3 class="text-sm font-bold tracking-wide uppercase text-purple-950">Statement Period: ${month}</h3>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[10px] font-semibold bg-purple-100 text-[#4a148c] px-2.5 py-1 rounded-full">Monthly</span>
+                                <button onclick="downloadMonthlyStatementPDF('${month}')" class="text-[9px] font-semibold uppercase tracking-wide bg-white border border-purple-200 text-[#4a148c] px-2.5 py-1 rounded-full hover:bg-purple-50 transition cursor-pointer">
+                                    PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-[#4a148c] to-[#380e6f] text-white p-4 rounded-xl flex justify-between items-center shadow-sm">
+                            <div>
+                                <p class="text-[10px] uppercase tracking-wider text-purple-200 font-semibold">Monthly Turnover</p>
+                                <p class="text-[9px] text-purple-300">Total paid out for ${month}: salary + broker charges + expenses</p>
+                            </div>
+                            <span class="text-lg font-bold">₹${monthlyTurnover.toLocaleString('en-IN')}</span>
+                        </div>
+
+                        <div class="space-y-2 max-h-[340px] overflow-y-auto pr-1">
+                `;
+
+                Object.values(monthlyAggregation[month]).forEach(item => {
+                    const totalWorkerEarnings = item.shiftCount * item.workerSalaryRate;
+                    const totalBrokerOutflow = item.shiftCount * item.brokerTotalRate;
+                    const rowId = `emp-detail-${monthSlug}-${item.email.replace(/[^a-zA-Z0-9]/g, '-')}`;
 
                     monthHtmlBlock += `
-                        <div class="text-[11px] bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <strong class="text-slate-900 font-bold text-xs">${item.name}</strong>
-                                    <span class="text-[9px] text-gray-400 block">${item.email}</span>
+                        <div class="text-[11px] bg-white rounded-xl border border-slate-200 overflow-hidden">
+                            <div class="flex justify-between items-center p-3.5 cursor-pointer hover:bg-purple-50/40 transition" onclick="toggleEmployeeMonthlyDetail('${rowId}', this)">
+                                <div class="flex items-center gap-2">
+                                    <span class="chevron-icon text-[9px] text-purple-900 transition-transform">▶</span>
+                                    <div>
+                                        <strong class="text-slate-900 font-bold text-xs">${item.name}</strong>
+                                        <span class="text-[9px] text-gray-400 block">${item.email}</span>
+                                    </div>
                                 </div>
-                                <span class="bg-purple-50 text-[#4a148c] border border-purple-200 font-semibold text-[10px] px-2 py-0.5 rounded-lg">${item.shiftCount} Approved Shifts</span>
+                                <span class="bg-purple-50 text-[#4a148c] border border-purple-200 font-semibold text-[10px] px-2 py-0.5 rounded-lg whitespace-nowrap">${item.shiftCount} Approved Shifts</span>
                             </div>
-                            <div class="grid grid-cols-3 gap-2 text-[10px] bg-slate-50 p-2 rounded-lg border border-slate-100 text-center">
-                                <div class="bg-white p-1.5 rounded-lg border border-slate-200"><span class="text-gray-400 block text-[9px]">Transport</span><strong class="text-slate-700">₹${item.totalTransport.toLocaleString('en-IN')}</strong></div>
-                                <div class="bg-white p-1.5 rounded-lg border border-slate-200"><span class="text-amber-800 block text-[9px]">Food</span><strong class="text-amber-700">₹${item.totalFood.toLocaleString('en-IN')}</strong></div>
-                                <div class="bg-white p-1.5 rounded-lg border border-slate-200"><span class="text-blue-800 block text-[9px]">Materials</span><strong class="text-blue-700">₹${item.totalMaterial.toLocaleString('en-IN')}</strong></div>
-                            </div>
-                            <div class="flex justify-between items-center text-slate-600 text-[10px] pt-1 border-t border-slate-100">
-                                <span>Worker Pay Earned: <strong class="text-emerald-700 font-bold">₹${totalWorkerEarnings.toLocaleString('en-IN')}</strong></span>
-                                <span class="text-rose-700 font-bold">Broker Rate: ₹${totalBrokerOutflow.toLocaleString('en-IN')}</span>
+                            <div id="${rowId}" class="hidden px-3.5 pb-3.5 space-y-2">
+                                <div class="grid grid-cols-3 gap-2 text-[10px] bg-slate-50 p-2 rounded-lg border border-slate-100 text-center">
+                                    <div class="bg-white p-1.5 rounded-lg border border-slate-200"><span class="text-gray-400 block text-[9px]">Transport</span><strong class="text-slate-700">₹${item.totalTransport.toLocaleString('en-IN')}</strong></div>
+                                    <div class="bg-white p-1.5 rounded-lg border border-slate-200"><span class="text-amber-800 block text-[9px]">Food</span><strong class="text-amber-700">₹${item.totalFood.toLocaleString('en-IN')}</strong></div>
+                                    <div class="bg-white p-1.5 rounded-lg border border-slate-200"><span class="text-blue-800 block text-[9px]">Materials</span><strong class="text-blue-700">₹${item.totalMaterial.toLocaleString('en-IN')}</strong></div>
+                                </div>
+                                <div class="flex justify-between items-center text-slate-600 text-[10px] pt-1 border-t border-slate-100">
+                                    <span>Worker Pay Earned: <strong class="text-emerald-700 font-bold">₹${totalWorkerEarnings.toLocaleString('en-IN')}</strong></span>
+                                    <span class="text-rose-700 font-bold">Broker Rate: ₹${totalBrokerOutflow.toLocaleString('en-IN')}</span>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -626,6 +661,116 @@
                 `;
                 container.innerHTML += monthHtmlBlock;
             });
+        }
+
+        function toggleEmployeeMonthlyDetail(rowId, headerEl) {
+            const detailPanel = document.getElementById(rowId);
+            const chevron = headerEl.querySelector('.chevron-icon');
+            const isHidden = detailPanel.classList.contains('hidden');
+            if(isHidden) {
+                detailPanel.classList.remove('hidden');
+                chevron.style.transform = 'rotate(90deg)';
+            } else {
+                detailPanel.classList.add('hidden');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function buildMonthlyStatementPdfPage(doc, month, data, startY) {
+            let cursorY = startY;
+
+            doc.setFontSize(15);
+            doc.setTextColor(74, 20, 140);
+            doc.text("Anant Electrical", 14, cursorY);
+            cursorY += 7;
+
+            doc.setFontSize(11);
+            doc.setTextColor(90, 90, 90);
+            doc.text(`Monthly Statement - ${month}`, 14, cursorY);
+            cursorY += 9;
+
+            let grandMonthWorkerSalary = 0;
+            let grandMonthBrokerInvoiced = 0;
+            let grandMonthTransport = 0;
+            let grandMonthFood = 0;
+            let grandMonthMaterial = 0;
+
+            const rows = Object.values(data).map(item => {
+                const workerEarnings = item.shiftCount * item.workerSalaryRate;
+                const brokerOutflow = item.shiftCount * item.brokerTotalRate;
+                grandMonthWorkerSalary += workerEarnings;
+                grandMonthBrokerInvoiced += brokerOutflow;
+                grandMonthTransport += item.totalTransport;
+                grandMonthFood += item.totalFood;
+                grandMonthMaterial += item.totalMaterial;
+                return [
+                    item.name,
+                    item.email,
+                    String(item.shiftCount),
+                    `Rs. ${item.totalTransport.toLocaleString('en-IN')}`,
+                    `Rs. ${item.totalFood.toLocaleString('en-IN')}`,
+                    `Rs. ${item.totalMaterial.toLocaleString('en-IN')}`,
+                    `Rs. ${workerEarnings.toLocaleString('en-IN')}`,
+                    `Rs. ${brokerOutflow.toLocaleString('en-IN')}`
+                ];
+            });
+
+            doc.setFontSize(10);
+            doc.setTextColor(74, 20, 140);
+            const monthlyTurnoverPdf = grandMonthWorkerSalary + grandMonthBrokerInvoiced + grandMonthTransport + grandMonthFood + grandMonthMaterial;
+            doc.text(`Monthly Turnover (Salary + Broker Charges + Expenses): Rs. ${monthlyTurnoverPdf.toLocaleString('en-IN')}`, 14, cursorY);
+            cursorY += 6;
+
+            doc.autoTable({
+                startY: cursorY,
+                head: [['Employee', 'Email', 'Shifts', 'Transport', 'Food', 'Material', 'Worker Pay', 'Broker Rate']],
+                body: rows,
+                styles: { fontSize: 8, cellPadding: 2 },
+                headStyles: { fillColor: [74, 20, 140], textColor: [255, 255, 255] },
+                margin: { left: 14, right: 14 }
+            });
+
+            let finalY = doc.lastAutoTable.finalY + 8;
+            doc.setFontSize(9.5);
+            doc.setTextColor(50, 50, 50);
+            doc.text(`Total Monthly Expenses (Transport + Food + Material): Rs. ${(grandMonthTransport + grandMonthFood + grandMonthMaterial).toLocaleString('en-IN')}`, 14, finalY);
+            finalY += 6;
+            doc.setTextColor(6, 95, 70);
+            doc.text(`Total Workers Salary: Rs. ${grandMonthWorkerSalary.toLocaleString('en-IN')}`, 14, finalY);
+            finalY += 6;
+            doc.setTextColor(159, 18, 57);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Total Broker Invoiced Amount: Rs. ${grandMonthBrokerInvoiced.toLocaleString('en-IN')}`, 14, finalY);
+            doc.setFont(undefined, 'normal');
+
+            return finalY;
+        }
+
+        function downloadMonthlyStatementPDF(month) {
+            const data = monthlyAggregationStore[month];
+            if(!data) {
+                alert("No data available for this month.");
+                return;
+            }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            buildMonthlyStatementPdfPage(doc, month, data, 18);
+            doc.save(`Anant-Electrical-Statement-${month.replace(/\s+/g, '-')}.pdf`);
+        }
+
+        function downloadFullMonthlyReportPDF() {
+            const months = Object.keys(monthlyAggregationStore);
+            if(months.length === 0) {
+                alert("No monthly data available to export.");
+                return;
+            }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            months.forEach((month, idx) => {
+                if(idx > 0) doc.addPage();
+                buildMonthlyStatementPdfPage(doc, month, monthlyAggregationStore[month], 18);
+            });
+            doc.save(`Anant-Electrical-Full-Monthly-Report.pdf`);
         }
 
         function renderRegistrySelectorPanel() {
