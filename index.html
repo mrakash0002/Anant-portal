@@ -1419,7 +1419,9 @@
             let siteSpent = 0, middayAdvance = 0;
             filteredShiftLogs.forEach(log => {
                 if (log.status === 'Approved' || log.status === 'Pending' || log.status === 'Rejected') {
-                    siteSpent += (parseFloat(log.transport_expense || 0) + parseFloat(log.food_expense || 0) + parseFloat(log.material_expense || 0));
+                    if (log.expense_status === 'Approved') {
+                        siteSpent += (parseFloat(log.transport_expense || 0) + parseFloat(log.food_expense || 0) + parseFloat(log.material_expense || 0));
+                    }
                     middayAdvance += parseFloat(log.payment_advance_taken || 0);
                 }
             });
