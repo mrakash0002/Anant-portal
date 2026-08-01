@@ -7,9 +7,33 @@
     <!-- Web App Capability for Mobile Browsers -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#1e3a5f">
-    
+    <meta name="theme-color" content="#0f1c2e">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+                    },
+                    colors: {
+                        navy: { 950:'#0a1220', 900:'#0f1c2e', 800:'#152740', 700:'#1c3350', 600:'#274568', 500:'#345a85' },
+                        copper: { 700:'#9a5a24', 600:'#b8702e', 500:'#d1863f', 400:'#e0a262', 300:'#eec495', 100:'#fbeee0' },
+                    },
+                    boxShadow: {
+                        card: '0 1px 2px rgba(15,28,46,0.06), 0 1px 0 rgba(15,28,46,0.04)',
+                        lift: '0 8px 24px -6px rgba(15,28,46,0.18)',
+                    }
+                }
+            }
+        }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
@@ -26,11 +50,22 @@
         .animate-laser {
             animation: scan-motion 2.2s linear infinite;
         }
+        body {
+            background-color: #0f1c2e;
+            background-image:
+                radial-gradient(circle at 15% 0%, rgba(209,134,63,0.10), transparent 40%),
+                radial-gradient(circle at 100% 20%, rgba(52,90,133,0.35), transparent 45%),
+                linear-gradient(180deg, #0a1220 0%, #14243a 55%, #0f1c2e 100%);
+        }
+        .readout {
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.02em;
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-[#0f2942] to-[#1e3a5f] text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center px-4 py-8">
+<body class="text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center px-4 py-8">
 
-    <main class="flex-grow flex flex-col items-center justify-center w-full max-w-md relative">
+    <main class="flex-grow flex flex-col items-center justify-center w-full max-w-md lg:max-w-5xl relative">
         
         <!-- Auth Section -->
         <div id="auth-section" class="w-full max-w-[420px] bg-white rounded-2xl shadow-2xl p-10 transition-all duration-300 text-center">
@@ -53,9 +88,9 @@
         </div>
 
         <!-- Dashboard Section -->
-        <div id="portal-dashboard" class="hidden w-full space-y-6">
+        <div id="portal-dashboard" class="hidden w-full lg:columns-2 lg:gap-6">
             
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+            <div class="mb-6 break-inside-avoid bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
                 <div class="bg-gradient-to-r from-[#1e3a5f] to-[#2f5480] p-6 text-white flex justify-between items-start">
                     <div>
                         <div class="flex items-center gap-2 mb-2">
@@ -127,7 +162,7 @@
             </div>
 
             <!-- Visual Analytics Container -->
-            <div class="bg-white rounded-2xl shadow-xl p-5 space-y-6 border border-slate-100">
+            <div class="mb-6 break-inside-avoid bg-white rounded-2xl shadow-xl p-5 space-y-6 border border-slate-100">
                 <div>
                     <h3 class="text-xs font-black uppercase tracking-wider text-gray-700 flex items-center gap-2">
                         Visual Ledger Insights
@@ -153,7 +188,7 @@
             </div>
 
             <!-- Profile & ID Card Toggle Button Header -->
-            <div class="bg-white rounded-2xl shadow-xl p-5 border border-slate-100 flex justify-between items-center">
+            <div class="mb-6 break-inside-avoid bg-white rounded-2xl shadow-xl p-5 border border-slate-100 flex justify-between items-center">
                 <div class="flex items-center gap-3">
                     <span class="flex items-center justify-center w-9 h-9 rounded-lg bg-slate-100 text-[#1e3a5f]">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -169,7 +204,7 @@
             </div>
 
             <!-- Profile & ID Card Management Section (Hidden by Default) -->
-            <div id="profile-container" class="hidden bg-white rounded-2xl shadow-xl p-6 space-y-6 border border-slate-100">
+            <div id="profile-container" class="hidden mb-6 break-inside-avoid bg-white rounded-2xl shadow-xl p-6 space-y-6 border border-slate-100">
                 <div class="flex justify-between items-center border-b border-slate-100 pb-3">
                     <h3 class="text-sm font-black uppercase tracking-wider text-gray-700 flex items-center gap-2">
                         Staff Profile & ID Card
@@ -296,7 +331,7 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-xl p-6 space-y-4">
+            <div class="mb-6 break-inside-avoid bg-white rounded-2xl shadow-xl p-6 space-y-4">
                 <h3 class="text-sm font-black uppercase tracking-wider text-gray-700 flex items-center gap-2">
                     Shift Operational Log System
                 </h3>
@@ -420,10 +455,10 @@
                 </div>
             </div>
 
-            <div class="space-y-2">
+            <div class="mb-6 break-inside-avoid space-y-2">
                 <div class="flex justify-between items-center px-1">
                     <p class="text-[10px] uppercase font-bold tracking-wider text-slate-300 font-mono">Verified Ledger Streams</p>
-                    <select id="dashboard-month-filter" onchange="syncDashboardPortalState()" class="bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-100 font-mono focus:outline-none">
+                    <select id="dashboard-month-filter" onchange="sessionStorage.setItem('manualMonthSet', 'true'); syncDashboardPortalState()" class="bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-100 font-mono focus:outline-none">
                         <option value="ALL">All Records</option>
                         <option value="0">January</option>
                         <option value="1">February</option>
@@ -431,7 +466,7 @@
                         <option value="3">April</option>
                         <option value="4">May</option>
                         <option value="5">June</option>
-                        <option value="6" selected>July</option>
+                        <option value="6">July</option>
                         <option value="7">August</option>
                         <option value="8">September</option>
                         <option value="9">October</option>
@@ -477,7 +512,7 @@
     
     <canvas id="photo-canvas" class="hidden"></canvas>
 
-    <footer class="mt-12 text-center text-[11px] text-slate-300/40 font-mono tracking-wider w-full py-4 border-t border-slate-500/10 max-w-md mx-auto">
+    <footer class="mt-12 text-center text-[11px] text-slate-300/40 font-mono tracking-wider w-full py-4 border-t border-slate-500/10 max-w-md lg:max-w-5xl mx-auto">
         <div>&copy; 2026 Anant Electrical. All Rights Reserved.</div>
         <div class="text-[10px] font-sans font-bold text-slate-400/80 mt-0.5">Developed by Akash</div>
     </footer>
@@ -1117,7 +1152,7 @@
         async function syncDashboardPortalState() {
             const monthFilter = document.getElementById('dashboard-month-filter');
             if (!sessionStorage.getItem('manualMonthSet')) {
-                monthFilter.value = "6"; 
+                monthFilter.value = new Date().getMonth().toString();
             }
 
             if(!currentActiveUser) return;
@@ -1571,9 +1606,6 @@
             syncDashboardPortalState();
         }
         
-        document.getElementById('dashboard-month-filter').addEventListener('change', function() {
-            sessionStorage.setItem('manualMonthSet', 'true');
-        });
     </script>
 </body>
 </html>
