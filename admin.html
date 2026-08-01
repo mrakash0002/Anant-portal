@@ -864,6 +864,43 @@
             renderShiftsStreamDisplay();
         }
 
+        function renderBillPhotosSection(rawBillUrls) {
+            if (!rawBillUrls) return '';
+            let parsed;
+            try {
+                parsed = typeof rawBillUrls === 'string' ? JSON.parse(rawBillUrls) : rawBillUrls;
+            } catch (e) {
+                return '';
+            }
+            if (!parsed) return '';
+
+            const labels = { transport: 'Transport', food: 'Food / Hostel', material: 'Materials' };
+            const rows = ['transport', 'food', 'material']
+                .filter(type => Array.isArray(parsed[type]) && parsed[type].length > 0)
+                .map(type => `
+                    <div class="space-y-1.5">
+                        <p class="text-[9px] uppercase tracking-wider font-semibold text-purple-900">${labels[type]} Bills</p>
+                        <div class="flex gap-2 flex-wrap">
+                            ${parsed[type].map(url => `
+                                <a href="${url}" target="_blank" class="block group relative">
+                                    <img src="${url}" class="w-16 h-16 object-cover rounded-lg border border-slate-200 group-hover:opacity-90 transition" alt="${labels[type]} bill photo">
+                                    <span class="absolute bottom-0.5 right-0.5 bg-black/60 text-white text-[8px] px-1 rounded">View</span>
+                                </a>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+
+            if (!rows) return '';
+
+            return `
+                <div class="pt-3 border-t border-slate-100 space-y-2">
+                    <p class="text-[10px] uppercase tracking-wider font-bold text-slate-700">Submitted Bills / Receipts</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">${rows}</div>
+                </div>
+            `;
+        }
+
         function renderShiftsStreamDisplay() {
             const container = document.getElementById('shifts-container-stream');
             container.innerHTML = '';
@@ -899,6 +936,12 @@
                 if(log.status === 'Active') statusBadgeColor = "bg-blue-100 text-blue-800 border-blue-200";
                 if(log.status === 'Rejected') statusBadgeColor = "bg-rose-100 text-rose-800 border-rose-200";
 
+                const hasExpenseClaim = totalExpensesCombined > 0;
+                const expenseStatus = log.expense_status || (hasExpenseClaim ? 'Pending' : 'N/A');
+                let expenseBadgeColor = "bg-amber-100 text-amber-800 border-amber-200";
+                if(expenseStatus === 'Approved') expenseBadgeColor = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                if(expenseStatus === 'Rejected') expenseBadgeColor = "bg-rose-100 text-rose-800 border-rose-200";
+
                 let div = document.createElement('div');
                 div.className = "bg-white p-5 rounded-xl border border-slate-200 space-y-4 hover:border-purple-200 transition";
                 div.innerHTML = `
@@ -907,9 +950,10 @@
                             <strong class="text-sm font-bold text-slate-800 block">${nameStr}</strong>
                             <span class="text-[10px] text-slate-400">${log.worker_email}</span>
                         </div>
-                        <div class="text-right flex items-center gap-2">
+                        <div class="text-right flex items-center gap-2 flex-wrap justify-end">
                             <span class="bg-purple-50 text-[#4a148c] text-[10px] font-semibold px-2.5 py-1 rounded-md">${calendarDate}</span>
-                            <span class="px-2 py-1 rounded text-[9px] border font-bold uppercase tracking-wide ${statusBadgeColor}">${log.status}</span>
+                            <span class="px-2 py-1 rounded text-[9px] border font-bold uppercase tracking-wide ${statusBadgeColor}">Shift: ${log.status}</span>
+                            ${hasExpenseClaim ? `<span class="px-2 py-1 rounded text-[9px] border font-bold uppercase tracking-wide ${expenseBadgeColor}">Expense: ${expenseStatus}</span>` : ''}
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs items-center">
@@ -932,28 +976,41 @@
                         </div>
                         <div class="flex flex-col items-center justify-center md:col-span-1">
                             <p class="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-1">Check-in Photo</p>
-                            ${log.selfie_url ? `<a href="${log.selfie_url}" target="_blank" class="block group relative"><img src="${log.selfie_url}" class="w-20 h-20 object-cover rounded-lg border border-purple-200 group-hover:opacity-90 transition" alt="Worker Check-in Photo"><span class="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 rounded">View</span></a>` : `<div class="w-20 h-20 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] text-gray-400 text-center p-1">No photo</div>`}
+                            ${log.selfie_url || log.punch_in_image_url ? `<a href="${log.selfie_url || log.punch_in_image_url}" target="_blank" class="block group relative"><img src="${log.selfie_url || log.punch_in_image_url}" class="w-20 h-20 object-cover rounded-lg border border-purple-200 group-hover:opacity-90 transition" alt="Worker Check-in Photo"><span class="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 rounded">View</span></a>` : `<div class="w-20 h-20 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] text-gray-400 text-center p-1">No photo</div>`}
                         </div>
                     </div>
-                    ${log.status === 'Pending' ? `
-                    <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                        <button onclick="updateShiftStatusResolution('${log.id}', 'Rejected')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-semibold uppercase tracking-wide px-3 py-2 rounded-lg transition cursor-pointer">Reject</button>
-                        <button onclick="updateShiftStatusResolution('${log.id}', 'Approved')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold uppercase tracking-wide px-4 py-2 rounded-lg transition cursor-pointer shadow-sm">Approve</button>
+                    ${renderBillPhotosSection(log.bill_photo_urls)}
+                    ${log.status === 'Pending' || (hasExpenseClaim && expenseStatus === 'Pending') ? `
+                    <div class="pt-2 border-t border-slate-100 space-y-2">
+                        ${log.status === 'Pending' ? `
+                        <div class="flex justify-end items-center gap-2">
+                            <span class="text-[9px] font-bold uppercase tracking-wide text-slate-400 mr-auto">Shift Attendance</span>
+                            <button onclick="updateShiftStatusResolution('${log.id}', 'Rejected', 'status')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-semibold uppercase tracking-wide px-3 py-2 rounded-lg transition cursor-pointer">Reject Shift</button>
+                            <button onclick="updateShiftStatusResolution('${log.id}', 'Approved', 'status')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold uppercase tracking-wide px-4 py-2 rounded-lg transition cursor-pointer shadow-sm">Approve Shift</button>
+                        </div>` : ''}
+                        ${hasExpenseClaim && expenseStatus === 'Pending' ? `
+                        <div class="flex justify-end items-center gap-2">
+                            <span class="text-[9px] font-bold uppercase tracking-wide text-slate-400 mr-auto">Daily Expense Claim</span>
+                            <button onclick="updateShiftStatusResolution('${log.id}', 'Rejected', 'expense_status')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-semibold uppercase tracking-wide px-3 py-2 rounded-lg transition cursor-pointer">Reject Expense</button>
+                            <button onclick="updateShiftStatusResolution('${log.id}', 'Approved', 'expense_status')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold uppercase tracking-wide px-4 py-2 rounded-lg transition cursor-pointer shadow-sm">Approve Expense</button>
+                        </div>` : ''}
                     </div>` : ''}
                 `;
                 container.appendChild(div);
             });
         }
 
-        async function updateShiftStatusResolution(id, resolveStatus) {
-            if(!confirm(`Are you sure you want to mark this shift status as ${resolveStatus}?`)) return;
+        async function updateShiftStatusResolution(id, resolveStatus, field) {
+            field = field || 'status';
+            const label = field === 'expense_status' ? 'expense claim' : 'shift';
+            if(!confirm(`Are you sure you want to mark this ${label} as ${resolveStatus}?`)) return;
             try {
-                const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ status: resolveStatus }) });
+                const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ [field]: resolveStatus }) });
                 if(!res.ok) throw new Error("Faulty transaction execution.");
-                alert(`Shift marked as ${resolveStatus}.`);
+                alert(`${label === 'expense claim' ? 'Expense claim' : 'Shift'} marked as ${resolveStatus}.`);
                 await fetchAllDataFromNode();
             } catch(e) {
-                alert("Failed to change shift status.");
+                alert(`Failed to change ${label} status.`);
             }
         }
     </script>
