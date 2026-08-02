@@ -517,6 +517,8 @@
                 </div>
             </div>
 
+            <div id="recent-updates-banner" class="hidden mb-4 space-y-2"></div>
+
             <div class="mb-6 break-inside-avoid space-y-2">
                 <div class="flex justify-between items-center px-1">
                     <p class="text-[10px] uppercase font-bold tracking-wider text-slate-300 font-mono">Verified Ledger Streams</p>
@@ -535,6 +537,13 @@
                         <option value="10">November</option>
                         <option value="11">December</option>
                     </select>
+                </div>
+
+                <div class="flex items-center gap-1.5 px-1">
+                    <input type="date" id="history-date-from" onchange="renderActiveStreamTab()" class="flex-1 bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1.5 text-[10px] text-slate-100 font-mono focus:outline-none">
+                    <span class="text-[9px] text-slate-400 font-mono">to</span>
+                    <input type="date" id="history-date-to" onchange="renderActiveStreamTab()" class="flex-1 bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1.5 text-[10px] text-slate-100 font-mono focus:outline-none">
+                    <button onclick="document.getElementById('history-date-from').value=''; document.getElementById('history-date-to').value=''; renderActiveStreamTab();" class="text-[9px] text-slate-400 hover:text-white uppercase font-bold px-1.5 transition cursor-pointer">Clear</button>
                 </div>
 
                 <div class="flex bg-slate-900/40 p-1 rounded-xl border border-slate-500/20 gap-1">
@@ -1260,9 +1269,14 @@
             const stream = document.getElementById('personal-logs-stream');
             stream.innerHTML = '';
             const selectedMonthFilter = document.getElementById('dashboard-month-filter').value;
+            const dateFromVal = document.getElementById('history-date-from')?.value;
+            const dateToVal = document.getElementById('history-date-to')?.value;
             const filteredShiftLogs = activeShiftLogs.filter(log => {
-                if (selectedMonthFilter === 'ALL') return true;
-                return new Date(log.punch_in_time || log.created_at).getMonth() === parseInt(selectedMonthFilter);
+                const logDate = new Date(log.punch_in_time || log.created_at);
+                if (selectedMonthFilter !== 'ALL' && logDate.getMonth() !== parseInt(selectedMonthFilter)) return false;
+                if (dateFromVal && logDate < new Date(dateFromVal + 'T00:00:00')) return false;
+                if (dateToVal && logDate > new Date(dateToVal + 'T23:59:59')) return false;
+                return true;
             });
 
             if (currentActiveTab === 'shifts') {
@@ -1298,6 +1312,8 @@
                                     ${hasExpenseClaim ? `<span class="px-2 py-0.5 rounded text-[9px] border font-bold uppercase tracking-wider ${expenseColor}">Expense: ${expenseStatus}</span>` : ''}
                                 </div>
                             </div>
+                            ${log.status === 'Rejected' && log.shift_rejection_reason ? `<p class="text-[10px] text-rose-600 mt-1.5 italic">Shift reason: ${log.shift_rejection_reason}</p>` : ''}
+                            ${expenseStatus === 'Rejected' && log.expense_rejection_reason ? `<p class="text-[10px] text-rose-600 mt-1 italic">Expense reason: ${log.expense_rejection_reason}</p>` : ''}
                             ${trackingThumbnailsHtml}
                         `;
                         stream.appendChild(div);
@@ -1472,6 +1488,50 @@
             renderActiveStreamTab();
             updateRequiredBillsUI();
             renderIDCard();
+            checkForRecentStatusUpdates();
+        }
+
+        // Compares each shift's current status/expense_status against what was last seen
+        // (stored locally per worker) and surfaces anything newly Approved/Rejected as a
+        // dismissible in-app banner. Purely local - no push/SMS/WhatsApp involved.
+        function checkForRecentStatusUpdates() {
+            if (!currentActiveUser) return;
+            const storageKey = `anant_seen_statuses_${currentActiveUser.email}`;
+            let seenMap = {};
+            try { seenMap = JSON.parse(localStorage.getItem(storageKey)) || {}; } catch(e) { seenMap = {}; }
+
+            const updates = [];
+            const newMap = {};
+            activeShiftLogs.forEach(log => {
+                const key = String(log.id);
+                const currentState = `${log.status}|${log.expense_status || ''}`;
+                newMap[key] = currentState;
+                const prevState = seenMap[key];
+                if (prevState === undefined) return; // first time seeing this shift at all - not a "change"
+                if (prevState === currentState) return;
+
+                const dateText = new Date(log.punch_in_time || log.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+                const [prevShiftStatus, prevExpenseStatus] = prevState.split('|');
+                if (prevShiftStatus === 'Pending' && (log.status === 'Approved' || log.status === 'Rejected')) {
+                    updates.push({ text: `Shift from ${dateText} was ${log.status.toLowerCase()}${log.status === 'Rejected' && log.shift_rejection_reason ? ': ' + log.shift_rejection_reason : '.'}`, ok: log.status === 'Approved' });
+                }
+                if (prevExpenseStatus === 'Pending' && (log.expense_status === 'Approved' || log.expense_status === 'Rejected')) {
+                    updates.push({ text: `Expense claim from ${dateText} was ${log.expense_status.toLowerCase()}${log.expense_status === 'Rejected' && log.expense_rejection_reason ? ': ' + log.expense_rejection_reason : '.'}`, ok: log.expense_status === 'Approved' });
+                }
+            });
+
+            localStorage.setItem(storageKey, JSON.stringify(newMap));
+
+            const banner = document.getElementById('recent-updates-banner');
+            if (updates.length === 0) { banner.classList.add('hidden'); banner.innerHTML = ''; return; }
+
+            banner.innerHTML = updates.map(u => `
+                <div class="flex items-start justify-between gap-2 p-3 rounded-xl border text-xs ${u.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}">
+                    <span>${u.text}</span>
+                    <button onclick="this.parentElement.remove(); if(!document.getElementById('recent-updates-banner').children.length) document.getElementById('recent-updates-banner').classList.add('hidden');" class="shrink-0 font-bold opacity-60 hover:opacity-100 cursor-pointer">&times;</button>
+                </div>
+            `).join('');
+            banner.classList.remove('hidden');
         }
 
         function updateRequiredBillsUI() {
