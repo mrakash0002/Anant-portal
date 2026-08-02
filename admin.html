@@ -1248,19 +1248,27 @@
 
         async function deleteShiftRecord(id, nameStr, calendarDate) {
             const typedConfirm = prompt(`This will PERMANENTLY delete ${nameStr}'s shift from ${calendarDate}, including its expense claim and photos. This cannot be undone.\n\nType DELETE to confirm:`);
-            if (typedConfirm !== 'DELETE') {
+            if (!typedConfirm || typedConfirm.trim().toUpperCase() !== 'DELETE') {
                 if (typedConfirm !== null) alert("Deletion cancelled - text did not match \"DELETE\".");
                 return;
             }
             try {
                 const shiftRecord = runtimeShifts.find(s => String(s.id) === String(id));
                 const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
-                if (!res.ok) throw new Error("Delete request failed.");
+                if (!res.ok) {
+                    const errBody = await res.text();
+                    throw new Error(`Delete request failed (${res.status}): ${errBody}`);
+                }
+                const deletedRows = await res.json();
+                if (!Array.isArray(deletedRows) || deletedRows.length === 0) {
+                    throw new Error("The server accepted the request but deleted 0 rows - this usually means a Supabase Row Level Security policy is silently blocking DELETE on shift_logs. Check Database > Policies for that table.");
+                }
                 cleanupShiftStorageFiles(shiftRecord); // best-effort, not awaited to keep UI snappy
                 alert("Shift record deleted.");
                 await fetchAllDataFromNode();
             } catch (e) {
-                alert("Failed to delete shift record. Please check your connection and try again.");
+                console.error(e);
+                alert(`Failed to delete shift record: ${e.message}`);
             }
         }
 
