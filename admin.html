@@ -956,6 +956,9 @@
                             <span class="bg-purple-50 text-[#4a148c] text-[10px] font-semibold px-2.5 py-1 rounded-md">${calendarDate}</span>
                             <span class="px-2 py-1 rounded text-[9px] border font-bold uppercase tracking-wide ${statusBadgeColor}">Shift: ${log.status}</span>
                             ${hasExpenseClaim ? `<span class="px-2 py-1 rounded text-[9px] border font-bold uppercase tracking-wide ${expenseBadgeColor}">Expense: ${expenseStatus}</span>` : ''}
+                            <button onclick="deleteShiftRecord('${log.id}', '${nameStr.replace(/'/g, "\\'")}', '${calendarDate}')" title="Delete this shift record" class="p-1.5 rounded-md border border-rose-200 text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m5 0V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                            </button>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs items-center">
@@ -1026,6 +1029,22 @@
                 await fetchAllDataFromNode();
             } catch(e) {
                 alert(`Failed to change ${label} status.`);
+            }
+        }
+
+        async function deleteShiftRecord(id, nameStr, calendarDate) {
+            const typedConfirm = prompt(`This will PERMANENTLY delete ${nameStr}'s shift from ${calendarDate}, including its expense claim and photos. This cannot be undone.\n\nType DELETE to confirm:`);
+            if (typedConfirm !== 'DELETE') {
+                if (typedConfirm !== null) alert("Deletion cancelled - text did not match \"DELETE\".");
+                return;
+            }
+            try {
+                const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
+                if (!res.ok) throw new Error("Delete request failed.");
+                alert("Shift record deleted.");
+                await fetchAllDataFromNode();
+            } catch (e) {
+                alert("Failed to delete shift record. Please check your connection and try again.");
             }
         }
     </script>
