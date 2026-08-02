@@ -73,19 +73,25 @@
         <header class="panel rounded-2xl shadow-sm p-6 flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight text-[#4a148c]">Anant Electrical</h1>
-                <p class="text-xs text-gray-500 mt-0.5">Operations &amp; Payroll Management</p>
+                <p class="text-xs text-gray-500 mt-0.5">Operations &amp; Payroll Management <span id="admin-identity-tag" class="text-purple-700 font-semibold"></span></p>
             </div>
             <div class="flex items-center gap-3">
-                <button onclick="toggleAnalyticsView()" id="toggle-analytics-btn" class="bg-purple-50 hover:bg-purple-100 text-purple-900 text-xs font-semibold px-4 py-2.5 rounded-lg tracking-wide uppercase transition cursor-pointer border border-purple-200">
-                    Hide Analytics
-                </button>
                 <button onclick="fetchAllDataFromNode()" class="bg-[#4a148c] hover:bg-[#380e6f] text-white text-xs font-semibold px-4 py-2.5 rounded-lg tracking-wide uppercase shadow-sm transition cursor-pointer">
                     Refresh Data
                 </button>
             </div>
         </header>
 
-        <!-- ANALYTICS CHARTS (COLLAPSIBLE) -->
+        <!-- SECTION MENU -->
+        <nav class="panel rounded-2xl shadow-sm p-2 flex flex-wrap gap-1.5">
+            <button onclick="switchAdminMenu('shifts')" id="menu-btn-shifts" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Shift Logs</button>
+            <button onclick="switchAdminMenu('analytics')" id="menu-btn-analytics" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Analytics</button>
+            <button onclick="switchAdminMenu('employees')" id="menu-btn-employees" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Employees</button>
+            <button onclick="switchAdminMenu('monthly')" id="menu-btn-monthly" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Monthly Statement</button>
+        </nav>
+
+        <!-- ANALYTICS CHARTS -->
+        <div id="menu-view-analytics" class="hidden space-y-6">
         <section id="analytics-section-wrapper" class="panel rounded-2xl shadow-sm p-6 space-y-4">
             <div class="flex justify-between items-center">
                 <div>
@@ -93,45 +99,60 @@
                     <p class="text-xs text-slate-500">Approved shifts by employee.</p>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
                 <!-- Bar Chart Container -->
-                <div class="inner-card p-4 rounded-xl space-y-3">
+                <div class="inner-card p-4 rounded-xl space-y-3 flex flex-col">
                     <h3 class="text-xs font-semibold uppercase tracking-wider text-purple-900">Shift Volume by Employee</h3>
-                    <div id="custom-bar-chart-container" class="h-48 flex items-end gap-3 px-2 pt-6 pb-2 border-b border-l border-slate-200 relative">
+                    <div id="custom-bar-chart-container" class="space-y-2.5 overflow-y-auto max-h-48 pr-1">
                         <!-- Dynamically rendered bars -->
                     </div>
                 </div>
                 <!-- Distribution Container -->
-                <div class="inner-card p-4 rounded-xl space-y-3 flex flex-col justify-between">
+                <div class="inner-card p-4 rounded-xl space-y-3 flex flex-col">
                     <h3 class="text-xs font-semibold uppercase tracking-wider text-purple-900">Workforce Distribution</h3>
-                    <div id="pie-breakdown-legend" class="space-y-2 overflow-y-auto max-h-40 pr-1">
+                    <div id="pie-breakdown-legend" class="space-y-2 overflow-y-auto max-h-48 pr-1">
                         <!-- Dynamically rendered legend/proportions -->
+                    </div>
+                </div>
+                <!-- Spend Chart Container -->
+                <div class="inner-card p-4 rounded-xl space-y-3 flex flex-col">
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-purple-900">Approved Expense Spend by Employee</h3>
+                    <div id="spend-bar-chart-container" class="space-y-2.5 overflow-y-auto max-h-48 pr-1">
+                        <!-- Dynamically rendered bars -->
                     </div>
                 </div>
             </div>
         </section>
+        </div>
 
         <!-- MONTHLY RECONCILIATION & EXPENSE REPORT -->
+        <div id="menu-view-monthly" class="hidden space-y-6">
         <section class="panel rounded-2xl shadow-sm p-6">
             <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div>
                     <h2 class="text-base font-bold tracking-tight text-slate-900">Monthly Statement</h2>
                     <p class="text-xs text-slate-500">Monthly summary of shifts and expenses per employee.</p>
                 </div>
-                <button onclick="downloadFullMonthlyReportPDF()" class="bg-[#4a148c] hover:bg-[#380e6f] text-white text-[10px] font-semibold px-3.5 py-2 rounded-lg tracking-wide uppercase transition cursor-pointer shadow-sm whitespace-nowrap">
-                    Download Full Report (PDF)
-                </button>
+                <div class="flex gap-2">
+                    <button onclick="downloadFullMonthlyReportPDF()" class="bg-[#4a148c] hover:bg-[#380e6f] text-white text-[10px] font-semibold px-3.5 py-2 rounded-lg tracking-wide uppercase transition cursor-pointer shadow-sm whitespace-nowrap">
+                        Download Full Report (PDF)
+                    </button>
+                    <button onclick="downloadShiftsCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold px-3.5 py-2 rounded-lg tracking-wide uppercase transition cursor-pointer shadow-sm whitespace-nowrap">
+                        Export CSV
+                    </button>
+                </div>
             </div>
             <div id="monthly-reconciliation-view" class="grid grid-cols-1 lg:grid-cols-2 gap-6"
                 <p class="text-xs text-purple-900/60 italic p-4">Loading monthly statements...</p>
             </div>
         </section>
+        </div>
 
-        <!-- MAIN LAYOUT GRID -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- EMPLOYEE MANAGEMENT -->
+        <div id="menu-view-employees" class="hidden space-y-6">
 
-            <!-- LEFT COLUMN: EMPLOYEE MANAGEMENT -->
-            <section class="lg:col-span-1 panel rounded-2xl shadow-sm p-6 space-y-6">
+            <!-- EMPLOYEE MANAGEMENT -->
+            <section class="panel rounded-2xl shadow-sm p-6 space-y-6">
 
                 <!-- NEW ACCOUNT CREATION -->
                 <div class="bg-purple-50/60 p-4 rounded-xl border border-purple-100 space-y-3">
@@ -248,9 +269,11 @@
                     </button>
                 </div>
             </section>
+        </div>
 
-            <!-- RIGHT COLUMN: SHIFT LOGS -->
-            <section class="lg:col-span-2 panel rounded-2xl shadow-sm p-6 flex flex-col">
+        <!-- SHIFT LOGS -->
+        <div id="menu-view-shifts" class="space-y-6">
+            <section class="panel rounded-2xl shadow-sm p-6 flex flex-col">
                 <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <div>
                         <h2 class="text-lg font-bold tracking-tight text-slate-800">Shift Logs</h2>
@@ -261,6 +284,19 @@
                         <button onclick="filterShiftsByStatus('Approved')" id="tab-Approved" class="px-2.5 py-1.5 rounded-md transition-all cursor-pointer">Approved</button>
                         <button onclick="filterShiftsByStatus('Active')" id="tab-Active" class="px-2.5 py-1.5 rounded-md transition-all cursor-pointer">Active</button>
                         <button onclick="filterShiftsByStatus('All')" id="tab-All" class="px-2.5 py-1.5 rounded-md transition-all cursor-pointer">All</button>
+                    </div>
+                </div>
+
+                <!-- SEARCH + BULK ACTIONS -->
+                <div class="mb-3 space-y-2">
+                    <input type="text" id="shift-search-input" oninput="filterShiftsBySearch(this.value)" placeholder="Search by employee name or email..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-purple-400">
+                    <div id="bulk-actions-toolbar" class="hidden flex flex-wrap items-center gap-2 bg-purple-50 border border-purple-200 rounded-lg p-2.5">
+                        <span id="bulk-selected-count" class="text-[10px] font-bold text-purple-900 uppercase tracking-wide mr-auto">0 selected</span>
+                        <button onclick="bulkResolve('status', 'Approved')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition cursor-pointer">Approve Shifts</button>
+                        <button onclick="bulkResolve('status', 'Rejected')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[9px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition cursor-pointer">Reject Shifts</button>
+                        <button onclick="bulkResolve('expense_status', 'Approved')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition cursor-pointer">Approve Expenses</button>
+                        <button onclick="bulkResolve('expense_status', 'Rejected')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[9px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition cursor-pointer">Reject Expenses</button>
+                        <button onclick="clearBulkSelection()" class="text-[9px] font-semibold uppercase tracking-wide px-2 py-1.5 text-slate-500 hover:text-slate-700 transition cursor-pointer">Clear</button>
                     </div>
                 </div>
 
@@ -287,8 +323,19 @@
         let runtimeShifts = [];
         let currentlySelectedWorkerEmail = null;
         let currentFilterStatus = "Pending";
-        let analyticsVisible = true;
         let monthlyAggregationStore = {};
+        let shiftSearchQuery = "";
+        let bulkSelectedShiftIds = new Set();
+
+        function getAdminIdentity() {
+            let name = localStorage.getItem('anant_admin_display_name');
+            if (!name) {
+                name = (prompt("Enter your name (shown on approvals/rejections you make):") || "Admin").trim() || "Admin";
+                localStorage.setItem('anant_admin_display_name', name);
+            }
+            document.getElementById('admin-identity-tag').innerText = `• ${name}`;
+            return name;
+        }
 
         function verifyAdminGatekeeperCredentials() {
             const secretKeyInput = document.getElementById('auth-admin-password').value;
@@ -298,6 +345,8 @@
                 logPanel.classList.add('hidden');
                 document.getElementById('admin-auth-shield').classList.add('hidden');
                 document.getElementById('main-admin-dashboard-layout').classList.remove('hidden');
+                getAdminIdentity();
+                switchAdminMenu(localStorage.getItem('anant_admin_active_menu') || 'shifts');
                 fetchAllDataFromNode();
             } else {
                 logPanel.classList.remove('hidden');
@@ -305,17 +354,19 @@
             }
         }
 
-        function toggleAnalyticsView() {
-            analyticsVisible = !analyticsVisible;
-            const section = document.getElementById('analytics-section-wrapper');
-            const btn = document.getElementById('toggle-analytics-btn');
-            if(analyticsVisible) {
-                section.classList.remove('hidden');
-                btn.innerText = "Hide Analytics";
-            } else {
-                section.classList.add('hidden');
-                btn.innerText = "Show Analytics";
-            }
+        function switchAdminMenu(view) {
+            localStorage.setItem('anant_admin_active_menu', view);
+            ['shifts', 'analytics', 'employees', 'monthly'].forEach(v => {
+                const section = document.getElementById(`menu-view-${v}`);
+                const btn = document.getElementById(`menu-btn-${v}`);
+                if (v === view) {
+                    section.classList.remove('hidden');
+                    btn.className = "flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer bg-[#4a148c] text-white shadow-sm";
+                } else {
+                    section.classList.add('hidden');
+                    btn.className = "flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer text-slate-500 hover:bg-slate-100";
+                }
+            });
         }
 
         async function fetchAllDataFromNode() {
@@ -439,46 +490,74 @@
         function renderAnalyticsCharts() {
             const barContainer = document.getElementById('custom-bar-chart-container');
             const legendContainer = document.getElementById('pie-breakdown-legend');
+            const spendContainer = document.getElementById('spend-bar-chart-container');
             barContainer.innerHTML = '';
             legendContainer.innerHTML = '';
+            spendContainer.innerHTML = '';
 
             if(runtimeWorkers.length === 0) {
                 barContainer.innerHTML = `<p class="text-[10px] text-gray-400 italic">No data</p>`;
                 legendContainer.innerHTML = `<p class="text-[10px] text-gray-400 italic">No data</p>`;
+                spendContainer.innerHTML = `<p class="text-[10px] text-gray-400 italic">No data</p>`;
                 return;
             }
 
-            const workerShiftCounts = runtimeWorkers.map(w => {
-                const count = runtimeShifts.filter(s => s.worker_email === w.email && s.status === 'Approved').length;
-                return { name: w.name, count: count };
-            });
-
-            const maxCount = Math.max(...workerShiftCounts.map(w => w.count), 5); // baseline scale
             const palette = ['bg-amber-300', 'bg-purple-300', 'bg-emerald-300', 'bg-rose-300', 'bg-blue-300', 'bg-indigo-300'];
 
-            workerShiftCounts.forEach((item, index) => {
-                const heightPercent = Math.max(15, Math.round((item.count / maxCount) * 100));
+            // Renders a horizontal bar-list row for a given metric - name on top, a
+            // proportional bar below with the value on the right. Scales to any
+            // employee count via vertical scroll instead of squeezing bars sideways.
+            const renderBarRow = (container, item, index, maxVal, valueLabel) => {
+                const widthPercent = Math.max(3, Math.round((item.value / maxVal) * 100));
                 const colorClass = palette[index % palette.length];
-
-                let barCol = document.createElement('div');
-                barCol.className = "flex-1 flex flex-col items-center h-full justify-end group relative";
-                barCol.innerHTML = `
-                    <div class="absolute -top-6 bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">${item.count} shifts</div>
-                    <div style="height: ${heightPercent}%" class="w-full ${colorClass} rounded-t-md transition-all duration-500 border border-black/10"></div>
-                    <span class="text-[9px] font-semibold text-slate-600 mt-1 truncate w-full text-center">${item.name.split(' ')[0]}</span>
+                let row = document.createElement('div');
+                row.className = "space-y-1";
+                row.innerHTML = `
+                    <div class="flex justify-between items-center text-[10px]">
+                        <span class="font-semibold text-slate-700 truncate pr-2">${item.name}</span>
+                        <span class="text-purple-900 font-bold whitespace-nowrap">${valueLabel}</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                        <div style="width: ${widthPercent}%" class="h-full ${colorClass} rounded-full transition-all duration-500"></div>
+                    </div>
                 `;
-                barContainer.appendChild(barCol);
+                container.appendChild(row);
+            };
+
+            // Shift volume + workforce distribution (both driven by approved shift counts)
+            const workerShiftCounts = runtimeWorkers
+                .map(w => ({ name: w.name, value: runtimeShifts.filter(s => s.worker_email === w.email && s.status === 'Approved').length }))
+                .sort((a, b) => b.value - a.value);
+            const maxCount = Math.max(...workerShiftCounts.map(w => w.value), 1);
+
+            workerShiftCounts.forEach((item, index) => {
+                renderBarRow(barContainer, item, index, maxCount, `${item.value}`);
 
                 let legendItem = document.createElement('div');
                 legendItem.className = "flex items-center justify-between text-[11px] bg-white p-2 rounded-lg border border-slate-200";
                 legendItem.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full ${colorClass} border border-black/10"></div>
-                        <span class="font-semibold text-slate-800">${item.name}</span>
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-3 h-3 rounded-full ${palette[index % palette.length]} border border-black/10 shrink-0"></div>
+                        <span class="font-semibold text-slate-800 truncate">${item.name}</span>
                     </div>
-                    <span class="text-purple-900 font-semibold">${item.count} Approved Shifts</span>
+                    <span class="text-purple-900 font-semibold whitespace-nowrap pl-2">${item.value} Approved Shifts</span>
                 `;
                 legendContainer.appendChild(legendItem);
+            });
+
+            // Approved expense spend by employee
+            const workerSpend = runtimeWorkers
+                .map(w => ({
+                    name: w.name,
+                    value: runtimeShifts
+                        .filter(s => s.worker_email === w.email && s.expense_status === 'Approved')
+                        .reduce((sum, s) => sum + parseFloat(s.transport_expense || 0) + parseFloat(s.food_expense || 0) + parseFloat(s.material_expense || 0), 0)
+                }))
+                .sort((a, b) => b.value - a.value);
+            const maxSpend = Math.max(...workerSpend.map(w => w.value), 1);
+
+            workerSpend.forEach((item, index) => {
+                renderBarRow(spendContainer, item, index, maxSpend, `₹${item.value.toLocaleString('en-IN')}`);
             });
         }
 
@@ -866,6 +945,81 @@
             renderShiftsStreamDisplay();
         }
 
+        function filterShiftsBySearch(value) {
+            shiftSearchQuery = value.trim().toLowerCase();
+            renderShiftsStreamDisplay();
+        }
+
+        function toggleBulkSelect(id, checked) {
+            if (checked) bulkSelectedShiftIds.add(String(id));
+            else bulkSelectedShiftIds.delete(String(id));
+            updateBulkToolbar();
+        }
+
+        function clearBulkSelection() {
+            bulkSelectedShiftIds.clear();
+            renderShiftsStreamDisplay();
+        }
+
+        function updateBulkToolbar() {
+            const toolbar = document.getElementById('bulk-actions-toolbar');
+            const countLabel = document.getElementById('bulk-selected-count');
+            if (bulkSelectedShiftIds.size > 0) {
+                toolbar.classList.remove('hidden');
+                countLabel.innerText = `${bulkSelectedShiftIds.size} selected`;
+            } else {
+                toolbar.classList.add('hidden');
+            }
+        }
+
+        async function bulkResolve(field, resolveStatus) {
+            if (bulkSelectedShiftIds.size === 0) return;
+            const label = field === 'expense_status' ? 'expense claim(s)' : 'shift(s)';
+            let reason = null;
+            if (resolveStatus === 'Rejected') {
+                reason = prompt(`Reason for rejecting these ${bulkSelectedShiftIds.size} ${label}:`);
+                if (reason === null) return;
+            }
+            if (!confirm(`Mark ${bulkSelectedShiftIds.size} ${label} as ${resolveStatus}?`)) return;
+
+            const adminName = getAdminIdentity();
+            const reasonField = field === 'expense_status' ? 'expense_rejection_reason' : 'shift_rejection_reason';
+            const resolvedByField = field === 'expense_status' ? 'expense_resolved_by' : 'shift_resolved_by';
+            const patchBody = { [field]: resolveStatus, [resolvedByField]: adminName };
+            if (resolveStatus === 'Rejected') patchBody[reasonField] = reason;
+            else patchBody[reasonField] = null;
+
+            let walletAdjustments = [];
+            if (field === 'expense_status' && resolveStatus === 'Approved') {
+                bulkSelectedShiftIds.forEach(id => {
+                    const shiftRecord = runtimeShifts.find(s => String(s.id) === id);
+                    if (shiftRecord) walletAdjustments.push(shiftRecord);
+                });
+            }
+
+            try {
+                await Promise.all(Array.from(bulkSelectedShiftIds).map(id =>
+                    fetch(`${SUPABASE_URL}shift_logs?id=eq.${id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(patchBody) })
+                ));
+
+                for (const shiftRecord of walletAdjustments) {
+                    const worker = runtimeWorkers.find(w => w.email === shiftRecord.worker_email);
+                    if (!worker) continue;
+                    const claimTotal = parseFloat(shiftRecord.transport_expense || 0) + parseFloat(shiftRecord.food_expense || 0) + parseFloat(shiftRecord.material_expense || 0);
+                    const newBalance = parseFloat(worker.morning_advance || 0) - claimTotal;
+                    worker.morning_advance = newBalance;
+                    await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(worker.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ morning_advance: newBalance }) });
+                }
+
+                const resolvedCount = bulkSelectedShiftIds.size;
+                bulkSelectedShiftIds.clear();
+                alert(`${resolvedCount} ${label} marked as ${resolveStatus}.`);
+                await fetchAllDataFromNode();
+            } catch (e) {
+                alert(`Failed to bulk-update ${label}.`);
+            }
+        }
+
         function renderBillPhotosSection(rawBillUrls) {
             if (!rawBillUrls) return '';
             let parsed;
@@ -908,8 +1062,16 @@
             container.innerHTML = '';
             let logsToDisplay = runtimeShifts;
             if(currentFilterStatus !== 'All') {
-                logsToDisplay = runtimeShifts.filter(s => s.status === currentFilterStatus);
+                logsToDisplay = logsToDisplay.filter(s => s.status === currentFilterStatus);
             }
+            if(shiftSearchQuery) {
+                logsToDisplay = logsToDisplay.filter(s => {
+                    const w = runtimeWorkers.find(w => w.email === s.worker_email);
+                    const nameStr = (w ? w.name : '').toLowerCase();
+                    return nameStr.includes(shiftSearchQuery) || (s.worker_email || '').toLowerCase().includes(shiftSearchQuery);
+                });
+            }
+            updateBulkToolbar();
             if(logsToDisplay.length === 0) {
                 container.innerHTML = `<div class="text-center py-12 border border-dashed border-slate-200 rounded-xl bg-slate-50/50"><p class="text-xs text-gray-400 italic">No shifts found for status "${currentFilterStatus}".</p></div>`;
                 return;
@@ -944,13 +1106,18 @@
                 if(expenseStatus === 'Approved') expenseBadgeColor = "bg-emerald-100 text-emerald-800 border-emerald-200";
                 if(expenseStatus === 'Rejected') expenseBadgeColor = "bg-rose-100 text-rose-800 border-rose-200";
 
+                const isActionable = log.status === 'Pending' || (hasExpenseClaim && expenseStatus === 'Pending');
+
                 let div = document.createElement('div');
                 div.className = "bg-white p-5 rounded-xl border border-slate-200 space-y-4 hover:border-purple-200 transition";
                 div.innerHTML = `
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-slate-100">
-                        <div>
-                            <strong class="text-sm font-bold text-slate-800 block">${nameStr}</strong>
-                            <span class="text-[10px] text-slate-400">${log.worker_email}</span>
+                        <div class="flex items-center gap-2.5">
+                            ${isActionable ? `<input type="checkbox" onchange="toggleBulkSelect('${log.id}', this.checked)" ${bulkSelectedShiftIds.has(String(log.id)) ? 'checked' : ''} class="w-4 h-4 accent-purple-700 cursor-pointer">` : ''}
+                            <div>
+                                <strong class="text-sm font-bold text-slate-800 block">${nameStr}</strong>
+                                <span class="text-[10px] text-slate-400">${log.worker_email}</span>
+                            </div>
                         </div>
                         <div class="text-right flex items-center gap-2 flex-wrap justify-end">
                             <span class="bg-purple-50 text-[#4a148c] text-[10px] font-semibold px-2.5 py-1 rounded-md">${calendarDate}</span>
@@ -985,6 +1152,8 @@
                         </div>
                     </div>
                     ${renderBillPhotosSection(log.bill_photo_urls)}
+                    ${log.status === 'Rejected' && log.shift_rejection_reason ? `<p class="text-[10px] text-rose-700 bg-rose-50 border border-rose-100 rounded-lg p-2"><strong>Shift rejected${log.shift_resolved_by ? ' by ' + log.shift_resolved_by : ''}:</strong> ${log.shift_rejection_reason}</p>` : ''}
+                    ${expenseStatus === 'Rejected' && log.expense_rejection_reason ? `<p class="text-[10px] text-rose-700 bg-rose-50 border border-rose-100 rounded-lg p-2"><strong>Expense rejected${log.expense_resolved_by ? ' by ' + log.expense_resolved_by : ''}:</strong> ${log.expense_rejection_reason}</p>` : ''}
                     ${log.status === 'Pending' || (hasExpenseClaim && expenseStatus === 'Pending') ? `
                     <div class="pt-2 border-t border-slate-100 space-y-2">
                         ${log.status === 'Pending' ? `
@@ -1008,9 +1177,22 @@
         async function updateShiftStatusResolution(id, resolveStatus, field) {
             field = field || 'status';
             const label = field === 'expense_status' ? 'expense claim' : 'shift';
-            if(!confirm(`Are you sure you want to mark this ${label} as ${resolveStatus}?`)) return;
+
+            let reason = null;
+            if (resolveStatus === 'Rejected') {
+                reason = prompt(`Reason for rejecting this ${label} (shown to the employee):`);
+                if (reason === null) return;
+            } else {
+                if(!confirm(`Are you sure you want to mark this ${label} as ${resolveStatus}?`)) return;
+            }
+
+            const adminName = getAdminIdentity();
+            const reasonField = field === 'expense_status' ? 'expense_rejection_reason' : 'shift_rejection_reason';
+            const resolvedByField = field === 'expense_status' ? 'expense_resolved_by' : 'shift_resolved_by';
+            const patchBody = { [field]: resolveStatus, [resolvedByField]: adminName, [reasonField]: resolveStatus === 'Rejected' ? reason : null };
+
             try {
-                const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ [field]: resolveStatus }) });
+                const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(patchBody) });
                 if(!res.ok) throw new Error("Faulty transaction execution.");
 
                 // Claimed expenses are only ever deducted from the worker's wallet right here,
@@ -1032,6 +1214,36 @@
             }
         }
 
+        // Parses a Supabase public storage URL like
+        // https://xxx.supabase.co/storage/v1/object/public/{bucket}/{filename}
+        // and deletes that file from storage. Silently no-ops on parse/delete failure -
+        // a failed cleanup should never block the actual record deletion.
+        async function deleteStorageFileFromPublicUrl(url) {
+            if (!url || typeof url !== 'string') return;
+            const marker = '/storage/v1/object/public/';
+            const idx = url.indexOf(marker);
+            if (idx === -1) return;
+            const bucketAndPath = url.substring(idx + marker.length);
+            const storageBase = SUPABASE_URL.replace('/rest/v1/', '/storage/v1/object');
+            try {
+                await fetch(`${storageBase}/${bucketAndPath}`, { method: 'DELETE', headers: HEADERS });
+            } catch (e) { /* best-effort cleanup only */ }
+        }
+
+        async function cleanupShiftStorageFiles(shiftRecord) {
+            if (!shiftRecord) return;
+            const urls = [shiftRecord.selfie_url, shiftRecord.punch_in_image_url, shiftRecord.punch_out_image_url];
+            if (shiftRecord.bill_photo_urls) {
+                try {
+                    const parsed = typeof shiftRecord.bill_photo_urls === 'string' ? JSON.parse(shiftRecord.bill_photo_urls) : shiftRecord.bill_photo_urls;
+                    ['transport', 'food', 'material'].forEach(type => {
+                        if (Array.isArray(parsed[type])) urls.push(...parsed[type]);
+                    });
+                } catch (e) { /* ignore malformed bill_photo_urls */ }
+            }
+            await Promise.all(urls.filter(Boolean).map(u => deleteStorageFileFromPublicUrl(u)));
+        }
+
         async function deleteShiftRecord(id, nameStr, calendarDate) {
             const typedConfirm = prompt(`This will PERMANENTLY delete ${nameStr}'s shift from ${calendarDate}, including its expense claim and photos. This cannot be undone.\n\nType DELETE to confirm:`);
             if (typedConfirm !== 'DELETE') {
@@ -1039,13 +1251,43 @@
                 return;
             }
             try {
+                const shiftRecord = runtimeShifts.find(s => String(s.id) === String(id));
                 const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
                 if (!res.ok) throw new Error("Delete request failed.");
+                cleanupShiftStorageFiles(shiftRecord); // best-effort, not awaited to keep UI snappy
                 alert("Shift record deleted.");
                 await fetchAllDataFromNode();
             } catch (e) {
                 alert("Failed to delete shift record. Please check your connection and try again.");
             }
+        }
+
+        function downloadShiftsCSV() {
+            const headers = ['Employee Name', 'Email', 'Date', 'Site Location', 'Shift Status', 'Shift Rejection Reason', 'Transport (Rs.)', 'Food (Rs.)', 'Material (Rs.)', 'Total Expense (Rs.)', 'Expense Status', 'Expense Rejection Reason', 'Mid-Day Advance (Rs.)'];
+            const escapeCsv = (val) => {
+                const str = String(val === undefined || val === null ? '' : val);
+                return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+            };
+            const rows = runtimeShifts.map(log => {
+                const worker = runtimeWorkers.find(w => w.email === log.worker_email);
+                const total = parseFloat(log.transport_expense || 0) + parseFloat(log.food_expense || 0) + parseFloat(log.material_expense || 0);
+                const expenseStatus = log.expense_status || (total > 0 ? 'Pending' : 'N/A');
+                const dateStr = new Date(log.punch_in_time || log.created_at).toLocaleDateString('en-IN');
+                return [
+                    worker ? worker.name : 'Unknown', log.worker_email, dateStr, log.site_location || '',
+                    log.status, log.shift_rejection_reason || '',
+                    parseFloat(log.transport_expense || 0), parseFloat(log.food_expense || 0), parseFloat(log.material_expense || 0), total,
+                    expenseStatus, log.expense_rejection_reason || '', parseFloat(log.payment_advance_taken || 0)
+                ].map(escapeCsv).join(',');
+            });
+            const csvContent = [headers.map(escapeCsv).join(','), ...rows].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `Anant-Electrical-Shifts-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     </script>
 </body>
