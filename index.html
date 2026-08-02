@@ -1197,7 +1197,36 @@
             });
         }
 
+        // --- NOTIFICATION SOUND ---
+        // Mobile browsers block audio until a user gesture has occurred on the page, so we
+        // create/resume the AudioContext on the first tap (login button) and simply reuse
+        // it later when a background sync finds a new status change to announce.
+        let notificationAudioCtx = null;
+        function unlockNotificationAudio() {
+            if (notificationAudioCtx) { if (notificationAudioCtx.state === 'suspended') notificationAudioCtx.resume(); return; }
+            try { notificationAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { /* audio unsupported */ }
+        }
+        function playNotificationSound() {
+            if (!notificationAudioCtx) return;
+            try {
+                const now = notificationAudioCtx.currentTime;
+                [[880, now], [1108, now + 0.12]].forEach(([freq, startTime]) => {
+                    const osc = notificationAudioCtx.createOscillator();
+                    const gain = notificationAudioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.0001, startTime);
+                    gain.gain.exponentialRampToValueAtTime(0.2, startTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.22);
+                    osc.connect(gain).connect(notificationAudioCtx.destination);
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.24);
+                });
+            } catch(e) { /* best-effort only */ }
+        }
+
         async function attemptAuthenticationSubmit() {
+            unlockNotificationAudio();
             const emailInput = document.getElementById('auth-email').value.trim().toLowerCase();
             const passwordInput = document.getElementById('auth-password').value.trim();
 
@@ -1540,15 +1569,21 @@
 
             localStorage.setItem(storageKey, JSON.stringify(newMap));
 
-            const banner = document.getElementById('recent-updates-banner');
-            if (updates.length === 0) { banner.classList.add('hidden'); banner.innerHTML = ''; return; }
+            // Important: a call that finds no NEW changes must never hide/clear the banner -
+            // syncDashboardPortalState() can run more than once in quick succession on the
+            // same page load (e.g. session restore followed by an offline-queue sync), and an
+            // earlier call may have just populated the banner with something genuinely new.
+            if (updates.length === 0) return;
 
-            banner.innerHTML = updates.map(u => `
+            playNotificationSound();
+            const banner = document.getElementById('recent-updates-banner');
+            const newItemsHtml = updates.map(u => `
                 <div class="flex items-start justify-between gap-2 p-3 rounded-xl border text-xs ${u.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}">
                     <span>${u.text}</span>
                     <button onclick="this.parentElement.remove(); if(!document.getElementById('recent-updates-banner').children.length) document.getElementById('recent-updates-banner').classList.add('hidden');" class="shrink-0 font-bold opacity-60 hover:opacity-100 cursor-pointer">&times;</button>
                 </div>
             `).join('');
+            banner.insertAdjacentHTML('beforeend', newItemsHtml);
             banner.classList.remove('hidden');
         }
 
@@ -1875,6 +1910,16 @@
         }
 
         restoreSessionOnLoad();
+        document.addEventListener('click', unlockNotificationAudio, { once: true });
+        document.addEventListener('touchstart', unlockNotificationAudio, { once: true });
+
+        // Keep status/notification data reasonably fresh without requiring the worker to
+        // fully close and reopen the app: re-sync periodically while the tab is open, and
+        // whenever the tab/app regains focus (e.g. switching back from another app).
+        setInterval(() => { if (currentActiveUser) syncDashboardPortalState(); }, 120000); // every 2 minutes
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && currentActiveUser) syncDashboardPortalState();
+        });
 
     </script>
 </body>
