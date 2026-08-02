@@ -1009,6 +1009,19 @@
             try {
                 const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ [field]: resolveStatus }) });
                 if(!res.ok) throw new Error("Faulty transaction execution.");
+
+                // Claimed expenses are only ever deducted from the worker's wallet right here,
+                // at the moment an expense claim is approved - never at punch-out time.
+                if (field === 'expense_status' && resolveStatus === 'Approved') {
+                    const shiftRecord = runtimeShifts.find(s => String(s.id) === String(id));
+                    const worker = shiftRecord ? runtimeWorkers.find(w => w.email === shiftRecord.worker_email) : null;
+                    if (shiftRecord && worker) {
+                        const claimTotal = parseFloat(shiftRecord.transport_expense || 0) + parseFloat(shiftRecord.food_expense || 0) + parseFloat(shiftRecord.material_expense || 0);
+                        const newBalance = parseFloat(worker.morning_advance || 0) - claimTotal;
+                        await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(worker.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ morning_advance: newBalance }) });
+                    }
+                }
+
                 alert(`${label === 'expense claim' ? 'Expense claim' : 'Shift'} marked as ${resolveStatus}.`);
                 await fetchAllDataFromNode();
             } catch(e) {
