@@ -1695,7 +1695,10 @@
             const material_notes = document.getElementById('exp-material-desc').value.trim();
             const totalShiftExpenses = transport_expense + food_expense + material_expense;
             const currentWallet = parseFloat(currentActiveUser.morning_advance || 0);
-            const remainingCarryforwardBalance = currentWallet + payment_advance_taken - totalShiftExpenses;
+            // Only the cash advance actually handed to the worker updates the wallet immediately.
+            // Claimed expenses (transport/food/material) are deducted only once the admin approves
+            // that expense claim - see updateShiftStatusResolution() in admin.html.
+            const remainingCarryforwardBalance = currentWallet + payment_advance_taken;
 
             const gpsCoords = await fetchCurrentGPSLocation();
             const site_location = manualLocation ? `${manualLocation} (${gpsCoords})` : gpsCoords;
