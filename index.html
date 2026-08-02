@@ -1157,7 +1157,7 @@
                 currentActiveUser = rameshKumarMockUser;
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('portal-dashboard').classList.remove('hidden');
-                await syncDashboardPortalState(true);
+                await syncDashboardPortalState();
                 scheduleSessionExpiry(saved.ts);
                 return;
             }
@@ -1170,7 +1170,7 @@
                     currentActiveUser = data[0];
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('portal-dashboard').classList.remove('hidden');
-                    await syncDashboardPortalState(true);
+                    await syncDashboardPortalState();
                     syncOfflineQueue();
                     scheduleSessionExpiry(saved.ts);
                 } else {
@@ -1235,21 +1235,6 @@
         // recognizable as a pair without needing to look at the screen)
         function playPunchOutSound() { playToneSequence([[990, 0], [660, 0.1]]); }
 
-        // Spoken reminder ("Please start your shift" / "Please punch out the shift"),
-        // used only for the periodic background nudge below - not on the confirmation
-        // sound that already plays right when the worker actually taps the button.
-        function speakReminder(text) {
-            try {
-                if (!('speechSynthesis' in window)) return;
-                window.speechSynthesis.cancel();
-                const utter = new SpeechSynthesisUtterance(text);
-                utter.rate = 1;
-                utter.pitch = 1;
-                utter.volume = 1;
-                window.speechSynthesis.speak(utter);
-            } catch(e) { /* best-effort only */ }
-        }
-
         async function attemptAuthenticationSubmit() {
             unlockNotificationAudio();
             const emailInput = document.getElementById('auth-email').value.trim().toLowerCase();
@@ -1262,7 +1247,7 @@
                 saveActiveSession(rameshKumarMockUser.email);
                 scheduleSessionExpiry(Date.now());
                 await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
-                await syncDashboardPortalState(true);
+                await syncDashboardPortalState();
                 return;
             }
 
@@ -1278,7 +1263,7 @@
                         saveActiveSession(worker.email);
                         scheduleSessionExpiry(Date.now());
                         await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
-                        await syncDashboardPortalState(true);
+                        await syncDashboardPortalState();
                         syncOfflineQueue();
                     } else { alert("Authentication Failure: Password does not match."); }
                 } else { alert("Authentication Failure: No account registered under this email."); }
@@ -1445,7 +1430,7 @@
             }
         }
 
-        async function syncDashboardPortalState(isBackgroundCheck) {
+        async function syncDashboardPortalState() {
             const monthFilter = document.getElementById('dashboard-month-filter');
             if (!sessionStorage.getItem('manualMonthSet')) {
                 monthFilter.value = new Date().getMonth().toString();
@@ -1487,12 +1472,10 @@
                     document.getElementById('active-selfie-image').src = activeImg;
                 } else { document.getElementById('active-selfie-box').classList.add('hidden'); }
                 runPunchOutLockSystem(startTimeISO);
-                if (isBackgroundCheck) speakReminder("Please punch out the shift");
             } else {
                 document.getElementById('punch-in-panel').classList.remove('hidden');
                 document.getElementById('punch-out-panel').classList.add('hidden');
                 if(lockTimerInterval) clearInterval(lockTimerInterval);
-                if (isBackgroundCheck) speakReminder("Please start your shift");
             }
 
             document.getElementById('display-worker-name').innerText = currentActiveUser.name || "Worker";
@@ -1957,11 +1940,11 @@
         // Keep status/notification data reasonably fresh without requiring the worker to
         // fully close and reopen the app: re-sync periodically while the tab is open, and
         // whenever the tab/app regains focus (e.g. switching back from another app).
-        setInterval(() => { if (currentActiveUser) syncDashboardPortalState(true); }, 120000); // every 2 minutes
+        setInterval(() => { if (currentActiveUser) syncDashboardPortalState(); }, 120000); // every 2 minutes
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && currentActiveUser) syncDashboardPortalState(true);
+            if (document.visibilityState === 'visible' && currentActiveUser) syncDashboardPortalState();
         });
 
     </script>
 </body>
-</html> 
+</html>
