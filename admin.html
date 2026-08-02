@@ -437,7 +437,7 @@
                 const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(email)}`, {
                     method: 'PATCH',
                     headers: HEADERS,
-                    body: JSON.stringify({ morning_advance: newMorningBalance })
+                    body: JSON.stringify({ morning_advance: newMorningBalance, morning_advance_note: msg || null, morning_advance_updated_at: new Date().toISOString() })
                 });
                 if(!res.ok) throw new Error("Failed update transaction");
 
@@ -475,7 +475,7 @@
                 const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(email)}`, {
                     method: 'PATCH',
                     headers: HEADERS,
-                    body: JSON.stringify({ salary_advance_taken: newAdvanceTaken })
+                    body: JSON.stringify({ salary_advance_taken: newAdvanceTaken, salary_advance_note: msg || null, salary_advance_updated_at: new Date().toISOString() })
                 });
                 if(!res.ok) throw new Error("Failed update transaction");
 
