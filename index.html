@@ -539,12 +539,15 @@
                     </select>
                 </div>
 
-                <div class="flex items-center gap-1.5 px-1">
-                    <input type="date" id="history-date-from" onchange="renderActiveStreamTab()" class="flex-1 bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1.5 text-[10px] text-slate-100 font-mono focus:outline-none">
+                <div class="flex items-center gap-1.5 px-1 flex-wrap">
+                    <input type="date" id="history-date-from" class="flex-1 min-w-[110px] bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1.5 text-[10px] text-slate-100 font-mono focus:outline-none">
                     <span class="text-[9px] text-slate-400 font-mono">to</span>
-                    <input type="date" id="history-date-to" onchange="renderActiveStreamTab()" class="flex-1 bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1.5 text-[10px] text-slate-100 font-mono focus:outline-none">
+                    <input type="date" id="history-date-to" class="flex-1 min-w-[110px] bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1.5 text-[10px] text-slate-100 font-mono focus:outline-none">
+                    <button onclick="renderActiveStreamTab()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg transition cursor-pointer">Apply</button>
                     <button onclick="document.getElementById('history-date-from').value=''; document.getElementById('history-date-to').value=''; renderActiveStreamTab();" class="text-[9px] text-slate-400 hover:text-white uppercase font-bold px-1.5 transition cursor-pointer">Clear</button>
                 </div>
+
+                <p id="date-filter-status" class="hidden text-[9px] text-amber-300 px-1 font-mono"></p>
 
                 <div class="flex bg-slate-900/40 p-1 rounded-xl border border-slate-500/20 gap-1">
                     <button onclick="switchStreamTab('shifts')" id="tab-btn-shifts" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer bg-white text-[#1e3a5f] shadow-sm">
@@ -1271,13 +1274,28 @@
             const selectedMonthFilter = document.getElementById('dashboard-month-filter').value;
             const dateFromVal = document.getElementById('history-date-from')?.value;
             const dateToVal = document.getElementById('history-date-to')?.value;
+            const dateRangeActive = !!(dateFromVal || dateToVal);
             const filteredShiftLogs = activeShiftLogs.filter(log => {
                 const logDate = new Date(log.punch_in_time || log.created_at);
+                // A date range, once set, takes priority over the month dropdown -
+                // they're no longer ANDed together, which used to silently hide
+                // results whenever the range crossed outside the selected month.
+                if (dateRangeActive) {
+                    if (dateFromVal && logDate < new Date(dateFromVal + 'T00:00:00')) return false;
+                    if (dateToVal && logDate > new Date(dateToVal + 'T23:59:59')) return false;
+                    return true;
+                }
                 if (selectedMonthFilter !== 'ALL' && logDate.getMonth() !== parseInt(selectedMonthFilter)) return false;
-                if (dateFromVal && logDate < new Date(dateFromVal + 'T00:00:00')) return false;
-                if (dateToVal && logDate > new Date(dateToVal + 'T23:59:59')) return false;
                 return true;
             });
+
+            const statusMsg = document.getElementById('date-filter-status');
+            if (dateRangeActive) {
+                statusMsg.classList.remove('hidden');
+                statusMsg.innerText = `Showing date range (month filter ignored) — ${filteredShiftLogs.length} record(s) found.`;
+            } else {
+                statusMsg.classList.add('hidden');
+            }
 
             if (currentActiveTab === 'shifts') {
                 const nonActiveLogs = filteredShiftLogs.filter(log => log.status !== 'Active');
