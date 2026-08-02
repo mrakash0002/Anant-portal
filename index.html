@@ -596,6 +596,7 @@
         let currentCameraMode = null; 
 
         let capturedBillImages = { transport: [], food: [], material: [] };
+        let pendingOptimisticPunchOutShiftId = null;
 
         let runtimePieChartInstance = null;
         let runtimeBarChartInstance = null;
@@ -809,11 +810,12 @@
 
         // Uploads every captured bill photo (transport/food/material) to the bill-photos
         // bucket and returns { transport: [urls], food: [urls], material: [urls] }.
-        async function uploadAllBillPhotos() {
+        async function uploadAllBillPhotos(imagesSource) {
+            const source = imagesSource || capturedBillImages;
             const urls = { transport: [], food: [], material: [] };
             for (const type of ['transport', 'food', 'material']) {
                 let idx = 0;
-                for (const img of capturedBillImages[type]) {
+                for (const img of source[type]) {
                     const fileName = `${type}_${currentActiveUser?.id || 'usr'}_${Date.now()}_${idx}.jpg`;
                     const url = await uploadSelfieToSupabase(img, fileName, 'bill-photos');
                     urls[type].push(url);
@@ -1358,6 +1360,9 @@
             }
 
             runningActiveShift = activeShiftLogs.find(log => log.status === 'Active');
+            if (runningActiveShift && pendingOptimisticPunchOutShiftId && String(runningActiveShift.id) === String(pendingOptimisticPunchOutShiftId)) {
+                runningActiveShift = null;
+            }
 
             if (runningActiveShift) {
                 document.getElementById('punch-in-panel').classList.add('hidden');
@@ -1700,49 +1705,88 @@
             // that expense claim - see updateShiftStatusResolution() in admin.html.
             const remainingCarryforwardBalance = currentWallet + payment_advance_taken;
 
-            const gpsCoords = await fetchCurrentGPSLocation();
-            const site_location = manualLocation ? `${manualLocation} (${gpsCoords})` : gpsCoords;
-            
-            const shiftPayload = { 
-                shift_id: runningActiveShift.id,
-                site_location, progress_notes, transport_expense, food_expense, material_expense, material_notes, 
-                payment_advance_taken, remaining_balance: remainingCarryforwardBalance, status: "Pending", 
-                expense_status: totalShiftExpenses > 0 ? "Pending" : "N/A",
-                punch_out_time: new Date().toISOString(), punch_out_image_url: null, bill_photo_urls: null
-            };
+            const shiftId = runningActiveShift.id;
+            const selfieBase64 = temporaryCapturedBase64;
+            const billImagesSnapshot = JSON.parse(JSON.stringify(capturedBillImages));
+            const wasOnline = navigator.onLine;
 
-            if (!navigator.onLine) {
-                await savePunchToOfflineQueue('out', shiftPayload, temporaryCapturedBase64, capturedBillImages);
-                updateNetworkBadge(false);
-            } else {
+            // The shift ends on screen right here - GPS lookup, photo uploads, and the
+            // actual server sync all continue below in the background so the worker
+            // isn't stuck waiting on a slow mobile connection to see the shift end.
+            temporaryCapturedBase64 = null;
+            resetBillsVerificationState();
+            currentActiveUser.morning_advance = remainingCarryforwardBalance;
+            runningActiveShift = null;
+            pendingOptimisticPunchOutShiftId = shiftId;
+
+            const localLogIdx = activeShiftLogs.findIndex(l => String(l.id) === String(shiftId));
+            if (localLogIdx > -1) {
+                activeShiftLogs[localLogIdx] = {
+                    ...activeShiftLogs[localLogIdx],
+                    status: 'Pending',
+                    expense_status: totalShiftExpenses > 0 ? 'Pending' : 'N/A',
+                    transport_expense, food_expense, material_expense, material_notes,
+                    payment_advance_taken, punch_out_time: new Date().toISOString()
+                };
+            }
+
+            document.getElementById('punch-out-panel').classList.add('hidden');
+            document.getElementById('punch-in-panel').classList.remove('hidden');
+            punchOutBtn.innerText = "Punch Out";
+            punchOutBtn.disabled = false;
+            syncDashboardPortalState();
+
+            (async () => {
+                const buildPayload = (site_location) => ({
+                    shift_id: shiftId,
+                    site_location, progress_notes, transport_expense, food_expense, material_expense, material_notes,
+                    payment_advance_taken, remaining_balance: remainingCarryforwardBalance, status: "Pending",
+                    expense_status: totalShiftExpenses > 0 ? "Pending" : "N/A",
+                    punch_out_time: new Date().toISOString(), punch_out_image_url: null, bill_photo_urls: null
+                });
+
+                const finishUp = () => {
+                    // Only clear the guard (and pull fresh authoritative data) once the
+                    // background sync has actually concluded, one way or another.
+                    if (pendingOptimisticPunchOutShiftId === shiftId) pendingOptimisticPunchOutShiftId = null;
+                    syncDashboardPortalState();
+                };
+
+                if (!wasOnline) {
+                    const gpsCoords = await fetchCurrentGPSLocation();
+                    const site_location = manualLocation ? `${manualLocation} (${gpsCoords})` : gpsCoords;
+                    await savePunchToOfflineQueue('out', buildPayload(site_location), selfieBase64, billImagesSnapshot);
+                    updateNetworkBadge(false);
+                    finishUp();
+                    return;
+                }
+
                 try {
+                    const gpsCoords = await fetchCurrentGPSLocation();
+                    const site_location = manualLocation ? `${manualLocation} (${gpsCoords})` : gpsCoords;
+                    const shiftPayload = buildPayload(site_location);
+
                     let selfieUrl = null;
-                    if (temporaryCapturedBase64) {
+                    if (selfieBase64) {
                         const fileName = `out_${currentActiveUser.id || 'usr'}_${Date.now()}.jpg`;
-                        selfieUrl = await uploadSelfieToSupabase(temporaryCapturedBase64, fileName);
+                        selfieUrl = await uploadSelfieToSupabase(selfieBase64, fileName);
                     }
                     shiftPayload.punch_out_image_url = selfieUrl;
-                    shiftPayload.bill_photo_urls = JSON.stringify(await uploadAllBillPhotos());
+                    shiftPayload.bill_photo_urls = JSON.stringify(await uploadAllBillPhotos(billImagesSnapshot));
 
-                    const shiftId = shiftPayload.shift_id;
+                    const patchShiftId = shiftPayload.shift_id;
                     delete shiftPayload.shift_id;
                     delete shiftPayload.remaining_balance;
 
-                    await fetch(`${SUPABASE_URL}shift_logs?id=eq.${shiftId}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(shiftPayload) });
+                    await fetch(`${SUPABASE_URL}shift_logs?id=eq.${patchShiftId}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(shiftPayload) });
                     await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ morning_advance: remainingCarryforwardBalance }) });
-                    
-                } catch(err) { 
-                    await savePunchToOfflineQueue('out', shiftPayload, temporaryCapturedBase64, capturedBillImages);
+                    finishUp();
+
+                } catch(err) {
+                    await savePunchToOfflineQueue('out', buildPayload(manualLocation || 'GPS Unavailable'), selfieBase64, billImagesSnapshot);
+                    finishUp();
                 }
-            }
-            
-            temporaryCapturedBase64 = null;
-            resetBillsVerificationState();
-            
-            document.getElementById('punch-out-panel').classList.add('hidden');
-            document.getElementById('punch-in-panel').classList.remove('hidden');
-            
-            syncDashboardPortalState();
+            })();
         }
 
         restoreSessionOnLoad();
