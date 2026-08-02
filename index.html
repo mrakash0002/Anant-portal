@@ -976,9 +976,11 @@
 
             filteredLogs.forEach(log => {
                 if (log.status === 'Approved' || log.status === 'Pending' || log.status === 'Rejected') {
-                    totalTransport += parseFloat(log.transport_expense || 0);
-                    totalFood += parseFloat(log.food_expense || 0);
-                    totalMaterial += parseFloat(log.material_expense || 0);
+                    if (log.expense_status === 'Approved') {
+                        totalTransport += parseFloat(log.transport_expense || 0);
+                        totalFood += parseFloat(log.food_expense || 0);
+                        totalMaterial += parseFloat(log.material_expense || 0);
+                    }
                     totalMiddayAdvance += parseFloat(log.payment_advance_taken || 0);
                 }
             });
@@ -1021,9 +1023,9 @@
                 head: [['Description / Earning Item', 'Units / Days', 'Amount (INR)']],
                 body: [
                     ['Earned Shift Days (Approved)', `${approvedDaysCount} Days`, `Rs. ${grossEarned.toLocaleString('en-IN')}`],
-                    ['Transport Reimbursements (Fuel Allowance)', '1 Claim', `Rs. ${totalTransport.toLocaleString('en-IN')}`],
-                    ['Food & Meal Allowances (Lunch)', '1 Claim', `Rs. ${totalFood.toLocaleString('en-IN')}`],
-                    ['Site Material Expenses Claimed (Bill #402)', 'Connectors', `Rs. ${totalMaterial.toLocaleString('en-IN')}`],
+                    ['Transport Reimbursements (Approved)', '1 Claim', `Rs. ${totalTransport.toLocaleString('en-IN')}`],
+                    ['Food & Meal Allowances (Approved)', '1 Claim', `Rs. ${totalFood.toLocaleString('en-IN')}`],
+                    ['Site Material Expenses (Approved)', 'Connectors', `Rs. ${totalMaterial.toLocaleString('en-IN')}`],
                     [{ content: 'Total Earnings & Reimbursements', styles: { fontStyle: 'bold' } }, '', { content: `Rs. ${(grossEarned + totalReimbursements).toLocaleString('en-IN')}`, styles: { fontStyle: 'bold' } }]
                 ],
                 headStyles: { fillColor: [74, 20, 140], textColor: [255, 255, 255], fontStyle: 'bold' },
@@ -1057,18 +1059,23 @@
             doc.setTextColor(74, 20, 140);
             doc.text("Attendance & Expense Log Activity Summary", 14, finalY + 32);
 
-            const shiftRows = filteredLogs.map((s, idx) => [
-                `#${idx + 1}`,
-                new Date(s.punch_in_time || s.created_at).toLocaleDateString('en-IN'),
-                s.site_location || 'Field Site',
-                `Rs. ${parseFloat(s.transport_expense || 0) + parseFloat(s.food_expense || 0) + parseFloat(s.material_expense || 0)}`,
-                s.status
-            ]);
+            const shiftRows = filteredLogs.map((s, idx) => {
+                const rowExpenseTotal = parseFloat(s.transport_expense || 0) + parseFloat(s.food_expense || 0) + parseFloat(s.material_expense || 0);
+                const rowExpenseStatus = s.expense_status || (rowExpenseTotal > 0 ? 'Pending' : 'N/A');
+                return [
+                    `#${idx + 1}`,
+                    new Date(s.punch_in_time || s.created_at).toLocaleDateString('en-IN'),
+                    s.site_location || 'Field Site',
+                    s.status,
+                    `Rs. ${rowExpenseTotal}`,
+                    rowExpenseStatus
+                ];
+            });
 
             doc.autoTable({
                 startY: finalY + 36,
-                head: [['#', 'Date', 'Site Location / Remark', 'Expenses', 'Status']],
-                body: shiftRows.length > 0 ? shiftRows : [['-', 'No shift records found for this period', '-', '-', '-']],
+                head: [['#', 'Date', 'Site Location / Remark', 'Shift Status', 'Expenses', 'Expense Status']],
+                body: shiftRows.length > 0 ? shiftRows : [['-', 'No shift records found for this period', '-', '-', '-', '-']],
                 styles: { fontSize: 8 },
                 headStyles: { fillColor: [100, 116, 139] }
             });
