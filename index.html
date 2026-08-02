@@ -542,9 +542,9 @@
                 </div>
 
                 <div class="flex items-center gap-1.5 px-1 flex-wrap">
-                    <input type="date" id="history-date-from" class="flex-1 min-w-[110px] bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1.5 text-[10px] text-slate-100 font-mono focus:outline-none">
+                    <input type="date" id="history-date-from" style="color-scheme: dark;" class="flex-1 min-w-[110px] bg-slate-800 border border-slate-500/40 rounded-lg px-2 py-1.5 text-[11px] text-white font-mono focus:outline-none">
                     <span class="text-[9px] text-slate-400 font-mono">to</span>
-                    <input type="date" id="history-date-to" class="flex-1 min-w-[110px] bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1.5 text-[10px] text-slate-100 font-mono focus:outline-none">
+                    <input type="date" id="history-date-to" style="color-scheme: dark;" class="flex-1 min-w-[110px] bg-slate-800 border border-slate-500/40 rounded-lg px-2 py-1.5 text-[11px] text-white font-mono focus:outline-none">
                     <button onclick="renderActiveStreamTab()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg transition cursor-pointer">Apply</button>
                     <button onclick="document.getElementById('history-date-from').value=''; document.getElementById('history-date-to').value=''; renderActiveStreamTab();" class="text-[9px] text-slate-400 hover:text-white uppercase font-bold px-1.5 transition cursor-pointer">Clear</button>
                 </div>
@@ -1374,9 +1374,20 @@
 
                 if (recordsWithAdvances.length > 0 || morningWalletAmt > 0) {
                     if (morningWalletAmt > 0) {
+                        const morningNote = currentActiveUser.morning_advance_note;
+                        const morningUpdated = currentActiveUser.morning_advance_updated_at
+                            ? new Date(currentActiveUser.morning_advance_updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+                            : null;
                         let div = document.createElement('div');
-                        div.className = "bg-amber-50 p-3.5 rounded-xl border border-amber-200 shadow-sm text-xs flex justify-between items-center";
-                        div.innerHTML = `<div><p class="font-bold text-amber-900">Morning Cash (Opening Balance)</p><p class="text-[10px] text-slate-400">Admin Allocated Fund Balance</p></div><strong class="text-amber-600 font-mono font-black text-sm">₹${morningWalletAmt.toLocaleString('en-IN')}</strong>`;
+                        div.className = "bg-amber-50 p-3.5 rounded-xl border border-amber-200 shadow-sm text-xs space-y-1";
+                        div.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <p class="font-bold text-amber-900">Morning Cash (Opening Balance)</p>
+                                <strong class="text-amber-600 font-mono font-black text-sm">₹${morningWalletAmt.toLocaleString('en-IN')}</strong>
+                            </div>
+                            <p class="text-[10px] text-slate-500">${morningNote || 'Admin Allocated Fund Balance'}</p>
+                            ${morningUpdated ? `<p class="text-[9px] text-slate-400 font-mono">Updated: ${morningUpdated}</p>` : ''}
+                        `;
                         stream.appendChild(div);
                     }
                     recordsWithAdvances.forEach(log => {
@@ -1390,9 +1401,10 @@
             } else if (currentActiveTab === 'salary') {
                 const salaryAdvance = parseFloat(currentActiveUser.salary_advance_taken || 0);
                 if (salaryAdvance > 0) {
-                    let verifiedTimestamp = currentActiveUser.created_at 
-                        ? new Date(currentActiveUser.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
-                        : new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+                    const salaryNote = currentActiveUser.salary_advance_note;
+                    let verifiedTimestamp = currentActiveUser.salary_advance_updated_at
+                        ? new Date(currentActiveUser.salary_advance_updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+                        : 'Not recorded';
 
                     stream.innerHTML = `
                         <div class="bg-white p-4 rounded-xl border border-rose-100 shadow-sm text-xs space-y-2">
@@ -1400,7 +1412,7 @@
                                 <p class="font-bold text-rose-900">Active Structural Salary Advance Balance</p>
                                 <strong class="text-rose-600 font-mono text-sm">₹${salaryAdvance.toLocaleString('en-IN')}</strong>
                             </div>
-                            <p class="text-[10px] text-gray-500 leading-relaxed">This ledger tracks long-term lump sum structural advances provided directly via central accounts.</p>
+                            <p class="text-[10px] text-gray-500 leading-relaxed">${salaryNote || 'This ledger tracks long-term lump sum structural advances provided directly via central accounts.'}</p>
                             <div class="pt-2 border-t border-slate-100 flex justify-between text-[9px] text-slate-400 font-mono uppercase">
                                 <span>Verified: ${verifiedTimestamp}</span>
                                 <span>Ref: AE-STF-${currentActiveUser.id || 'REG'}</span>
@@ -1925,4 +1937,4 @@
 
     </script>
 </body>
-</html> 
+</html>
