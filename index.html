@@ -36,7 +36,6 @@
             }
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <!-- jsPDF & AutoTable for PDF Payslip Generation -->
@@ -1130,10 +1129,16 @@
             if (showAlert) alert("Your session has expired after 5 minutes. Please log in again.");
         }
 
-        // Sessions no longer auto-expire - the account has to stay logged in continuously
-        // for real-time shift alerts (see subscribeToShiftAlerts) to keep working. Workers
-        // log out manually via the Log Out button instead.
-        function scheduleSessionExpiry(sessionStartTs) { /* intentionally disabled */ }
+        function scheduleSessionExpiry(sessionStartTs) {
+            if (sessionExpiryTimer) clearTimeout(sessionExpiryTimer);
+            const remainingMs = SESSION_DURATION_MS - (Date.now() - sessionStartTs);
+
+            if (remainingMs <= 0) {
+                expireActiveSession(false);
+                return;
+            }
+            sessionExpiryTimer = setTimeout(() => expireActiveSession(true), remainingMs);
+        }
 
         async function restoreSessionOnLoad() {
             let saved;
@@ -1143,11 +1148,16 @@
 
             if (!saved || !saved.email) return;
 
+            if (!saved.ts || (Date.now() - saved.ts) >= SESSION_DURATION_MS) {
+                localStorage.removeItem('anant_active_session');
+                return;
+            }
+
             if (saved.email === rameshKumarMockUser.email.toLowerCase()) {
                 currentActiveUser = rameshKumarMockUser;
                 document.getElementById('auth-section').classList.add('hidden');
                 document.getElementById('portal-dashboard').classList.remove('hidden');
-                await syncDashboardPortalState(true);
+                await syncDashboardPortalState();
                 scheduleSessionExpiry(saved.ts);
                 return;
             }
@@ -1160,7 +1170,7 @@
                     currentActiveUser = data[0];
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('portal-dashboard').classList.remove('hidden');
-                    await syncDashboardPortalState(true);
+                    await syncDashboardPortalState();
                     syncOfflineQueue();
                     scheduleSessionExpiry(saved.ts);
                 } else {
@@ -1225,56 +1235,6 @@
         // recognizable as a pair without needing to look at the screen)
         function playPunchOutSound() { playToneSequence([[990, 0], [660, 0.1]]); }
 
-        // Spoken reminder ("Please start your shift" / "Please punch out the shift"),
-        // used only for admin-sent alerts (see subscribeToShiftAlerts below) - there is
-        // no automatic/periodic version of this; it only ever fires when Akash sends one.
-        function speakReminder(text) {
-            try {
-                if (!('speechSynthesis' in window)) return;
-                window.speechSynthesis.cancel();
-                const utter = new SpeechSynthesisUtterance(text);
-                utter.rate = 1;
-                utter.pitch = 1;
-                utter.volume = 1;
-                window.speechSynthesis.speak(utter);
-            } catch(e) { /* best-effort only */ }
-        }
-
-        let shiftAlertsChannel = null;
-        // Real-time push: as soon as Akash sends an alert from admin.html, it lands as a
-        // new row in staff_alerts for this worker's email, and this fires immediately -
-        // no polling, no delay. Only works while this tab/app is open in the browser;
-        // see the note given to the user about what this can't do when the app is fully closed.
-        function subscribeToShiftAlerts() {
-            if (!currentActiveUser || !window.supabase || typeof window.supabase.createClient !== 'function') return;
-            if (shiftAlertsChannel) return; // already subscribed this session
-            try {
-                const projectUrl = SUPABASE_URL.replace('/rest/v1/', '');
-                const client = window.supabase.createClient(projectUrl, SUPABASE_KEY);
-                shiftAlertsChannel = client
-                    .channel('staff_alerts_' + currentActiveUser.email)
-                    .on('postgres_changes', {
-                        event: 'INSERT', schema: 'public', table: 'staff_alerts',
-                        filter: `worker_email=eq.${currentActiveUser.email}`
-                    }, (payload) => {
-                        const message = payload.new && payload.new.message ? payload.new.message : 'You have a new alert from admin.';
-                        playNotificationSound();
-                        speakReminder(message);
-                        const banner = document.getElementById('recent-updates-banner');
-                        banner.insertAdjacentHTML('beforeend', `
-                            <div class="flex items-start justify-between gap-2 p-3 rounded-xl border text-xs bg-blue-50 border-blue-200 text-blue-800">
-                                <span><strong>Alert from Akash:</strong> ${message}</span>
-                                <button onclick="this.parentElement.remove(); if(!document.getElementById('recent-updates-banner').children.length) document.getElementById('recent-updates-banner').classList.add('hidden');" class="shrink-0 font-bold opacity-60 hover:opacity-100 cursor-pointer">&times;</button>
-                            </div>
-                        `);
-                        banner.classList.remove('hidden');
-                    })
-                    .subscribe();
-            } catch(e) {
-                console.error('Shift alert subscription failed:', e);
-            }
-        }
-
         async function attemptAuthenticationSubmit() {
             unlockNotificationAudio();
             const emailInput = document.getElementById('auth-email').value.trim().toLowerCase();
@@ -1287,7 +1247,7 @@
                 saveActiveSession(rameshKumarMockUser.email);
                 scheduleSessionExpiry(Date.now());
                 await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
-                await syncDashboardPortalState(true);
+                await syncDashboardPortalState();
                 return;
             }
 
@@ -1303,7 +1263,7 @@
                         saveActiveSession(worker.email);
                         scheduleSessionExpiry(Date.now());
                         await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
-                        await syncDashboardPortalState(true);
+                        await syncDashboardPortalState();
                         syncOfflineQueue();
                     } else { alert("Authentication Failure: Password does not match."); }
                 } else { alert("Authentication Failure: No account registered under this email."); }
@@ -1470,14 +1430,13 @@
             }
         }
 
-        async function syncDashboardPortalState(isBackgroundCheck) {
+        async function syncDashboardPortalState() {
             const monthFilter = document.getElementById('dashboard-month-filter');
             if (!sessionStorage.getItem('manualMonthSet')) {
                 monthFilter.value = new Date().getMonth().toString();
             }
 
             if(!currentActiveUser) return;
-            subscribeToShiftAlerts();
 
             if (currentActiveUser.email === rameshKumarMockUser.email) {
                 activeShiftLogs = rameshKumarMockJulyLogs;
@@ -1981,9 +1940,9 @@
         // Keep status/notification data reasonably fresh without requiring the worker to
         // fully close and reopen the app: re-sync periodically while the tab is open, and
         // whenever the tab/app regains focus (e.g. switching back from another app).
-        setInterval(() => { if (currentActiveUser) syncDashboardPortalState(true); }, 120000); // every 2 minutes
+        setInterval(() => { if (currentActiveUser) syncDashboardPortalState(); }, 120000); // every 2 minutes
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && currentActiveUser) syncDashboardPortalState(true);
+            if (document.visibilityState === 'visible' && currentActiveUser) syncDashboardPortalState();
         });
 
     </script>
