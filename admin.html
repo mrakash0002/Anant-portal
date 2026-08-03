@@ -7,6 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234a148c'/%3E%3Ctext x='32' y='43' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='26' fill='white' text-anchor='middle'%3EAE%3C/text%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234a148c'/%3E%3Ctext x='32' y='43' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='26' fill='white' text-anchor='middle'%3EAE%3C/text%3E%3C/svg%3E">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -91,6 +92,8 @@
             <button onclick="switchAdminMenu('employees')" id="menu-btn-employees" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Employees</button>
             <button onclick="switchAdminMenu('monthly')" id="menu-btn-monthly" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Monthly Statement</button>
         </nav>
+
+        <div id="punch-in-alerts-banner" class="hidden space-y-2"></div>
 
         <!-- ANALYTICS CHARTS -->
         <div id="menu-view-analytics" class="hidden space-y-6">
@@ -235,6 +238,35 @@
 
                 <hr class="border-slate-200" />
 
+                <!-- SEND SHIFT ALERT -->
+                <div class="bg-blue-50/70 p-4 rounded-xl border border-blue-200 space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-blue-900">Send Shift Alert</h3>
+                    <p class="text-[10px] text-blue-800">Sends an instant spoken alert to the employee's phone.</p>
+                    <div>
+                        <label class="block text-[9px] font-semibold text-blue-900 uppercase mb-1">Select Employee</label>
+                        <select id="alert-dispatch-email" class="w-full p-2 bg-white border border-blue-200 rounded-lg text-xs outline-none focus:border-blue-600">
+                            <option value="">-- Choose Employee --</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="sendShiftAlert('Please start your shift')" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg text-[10px] uppercase tracking-wider transition cursor-pointer shadow-sm">
+                            Remind: Punch In
+                        </button>
+                        <button onclick="sendShiftAlert('Please punch out the shift')" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg text-[10px] uppercase tracking-wider transition cursor-pointer shadow-sm">
+                            Remind: Punch Out
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-semibold text-blue-900 uppercase mb-1">Custom message (optional)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="alert-dispatch-custom" placeholder="e.g. Call the office" class="flex-1 p-2 bg-white border border-blue-200 rounded-lg text-xs outline-none focus:border-blue-600">
+                            <button onclick="sendShiftAlert(document.getElementById('alert-dispatch-custom').value.trim())" class="bg-blue-100 hover:bg-blue-200 text-blue-900 font-semibold px-3 rounded-lg text-[10px] uppercase tracking-wider transition cursor-pointer">Send</button>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-slate-200" />
+
                 <div>
                     <h2 class="text-sm font-bold tracking-tight text-slate-800">Employees</h2>
                     <p class="text-[11px] text-gray-400">Select an employee to review or edit balances.</p>
@@ -348,8 +380,14 @@
                 document.getElementById('admin-auth-shield').classList.add('hidden');
                 document.getElementById('main-admin-dashboard-layout').classList.remove('hidden');
                 getAdminIdentity();
+                unlockAdminAudio();
                 switchAdminMenu(localStorage.getItem('anant_admin_active_menu') || 'shifts');
                 fetchAllDataFromNode();
+                setInterval(fetchAllDataFromNode, 60000); // fallback poll in case realtime disconnects
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') fetchAllDataFromNode();
+                });
+                subscribeToRealtimePunchIns();
             } else {
                 logPanel.classList.remove('hidden');
                 document.getElementById('auth-admin-password').value = "";
@@ -384,6 +422,7 @@
                 renderShiftsStreamDisplay();
                 renderMonthlyReport();
                 renderAnalyticsCharts();
+                checkForNewPunchIns();
 
                 if(currentlySelectedWorkerEmail) {
                     populateBalanceAdjustmentForm(currentlySelectedWorkerEmail);
@@ -394,11 +433,119 @@
             }
         }
 
+        // --- SHIFT ACTIVITY ALERTS (punch in / punch out) ---
+        let adminAudioCtx = null;
+        function unlockAdminAudio() {
+            if (adminAudioCtx) { if (adminAudioCtx.state === 'suspended') adminAudioCtx.resume(); return; }
+            try { adminAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { /* audio unsupported */ }
+        }
+        function playAdminToneSequence(tones) {
+            if (!adminAudioCtx) return;
+            try {
+                const now = adminAudioCtx.currentTime;
+                tones.forEach(([freq, offset]) => {
+                    const startTime = now + offset;
+                    const osc = adminAudioCtx.createOscillator();
+                    const gain = adminAudioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.0001, startTime);
+                    gain.gain.exponentialRampToValueAtTime(0.18, startTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.2);
+                    osc.connect(gain).connect(adminAudioCtx.destination);
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.22);
+                });
+            } catch(e) { /* best-effort only */ }
+        }
+        // Rising three-tone for punch-in
+        function playPunchInChime() { playAdminToneSequence([[660, 0], [880, 0.12], [660, 0.24]]); }
+        // Same three tones in reverse for punch-out, so the two are recognizable as a pair by ear
+        function playPunchOutChime() { playAdminToneSequence([[660, 0], [880, 0.12], [1108, 0.24]]); }
+
+        function addShiftAlertBanner(html) {
+            const banner = document.getElementById('punch-in-alerts-banner');
+            banner.insertAdjacentHTML('beforeend', html);
+            banner.classList.remove('hidden');
+        }
+
+        // Compares the currently Active shift IDs against what was last seen. An ID that's
+        // newly Active is a punch-in; an ID that WAS Active and no longer is (it moved to
+        // Pending/Approved/Rejected) is a punch-out. First-ever run on this device just
+        // records the baseline silently - nothing to alert on yet.
+        function checkForNewPunchIns() {
+            const storageKey = 'anant_admin_seen_active_shifts';
+            let seenIds;
+            try { seenIds = JSON.parse(localStorage.getItem(storageKey)) || null; } catch(e) { seenIds = null; }
+
+            const activeShifts = runtimeShifts.filter(s => s.status === 'Active');
+            const currentIds = activeShifts.map(s => String(s.id));
+
+            if (seenIds !== null) {
+                const newOnes = activeShifts.filter(s => !seenIds.includes(String(s.id)));
+                const goneIds = seenIds.filter(id => !currentIds.includes(id));
+                const endedShifts = goneIds.map(id => runtimeShifts.find(s => String(s.id) === id)).filter(Boolean);
+
+                if (newOnes.length > 0) {
+                    playPunchInChime();
+                    newOnes.forEach(s => {
+                        const worker = runtimeWorkers.find(w => w.email === s.worker_email);
+                        addShiftAlertBanner(`
+                            <div class="flex items-start justify-between gap-2 p-3 rounded-xl border text-xs bg-blue-50 border-blue-200 text-blue-900">
+                                <span><strong>${worker ? worker.name : s.worker_email}</strong> punched in${s.site_location ? ' - ' + s.site_location : ''}</span>
+                                <button onclick="this.parentElement.remove(); if(!document.getElementById('punch-in-alerts-banner').children.length) document.getElementById('punch-in-alerts-banner').classList.add('hidden');" class="shrink-0 font-bold opacity-60 hover:opacity-100 cursor-pointer">&times;</button>
+                            </div>
+                        `);
+                    });
+                }
+
+                if (endedShifts.length > 0) {
+                    playPunchOutChime();
+                    endedShifts.forEach(s => {
+                        const worker = runtimeWorkers.find(w => w.email === s.worker_email);
+                        addShiftAlertBanner(`
+                            <div class="flex items-start justify-between gap-2 p-3 rounded-xl border text-xs bg-amber-50 border-amber-200 text-amber-900">
+                                <span><strong>${worker ? worker.name : s.worker_email}</strong> punched out${s.site_location ? ' - ' + s.site_location : ''}</span>
+                                <button onclick="this.parentElement.remove(); if(!document.getElementById('punch-in-alerts-banner').children.length) document.getElementById('punch-in-alerts-banner').classList.add('hidden');" class="shrink-0 font-bold opacity-60 hover:opacity-100 cursor-pointer">&times;</button>
+                            </div>
+                        `);
+                    });
+                }
+            }
+
+            localStorage.setItem(storageKey, JSON.stringify(currentIds));
+        }
+
+        // Real-time push: a punch-in is a new row (INSERT) and a punch-out is an edit to
+        // that same row (UPDATE), so both are covered here. Either event triggers an
+        // immediate refresh instead of waiting for the next 60s poll; the dedupe logic in
+        // checkForNewPunchIns() still applies, so this never double-alerts.
+        function subscribeToRealtimePunchIns() {
+            if (!window.supabase || typeof window.supabase.createClient !== 'function') return;
+            try {
+                const projectUrl = SUPABASE_URL.replace('/rest/v1/', '');
+                const client = window.supabase.createClient(projectUrl, SUPABASE_KEY);
+                client
+                    .channel('shift_logs_activity')
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'shift_logs' }, () => {
+                        fetchAllDataFromNode();
+                    })
+                    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'shift_logs' }, () => {
+                        fetchAllDataFromNode();
+                    })
+                    .subscribe();
+            } catch(e) {
+                console.error('Realtime subscription failed, falling back to polling only:', e);
+            }
+        }
+
         function renderAllDispatchDropdowns() {
             const morningSelect = document.getElementById('morning-dispatch-email');
             const advanceSelect = document.getElementById('salary-advance-dispatch-email');
+            const alertSelect = document.getElementById('alert-dispatch-email');
             morningSelect.innerHTML = '<option value="">-- Choose Employee --</option>';
             advanceSelect.innerHTML = '<option value="">-- Choose Employee --</option>';
+            alertSelect.innerHTML = '<option value="">-- Choose Employee --</option>';
 
             runtimeWorkers.forEach(w => {
                 let opt1 = document.createElement('option');
@@ -410,7 +557,36 @@
                 opt2.value = w.email;
                 opt2.innerText = `${w.name} (${w.email})`;
                 advanceSelect.appendChild(opt2);
+
+                let opt3 = document.createElement('option');
+                opt3.value = w.email;
+                opt3.innerText = `${w.name} (${w.email})`;
+                alertSelect.appendChild(opt3);
             });
+        }
+
+        async function sendShiftAlert(message) {
+            const email = document.getElementById('alert-dispatch-email').value;
+            message = (message || '').trim();
+            if (!email) return alert("Please select an employee.");
+            if (!message) return alert("Please enter a message.");
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}staff_alerts`, {
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify({ worker_email: email, message })
+                });
+                if (!res.ok) {
+                    const errBody = await res.text();
+                    throw new Error(`${res.status}: ${errBody}`);
+                }
+                alert("Alert sent.");
+                document.getElementById('alert-dispatch-custom').value = '';
+            } catch(e) {
+                console.error(e);
+                alert(`Failed to send alert: ${e.message}`);
+            }
         }
 
         async function dispatchMorningBalanceWithNote() {
