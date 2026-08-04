@@ -604,23 +604,6 @@
 
         let currentActiveUser = null;
         let activeShiftLogs = [];
-        let workerMonthlyBalances = [];
-
-        function getCurrentMonthString() {
-            const d = new Date();
-            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        }
-
-        // Same carry-forward resolution as admin.html: an exact snapshot for the target
-        // month if one exists, otherwise the nearest earlier snapshot IF it was marked to
-        // carry forward, otherwise 0 (a fresh month with nothing carried in).
-        function resolveMonthlyBalanceValue(rows, targetMonth, field) {
-            const exact = rows.find(r => r.month === targetMonth);
-            if (exact) return parseFloat(exact[field] || 0);
-            const priors = rows.filter(r => r.month < targetMonth).sort((a, b) => b.month.localeCompare(a.month));
-            if (priors.length > 0 && priors[0].carry_forward) return parseFloat(priors[0][field] || 0);
-            return 0;
-        }
         let runningActiveShift = null;
         let mediaStream = null;
         let temporaryCapturedBase64 = null;
@@ -1027,11 +1010,7 @@
             }
 
             const totalReimbursements = totalTransport + totalFood + totalMaterial;
-            const payslipCurrentRealMonth = getCurrentMonthString();
-            const payslipTargetMonth = selectedMonthVal === 'ALL' ? payslipCurrentRealMonth : `${currentYear}-${String(parseInt(selectedMonthVal) + 1).padStart(2, '0')}`;
-            const salaryAdvanceOutstanding = payslipTargetMonth === payslipCurrentRealMonth
-                ? parseFloat(currentActiveUser.salary_advance_taken || 0)
-                : resolveMonthlyBalanceValue(workerMonthlyBalances, payslipTargetMonth, 'salary_advance_taken');
+            const salaryAdvanceOutstanding = parseFloat(currentActiveUser.salary_advance_taken || 0);
             const netPayout = (currentActiveUser.emp_no === 'EMP-102' && selectedMonthVal === '6') ? 2400.00 : (grossEarned + totalReimbursements - totalMiddayAdvance);
 
             doc.setFillColor(74, 20, 140);
@@ -1128,7 +1107,7 @@
         }
 
         // --- AUTH & SHIFT WORKFLOW LOGIC ---
-        const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour login session limit
+        const SESSION_DURATION_MS = 5 * 60 * 1000; // 5 minute login session limit
         let sessionExpiryTimer = null;
 
         function saveActiveSession(email) {
@@ -1149,22 +1128,13 @@
             document.getElementById('auth-email').value = '';
             document.getElementById('auth-password').value = '';
 
-            if (showAlert) alert("Your session has expired. Please log in again.");
+            if (showAlert) alert("Your session has expired after 5 minutes. Please log in again.");
         }
 
         // Sessions no longer auto-expire - the account has to stay logged in continuously
         // for real-time shift alerts (see subscribeToShiftAlerts) to keep working. Workers
         // log out manually via the Log Out button instead.
-        function scheduleSessionExpiry(sessionStartTs) {
-            if (sessionExpiryTimer) clearTimeout(sessionExpiryTimer);
-            const remainingMs = SESSION_DURATION_MS - (Date.now() - sessionStartTs);
-
-            if (remainingMs <= 0) {
-                expireActiveSession(false);
-                return;
-            }
-            sessionExpiryTimer = setTimeout(() => expireActiveSession(true), remainingMs);
-        }
+        function scheduleSessionExpiry(sessionStartTs) { /* intentionally disabled */ }
 
         async function restoreSessionOnLoad() {
             let saved;
@@ -1173,11 +1143,6 @@
             } catch(e) { saved = null; }
 
             if (!saved || !saved.email) return;
-
-            if (!saved.ts || (Date.now() - saved.ts) >= SESSION_DURATION_MS) {
-                localStorage.removeItem('anant_active_session');
-                return;
-            }
 
             if (saved.email === rameshKumarMockUser.email.toLowerCase()) {
                 currentActiveUser = rameshKumarMockUser;
@@ -1591,9 +1556,6 @@
 
                     const res = await fetch(`${SUPABASE_URL}shift_logs?worker_email=eq.${encodeURIComponent(currentActiveUser.email)}&order=created_at.desc`, { method: "GET", headers: HEADERS });
                     activeShiftLogs = await res.json();
-
-                    const monthlyBalRes = await fetch(`${SUPABASE_URL}monthly_balances?worker_email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: "GET", headers: HEADERS });
-                    workerMonthlyBalances = monthlyBalRes.ok ? await monthlyBalRes.json() : [];
                 } catch(e) { console.error("Error updating user details:", e); }
             }
 
@@ -1654,20 +1616,9 @@
             const selectedMonthText = monthFilter.options[monthFilter.selectedIndex].text;
             document.getElementById('display-net-payable-label').innerText = selectedMonthFilter === 'ALL' ? "TOTAL LIFETIME EARNED:" : `${selectedMonthText.toUpperCase()} NET PAYOUT:`;
 
-            // Morning wallet / salary advance: the current real month always shows the
-            // live, real-time balance (accurate to the second). Any other month selected
-            // shows that month's historical snapshot instead, via carry-forward resolution.
-            const currentRealMonth = getCurrentMonthString();
-            const targetMonthStr = selectedMonthFilter === 'ALL' ? currentRealMonth : `${new Date().getFullYear()}-${String(parseInt(selectedMonthFilter) + 1).padStart(2, '0')}`;
-
-            const walletBalance = targetMonthStr === currentRealMonth
-                ? (currentActiveUser.morning_advance ? parseFloat(currentActiveUser.morning_advance) : 0)
-                : resolveMonthlyBalanceValue(workerMonthlyBalances, targetMonthStr, 'morning_advance');
+            const walletBalance = currentActiveUser.morning_advance ? parseFloat(currentActiveUser.morning_advance) : 0;
             document.getElementById('display-salary-advance').innerText = `₹${walletBalance.toLocaleString('en-IN')}`;
-
-            const majorAdvanceTaken = targetMonthStr === currentRealMonth
-                ? (currentActiveUser.salary_advance_taken ? parseFloat(currentActiveUser.salary_advance_taken) : 0)
-                : resolveMonthlyBalanceValue(workerMonthlyBalances, targetMonthStr, 'salary_advance_taken');
+            const majorAdvanceTaken = currentActiveUser.salary_advance_taken ? parseFloat(currentActiveUser.salary_advance_taken) : 0;
             document.getElementById('display-salary-advance-taken').innerText = `₹${majorAdvanceTaken.toLocaleString('en-IN')}`;
 
             let siteSpent = 0, middayAdvance = 0;
@@ -1685,15 +1636,12 @@
                 middayAdvance = 1000.00;
             }
             
-            // "Total Mid-Day Advances" reflects only the actual advance amounts received
-            // during shifts (matching the itemized list below) - it must NOT also fold in
-            // the Morning Wallet Balance, which is already its own separate stat and can
-            // go negative, which was silently making this total not match the visible list.
+            const combinedTotalAdvances = middayAdvance + walletBalance;
             document.getElementById('display-total-spent').innerText = `₹${siteSpent.toLocaleString('en-IN')}`;
-            document.getElementById('display-midday-advance').innerText = `₹${middayAdvance.toLocaleString('en-IN')}`;
+            document.getElementById('display-midday-advance').innerText = `₹${combinedTotalAdvances.toLocaleString('en-IN')}`;
             
             const chartLabels = ['Gross Salary', 'Net Earnings', 'Total Spent', 'Total Advances', 'Outstanding Adv'];
-            const chartValues = [allTimeGrossEarned, monthlyNetSalary, siteSpent, middayAdvance, majorAdvanceTaken];
+            const chartValues = [allTimeGrossEarned, monthlyNetSalary, siteSpent, combinedTotalAdvances, majorAdvanceTaken];
             const chartColorsPalette = ['#1e3a5f', '#10b981', '#3b82f6', '#f59e0b', '#f43f5e'];
 
             if (runtimePieChartInstance) runtimePieChartInstance.destroy();
