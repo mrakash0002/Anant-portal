@@ -240,6 +240,16 @@
                             <label class="block text-[9px] font-semibold text-[#5C4626] uppercase mb-1">Note (optional)</label>
                             <input type="text" id="morning-dispatch-msg" placeholder="e.g. Daily site advance allowance" class="w-full p-2 bg-white border border-[#E5D9BE] rounded-lg text-xs outline-none focus:border-[#8A6B3A]">
                         </div>
+                        <div class="flex gap-2 items-end">
+                            <div class="flex-1">
+                                <label class="block text-[9px] font-semibold text-[#5C4626] uppercase mb-1">Applies to Month</label>
+                                <input type="month" id="morning-dispatch-month" class="w-full p-2 bg-white border border-[#E5D9BE] rounded-lg text-xs outline-none focus:border-[#8A6B3A]">
+                            </div>
+                        </div>
+                        <label class="flex items-center gap-1.5 text-[9px] text-[#5C4626]">
+                            <input type="checkbox" id="morning-dispatch-carry" checked class="accent-[#8A6B3A]">
+                            Continue this balance into future months
+                        </label>
                     </div>
                     <button onclick="dispatchMorningBalanceWithNote()" class="w-full bg-[#8A6B3A] hover:bg-[#6F5529] text-white font-semibold py-2 rounded-lg text-[10px] uppercase tracking-wider transition cursor-pointer shadow-sm">
                         Add Balance
@@ -268,6 +278,14 @@
                             <label class="block text-[9px] font-semibold text-[#5C3230] uppercase mb-1">Note (optional)</label>
                             <input type="text" id="salary-advance-dispatch-msg" placeholder="e.g. Emergency medical advance" class="w-full p-2 bg-white border border-[#E8D3D1] rounded-lg text-xs outline-none focus:border-[#9B5A56]">
                         </div>
+                        <div class="flex-1">
+                            <label class="block text-[9px] font-semibold text-[#5C3230] uppercase mb-1">Applies to Month</label>
+                            <input type="month" id="salary-advance-dispatch-month" class="w-full p-2 bg-white border border-[#E8D3D1] rounded-lg text-xs outline-none focus:border-[#9B5A56]">
+                        </div>
+                        <label class="flex items-center gap-1.5 text-[9px] text-[#5C3230]">
+                            <input type="checkbox" id="salary-advance-dispatch-carry" checked class="accent-[#9B5A56]">
+                            Continue this balance into future months
+                        </label>
                     </div>
                     <button onclick="dispatchSalaryAdvanceWithNote()" class="w-full bg-[#9B5A56] hover:bg-[#7D4744] text-white font-semibold py-2 rounded-lg text-[10px] uppercase tracking-wider transition cursor-pointer shadow-sm">
                         Issue Advance
@@ -396,6 +414,7 @@
 
         let runtimeWorkers = [];
         let runtimeShifts = [];
+        let runtimeMonthlyBalances = [];
         let currentlySelectedWorkerEmail = null;
         let currentFilterStatus = "Pending";
         let monthlyAggregationStore = {};
@@ -422,6 +441,8 @@
                 document.getElementById('main-admin-dashboard-layout').classList.remove('hidden');
                 getAdminIdentity();
                 unlockAdminAudio();
+                document.getElementById('morning-dispatch-month').value = getCurrentMonthString();
+                document.getElementById('salary-advance-dispatch-month').value = getCurrentMonthString();
                 switchAdminMenu(localStorage.getItem('anant_admin_active_menu') || 'shifts');
                 fetchAllDataFromNode();
                 setInterval(fetchAllDataFromNode, 60000); // fallback poll in case realtime disconnects
@@ -457,6 +478,9 @@
 
                 const shiftRes = await fetch(`${SUPABASE_URL}shift_logs?order=created_at.desc`, { method: "GET", headers: HEADERS });
                 runtimeShifts = await shiftRes.json();
+
+                const monthlyBalRes = await fetch(`${SUPABASE_URL}monthly_balances?order=month.desc`, { method: "GET", headers: HEADERS });
+                runtimeMonthlyBalances = monthlyBalRes.ok ? await monthlyBalRes.json() : [];
 
                 renderRegistrySelectorPanel();
                 renderAllDispatchDropdowns();
@@ -630,10 +654,37 @@
             }
         }
 
+        function getCurrentMonthString() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        // Resolves what a worker's balance was for a given month: an exact snapshot for
+        // that month if one exists, otherwise the nearest earlier snapshot IF it was
+        // marked to carry forward, otherwise 0 (nothing carried, fresh month).
+        function resolveMonthlyBalanceValue(rows, workerEmail, targetMonth, field) {
+            const workerRows = rows.filter(r => r.worker_email === workerEmail);
+            const exact = workerRows.find(r => r.month === targetMonth);
+            if (exact) return parseFloat(exact[field] || 0);
+            const priors = workerRows.filter(r => r.month < targetMonth).sort((a, b) => b.month.localeCompare(a.month));
+            if (priors.length > 0 && priors[0].carry_forward) return parseFloat(priors[0][field] || 0);
+            return 0;
+        }
+
+        async function upsertMonthlyBalanceSnapshot(email, month, field, newValue, carryForward) {
+            await fetch(`${SUPABASE_URL}monthly_balances?on_conflict=worker_email,month`, {
+                method: 'POST',
+                headers: { ...HEADERS, 'Prefer': 'return=representation,resolution=merge-duplicates' },
+                body: JSON.stringify({ worker_email: email, month, [field]: newValue, carry_forward: carryForward, updated_at: new Date().toISOString() })
+            });
+        }
+
         async function dispatchMorningBalanceWithNote() {
             const email = document.getElementById('morning-dispatch-email').value;
             const addAmount = parseFloat(document.getElementById('morning-dispatch-amount').value) || 0;
             const msg = document.getElementById('morning-dispatch-msg').value.trim();
+            const targetMonth = document.getElementById('morning-dispatch-month').value || getCurrentMonthString();
+            const carryForward = document.getElementById('morning-dispatch-carry').checked;
 
             if(!email) {
                 alert("Please select an employee.");
@@ -647,21 +698,33 @@
             const targetWorker = runtimeWorkers.find(w => w.email === email);
             if(!targetWorker) return;
 
-            const currentMorningBalance = parseFloat(targetWorker.morning_advance || 0);
-            const newMorningBalance = currentMorningBalance + addAmount;
+            const isCurrentMonth = targetMonth === getCurrentMonthString();
+            const priorMonthlyValue = resolveMonthlyBalanceValue(runtimeMonthlyBalances, email, targetMonth, 'morning_advance');
+            const newMonthlyValue = priorMonthlyValue + addAmount;
 
             try {
-                const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(email)}`, {
-                    method: 'PATCH',
-                    headers: HEADERS,
-                    body: JSON.stringify({ morning_advance: newMorningBalance, morning_advance_note: msg || null, morning_advance_updated_at: new Date().toISOString() })
-                });
-                if(!res.ok) throw new Error("Failed update transaction");
+                await upsertMonthlyBalanceSnapshot(email, targetMonth, 'morning_advance', newMonthlyValue, carryForward);
 
-                alert(`Added ₹${addAmount} to ${targetWorker.name}'s morning balance.\nNote: ${msg || 'No note added'}`);
+                // Only touch the live/current wallet if this addition applies to the
+                // current month - back-dated entries for past months only affect that
+                // month's historical snapshot, not today's real balance.
+                if (isCurrentMonth) {
+                    const currentMorningBalance = parseFloat(targetWorker.morning_advance || 0);
+                    const newMorningBalance = currentMorningBalance + addAmount;
+                    const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(email)}`, {
+                        method: 'PATCH',
+                        headers: HEADERS,
+                        body: JSON.stringify({ morning_advance: newMorningBalance, morning_advance_note: msg || null, morning_advance_updated_at: new Date().toISOString() })
+                    });
+                    if(!res.ok) throw new Error("Failed update transaction");
+                }
+
+                alert(`Added ₹${addAmount} to ${targetWorker.name}'s morning balance for ${targetMonth}.\nNote: ${msg || 'No note added'}`);
                 document.getElementById('morning-dispatch-amount').value = '';
                 document.getElementById('morning-dispatch-msg').value = '';
                 document.getElementById('morning-dispatch-email').value = '';
+                document.getElementById('morning-dispatch-month').value = getCurrentMonthString();
+                document.getElementById('morning-dispatch-carry').checked = true;
                 await fetchAllDataFromNode();
             } catch(e) {
                 alert("Failed to update. Please try again.");
@@ -672,6 +735,8 @@
             const email = document.getElementById('salary-advance-dispatch-email').value;
             const addAmount = parseFloat(document.getElementById('salary-advance-dispatch-amount').value) || 0;
             const msg = document.getElementById('salary-advance-dispatch-msg').value.trim();
+            const targetMonth = document.getElementById('salary-advance-dispatch-month').value || getCurrentMonthString();
+            const carryForward = document.getElementById('salary-advance-dispatch-carry').checked;
 
             if(!email) {
                 alert("Please select an employee.");
@@ -685,21 +750,30 @@
             const targetWorker = runtimeWorkers.find(w => w.email === email);
             if(!targetWorker) return;
 
-            const currentAdvanceTaken = parseFloat(targetWorker.salary_advance_taken || 0);
-            const newAdvanceTaken = currentAdvanceTaken + addAmount;
+            const isCurrentMonth = targetMonth === getCurrentMonthString();
+            const priorMonthlyValue = resolveMonthlyBalanceValue(runtimeMonthlyBalances, email, targetMonth, 'salary_advance_taken');
+            const newMonthlyValue = priorMonthlyValue + addAmount;
 
             try {
-                const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(email)}`, {
-                    method: 'PATCH',
-                    headers: HEADERS,
-                    body: JSON.stringify({ salary_advance_taken: newAdvanceTaken, salary_advance_note: msg || null, salary_advance_updated_at: new Date().toISOString() })
-                });
-                if(!res.ok) throw new Error("Failed update transaction");
+                await upsertMonthlyBalanceSnapshot(email, targetMonth, 'salary_advance_taken', newMonthlyValue, carryForward);
 
-                alert(`Issued ₹${addAmount} salary advance to ${targetWorker.name}.\nNote: ${msg || 'No note added'}`);
+                if (isCurrentMonth) {
+                    const currentAdvanceTaken = parseFloat(targetWorker.salary_advance_taken || 0);
+                    const newAdvanceTaken = currentAdvanceTaken + addAmount;
+                    const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(email)}`, {
+                        method: 'PATCH',
+                        headers: HEADERS,
+                        body: JSON.stringify({ salary_advance_taken: newAdvanceTaken, salary_advance_note: msg || null, salary_advance_updated_at: new Date().toISOString() })
+                    });
+                    if(!res.ok) throw new Error("Failed update transaction");
+                }
+
+                alert(`Issued ₹${addAmount} salary advance to ${targetWorker.name} for ${targetMonth}.\nNote: ${msg || 'No note added'}`);
                 document.getElementById('salary-advance-dispatch-amount').value = '';
                 document.getElementById('salary-advance-dispatch-msg').value = '';
                 document.getElementById('salary-advance-dispatch-email').value = '';
+                document.getElementById('salary-advance-dispatch-month').value = getCurrentMonthString();
+                document.getElementById('salary-advance-dispatch-carry').checked = true;
                 await fetchAllDataFromNode();
             } catch(e) {
                 alert("Failed to update. Please try again.");
