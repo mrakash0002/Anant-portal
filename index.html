@@ -1685,12 +1685,15 @@
                 middayAdvance = 1000.00;
             }
             
-            const combinedTotalAdvances = middayAdvance + walletBalance;
+            // "Total Mid-Day Advances" reflects only the actual advance amounts received
+            // during shifts (matching the itemized list below) - it must NOT also fold in
+            // the Morning Wallet Balance, which is already its own separate stat and can
+            // go negative, which was silently making this total not match the visible list.
             document.getElementById('display-total-spent').innerText = `₹${siteSpent.toLocaleString('en-IN')}`;
-            document.getElementById('display-midday-advance').innerText = `₹${combinedTotalAdvances.toLocaleString('en-IN')}`;
+            document.getElementById('display-midday-advance').innerText = `₹${middayAdvance.toLocaleString('en-IN')}`;
             
             const chartLabels = ['Gross Salary', 'Net Earnings', 'Total Spent', 'Total Advances', 'Outstanding Adv'];
-            const chartValues = [allTimeGrossEarned, monthlyNetSalary, siteSpent, combinedTotalAdvances, majorAdvanceTaken];
+            const chartValues = [allTimeGrossEarned, monthlyNetSalary, siteSpent, middayAdvance, majorAdvanceTaken];
             const chartColorsPalette = ['#1e3a5f', '#10b981', '#3b82f6', '#f59e0b', '#f43f5e'];
 
             if (runtimePieChartInstance) runtimePieChartInstance.destroy();
