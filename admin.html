@@ -120,6 +120,7 @@
             <button onclick="switchAdminMenu('analytics')" id="menu-btn-analytics" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Analytics</button>
             <button onclick="switchAdminMenu('employees')" id="menu-btn-employees" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Employees</button>
             <button onclick="switchAdminMenu('monthly')" id="menu-btn-monthly" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Monthly Statement</button>
+            <button onclick="switchAdminMenu('payment')" id="menu-btn-payment" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Payment Status</button>
         </nav>
 
         <div id="punch-in-alerts-banner" class="hidden space-y-2"></div>
@@ -178,6 +179,29 @@
             </div>
             <div id="monthly-reconciliation-view" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <p class="text-xs text-purple-900/60 italic p-4">Loading monthly statements...</p>
+            </div>
+        </section>
+        </div>
+
+        <!-- PAYMENT STATUS (SALARY TRANSFER TRACKER) -->
+        <div id="menu-view-payment" class="hidden space-y-6">
+        <section class="panel rounded-2xl shadow-sm p-6">
+            <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                    <h2 class="text-base font-bold tracking-tight text-slate-900">Payment Status</h2>
+                    <p class="text-xs text-slate-500">Track salary transfers month by month and mark them Paid once sent.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Month</label>
+                    <input type="month" id="payment-status-month" onchange="renderPaymentStatusSection()" class="p-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold outline-none focus:border-[#16212E]">
+                </div>
+            </div>
+            <div class="mb-4 bg-[#FAF6EE] border border-[#E5D9BE] rounded-xl p-3 flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-[#8A6B3A] shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                <p class="text-[10px] text-[#5C4626]" id="payment-status-due-note">Salary for a given month is transferred between the <strong>1st and 10th of the following month</strong>. Select the month worked above, then mark each employee Paid once their transfer is sent.</p>
+            </div>
+            <div id="payment-status-view" class="space-y-3">
+                <p class="text-xs text-purple-900/60 italic p-4">Loading payment status...</p>
             </div>
         </section>
         </div>
@@ -357,6 +381,16 @@
                         <label class="block text-[10px] font-semibold text-rose-800 uppercase tracking-wider mb-1">Salary Advance Outstanding (₹)</label>
                         <input type="number" id="edit-salary-advance-taken" class="w-full p-2.5 bg-white border border-rose-200 text-rose-700 rounded-lg text-sm outline-none focus:border-rose-500">
                     </div>
+
+                    <div class="pt-2 border-t border-slate-200 space-y-2">
+                        <label class="block text-[10px] font-semibold text-emerald-700 uppercase tracking-wider">Bank Account Details</label>
+                        <input type="text" id="edit-bank-holder" placeholder="Account Holder Name" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                        <input type="text" id="edit-bank-name" placeholder="Bank Name" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                        <input type="text" id="edit-bank-account" placeholder="Account Number" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
+                        <input type="text" id="edit-bank-ifsc" placeholder="IFSC Code" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono uppercase outline-none focus:border-[#16212E]">
+                        <p class="text-[9px] text-gray-400">Employees can also add/update this themselves from their staff portal profile.</p>
+                    </div>
+
                     <button onclick="commitWorkerBalanceModifications()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow-sm">
                         Save Changes
                     </button>
@@ -443,6 +477,7 @@
                 unlockAdminAudio();
                 document.getElementById('morning-dispatch-month').value = getCurrentMonthString();
                 document.getElementById('salary-advance-dispatch-month').value = getCurrentMonthString();
+                document.getElementById('payment-status-month').value = getPreviousMonthString();
                 switchAdminMenu(localStorage.getItem('anant_admin_active_menu') || 'shifts');
                 fetchAllDataFromNode();
                 setInterval(fetchAllDataFromNode, 60000); // fallback poll in case realtime disconnects
@@ -458,7 +493,7 @@
 
         function switchAdminMenu(view) {
             localStorage.setItem('anant_admin_active_menu', view);
-            ['shifts', 'analytics', 'employees', 'monthly'].forEach(v => {
+            ['shifts', 'analytics', 'employees', 'monthly', 'payment'].forEach(v => {
                 const section = document.getElementById(`menu-view-${v}`);
                 const btn = document.getElementById(`menu-btn-${v}`);
                 if (v === view) {
@@ -487,6 +522,7 @@
                 renderShiftsStreamDisplay();
                 renderMonthlyReport();
                 renderAnalyticsCharts();
+                renderPaymentStatusSection();
                 checkForNewPunchIns();
 
                 if(currentlySelectedWorkerEmail) {
@@ -659,6 +695,12 @@
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         }
 
+        function getPreviousMonthString() {
+            const d = new Date();
+            d.setMonth(d.getMonth() - 1);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+
         // Resolves what a worker's balance was for a given month: an exact snapshot for
         // that month if one exists, otherwise the nearest earlier snapshot IF it was
         // marked to carry forward, otherwise 0 (nothing carried, fresh month).
@@ -677,6 +719,123 @@
                 headers: { ...HEADERS, 'Prefer': 'return=representation,resolution=merge-duplicates' },
                 body: JSON.stringify({ worker_email: email, month, [field]: newValue, carry_forward: carryForward, updated_at: new Date().toISOString() })
             });
+        }
+
+        // --- PAYMENT STATUS (SALARY TRANSFER TRACKER) ---
+        // Kept fully separate from the Monthly Statement report above: it reads
+        // workers_registry (for bank details) and monthly_balances (for the salary
+        // advance + payment fields) but does not touch shift/expense aggregation.
+        async function upsertPaymentStatusSnapshot(email, month, status, reference) {
+            await fetch(`${SUPABASE_URL}monthly_balances?on_conflict=worker_email,month`, {
+                method: 'POST',
+                headers: { ...HEADERS, 'Prefer': 'return=representation,resolution=merge-duplicates' },
+                body: JSON.stringify({
+                    worker_email: email,
+                    month,
+                    payment_status: status,
+                    payment_date: status === 'Paid' ? new Date().toISOString().slice(0, 10) : null,
+                    payment_reference: status === 'Paid' ? (reference || null) : null,
+                    updated_at: new Date().toISOString()
+                })
+            });
+        }
+
+        function renderPaymentStatusSection() {
+            const container = document.getElementById('payment-status-view');
+            if (!container) return;
+            const monthInput = document.getElementById('payment-status-month');
+            const targetMonth = (monthInput && monthInput.value) || getPreviousMonthString();
+
+            const [payYear, payMonthNum] = targetMonth.split('-').map(Number);
+            const monthLabel = new Date(payYear, payMonthNum - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+            const dueLabel = new Date(payYear, payMonthNum, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+            const dueNote = document.getElementById('payment-status-due-note');
+            if (dueNote) dueNote.innerText = `${monthLabel} salary is transferred between the 1st and 10th of ${dueLabel}.`;
+
+            if (!runtimeWorkers || runtimeWorkers.length === 0) {
+                container.innerHTML = `<p class="text-xs text-purple-900/60 italic p-4">No employees found.</p>`;
+                return;
+            }
+
+            const activeWorkers = runtimeWorkers.filter(w => w.status !== 'inactive');
+
+            // Total of approved shifts (worker pay rate x approved shift count) for the
+            // selected month - computed independently from the Monthly Statement above.
+            const approvedEarningsByEmail = {};
+            (runtimeShifts || []).filter(shift => shift.status === 'Approved').forEach(shift => {
+                const shiftDateRaw = shift.punch_in_time || shift.created_at;
+                const dateObj = new Date(shiftDateRaw);
+                const shiftMonthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+                if (shiftMonthKey !== targetMonth) return;
+                if (!approvedEarningsByEmail[shift.worker_email]) approvedEarningsByEmail[shift.worker_email] = { count: 0, amount: 0 };
+                const rate = parseFloat((runtimeWorkers.find(w => w.email === shift.worker_email) || {}).fixed_salary || 0);
+                approvedEarningsByEmail[shift.worker_email].count += 1;
+                approvedEarningsByEmail[shift.worker_email].amount += rate;
+            });
+
+            container.innerHTML = activeWorkers.map(w => {
+                const snapshot = (runtimeMonthlyBalances || []).find(r => r.worker_email === w.email && r.month === targetMonth);
+                const status = (snapshot && snapshot.payment_status) || 'Unpaid';
+                const isPaid = status === 'Paid';
+
+                const salaryAdvance = resolveMonthlyBalanceValue(runtimeMonthlyBalances, w.email, targetMonth, 'salary_advance_taken');
+                const earnings = approvedEarningsByEmail[w.email] || { count: 0, amount: 0 };
+                const netPayable = earnings.amount - salaryAdvance;
+
+                const hasBankDetails = w.bank_account_number && w.bank_ifsc;
+                const bankBlock = hasBankDetails
+                    ? `<div class="text-[11px] text-slate-600 leading-relaxed">
+                            <div><span class="font-semibold text-slate-700">${w.bank_account_holder || w.name}</span></div>
+                            <div>${w.bank_name || ''}</div>
+                            <div class="font-mono">A/C ${w.bank_account_number} &middot; IFSC ${w.bank_ifsc}</div>
+                       </div>`
+                    : `<p class="text-[11px] text-rose-500 italic">No bank details on file yet.</p>`;
+
+                return `
+                <div class="border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-bold text-sm text-slate-900">${w.name}</span>
+                            <span class="text-[10px] text-slate-400 uppercase">${w.role || ''}</span>
+                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${status}</span>
+                        </div>
+                        <div class="mt-2">${bankBlock}</div>
+                        ${isPaid && snapshot ? `<p class="text-[10px] text-emerald-600 mt-1">Paid on ${snapshot.payment_date || '--'}${snapshot.payment_reference ? ` &middot; Ref: ${snapshot.payment_reference}` : ''}</p>` : ''}
+                    </div>
+                    <div class="text-right shrink-0">
+                        <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Net Payable</p>
+                        <p class="text-base font-bold text-slate-900">₹${netPayable.toLocaleString('en-IN')}</p>
+                        <p class="text-[9px] text-slate-400 mb-2">${earnings.count} approved shift${earnings.count === 1 ? '' : 's'} &middot; ₹${earnings.amount.toLocaleString('en-IN')}${salaryAdvance > 0 ? ` &minus; ₹${salaryAdvance.toLocaleString('en-IN')} advance` : ''}</p>
+                        ${isPaid
+                            ? `<button onclick="markPaymentUnpaid('${w.email}', '${targetMonth}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Mark Unpaid</button>`
+                            : `<button onclick="markPaymentPaid('${w.email}', '${targetMonth}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Mark Paid</button>`
+                        }
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function markPaymentPaid(email, month) {
+            const reference = prompt("Enter transfer reference / UTR number (optional):", "");
+            if (reference === null) return; // cancelled
+            try {
+                await upsertPaymentStatusSnapshot(email, month, 'Paid', reference.trim());
+                renderPaymentStatusSection();
+            } catch (err) {
+                console.error("Payment status update error: ", err);
+                alert("Failed to update payment status. Please try again.");
+            }
+        }
+
+        async function markPaymentUnpaid(email, month) {
+            if (!confirm("Mark this payment as Unpaid again?")) return;
+            try {
+                await upsertPaymentStatusSnapshot(email, month, 'Unpaid', null);
+                renderPaymentStatusSection();
+            } catch (err) {
+                console.error("Payment status update error: ", err);
+                alert("Failed to update payment status. Please try again.");
+            }
         }
 
         async function dispatchMorningBalanceWithNote() {
@@ -1201,6 +1360,10 @@
             document.getElementById('edit-broker-rate').value = targetWorker.broker_rate || 0;
             document.getElementById('edit-morning-advance').value = targetWorker.morning_advance || 0;
             document.getElementById('edit-salary-advance-taken').value = targetWorker.salary_advance_taken || 0;
+            document.getElementById('edit-bank-holder').value = targetWorker.bank_account_holder || '';
+            document.getElementById('edit-bank-name').value = targetWorker.bank_name || '';
+            document.getElementById('edit-bank-account').value = targetWorker.bank_account_number || '';
+            document.getElementById('edit-bank-ifsc').value = targetWorker.bank_ifsc || '';
         }
 
         async function commitWorkerBalanceModifications() {
@@ -1209,7 +1372,11 @@
             const broker_rate = parseFloat(document.getElementById('edit-broker-rate').value) || 0;
             const morning_advance = parseFloat(document.getElementById('edit-morning-advance').value) || 0;
             const salary_advance_taken = parseFloat(document.getElementById('edit-salary-advance-taken').value) || 0;
-            const updatePayload = { fixed_salary, broker_rate, morning_advance, salary_advance_taken };
+            const bank_account_holder = document.getElementById('edit-bank-holder').value.trim();
+            const bank_name = document.getElementById('edit-bank-name').value.trim();
+            const bank_account_number = document.getElementById('edit-bank-account').value.trim();
+            const bank_ifsc = document.getElementById('edit-bank-ifsc').value.trim().toUpperCase();
+            const updatePayload = { fixed_salary, broker_rate, morning_advance, salary_advance_taken, bank_account_holder, bank_name, bank_account_number, bank_ifsc };
 
             try {
                 const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentlySelectedWorkerEmail)}`, {
