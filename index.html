@@ -669,6 +669,45 @@
         let capturedBillImages = { transport: [], food: [], material: [] };
         let pendingOptimisticPunchOutShiftId = null;
 
+        // The optimistic punch-out flag above lives only in memory, so a refresh
+        // mid-sync would forget it and re-show the shift as Active. These helpers
+        // mirror it into localStorage (written synchronously, before any await),
+        // so it survives a reload and we can detect + retry an unfinished punch-out.
+        function markPendingPunchOutPersisted(shiftId) {
+            try { localStorage.setItem('pendingPunchOutShiftId', String(shiftId)); } catch (e) {}
+        }
+        function clearPendingPunchOutPersisted(shiftId) {
+            try {
+                if (localStorage.getItem('pendingPunchOutShiftId') === String(shiftId)) {
+                    localStorage.removeItem('pendingPunchOutShiftId');
+                }
+            } catch (e) {}
+        }
+        function getPendingPunchOutPersisted() {
+            try { return localStorage.getItem('pendingPunchOutShiftId'); } catch (e) { return null; }
+        }
+        let pendingPunchOutRetryInFlight = false;
+        // Safety net: if we reload and the server still shows this shift as Active
+        // even though we already told the worker it was punched out, finish closing
+        // it now instead of leaving the app stuck showing "still on shift".
+        async function retryUnfinishedPunchOutClose(shiftId) {
+            if (pendingPunchOutRetryInFlight) return;
+            pendingPunchOutRetryInFlight = true;
+            try {
+                const gpsCoords = await fetchCurrentGPSLocation();
+                await fetch(`${SUPABASE_URL}shift_logs?id=eq.${shiftId}`, {
+                    method: 'PATCH', headers: HEADERS,
+                    body: JSON.stringify({ status: 'Pending', punch_out_time: new Date().toISOString(), site_location: gpsCoords })
+                });
+                clearPendingPunchOutPersisted(shiftId);
+                await syncDashboardPortalState();
+            } catch (e) {
+                console.error('Retry of unfinished punch-out failed, will retry again on next refresh/focus:', e);
+            } finally {
+                pendingPunchOutRetryInFlight = false;
+            }
+        }
+
         let runtimePieChartInstance = null;
         let runtimeBarChartInstance = null;
         let isEditingProfile = false;
@@ -1712,6 +1751,18 @@
             if (runningActiveShift && pendingOptimisticPunchOutShiftId && String(runningActiveShift.id) === String(pendingOptimisticPunchOutShiftId)) {
                 runningActiveShift = null;
             }
+            // Fallback for after a refresh: the in-memory guard above is gone, but the
+            // localStorage marker survives. If the server still shows this shift Active,
+            // our punch-out never actually landed - keep the UI showing "punched out"
+            // and quietly finish closing it on the server.
+            const persistedPendingId = getPendingPunchOutPersisted();
+            if (runningActiveShift && persistedPendingId && String(runningActiveShift.id) === String(persistedPendingId)) {
+                runningActiveShift = null;
+                retryUnfinishedPunchOutClose(persistedPendingId);
+            } else if (persistedPendingId && !runningActiveShift) {
+                // Shift is already closed on the server (sync succeeded after all) - clean up the marker.
+                clearPendingPunchOutPersisted(persistedPendingId);
+            }
 
             if (runningActiveShift) {
                 document.getElementById('punch-in-panel').classList.add('hidden');
@@ -2172,6 +2223,7 @@
             currentActiveUser.morning_advance = remainingCarryforwardBalance;
             runningActiveShift = null;
             pendingOptimisticPunchOutShiftId = shiftId;
+            markPendingPunchOutPersisted(shiftId);
 
             const localLogIdx = activeShiftLogs.findIndex(l => String(l.id) === String(shiftId));
             if (localLogIdx > -1) {
@@ -2204,6 +2256,7 @@
                     // Only clear the guard (and pull fresh authoritative data) once the
                     // background sync has actually concluded, one way or another.
                     if (pendingOptimisticPunchOutShiftId === shiftId) pendingOptimisticPunchOutShiftId = null;
+                    clearPendingPunchOutPersisted(shiftId);
                     syncDashboardPortalState();
                 };
 
@@ -2214,6 +2267,26 @@
                     updateNetworkBadge(false);
                     finishUp();
                     return;
+                }
+
+                // Close the shift on the server with a fast, minimal request FIRST -
+                // before the slower GPS lookup / selfie / bill-photo uploads. This is
+                // the fix for the "still shows Active after refresh" bug: previously
+                // the status flip only happened after all of that slow work finished,
+                // so a refresh in that window would catch the server still on 'Active'.
+                try {
+                    await fetch(`${SUPABASE_URL}shift_logs?id=eq.${shiftId}`, {
+                        method: 'PATCH', headers: HEADERS,
+                        body: JSON.stringify({
+                            status: "Pending",
+                            expense_status: totalShiftExpenses > 0 ? "Pending" : "N/A",
+                            progress_notes, transport_expense, food_expense, material_expense, material_notes,
+                            payment_advance_taken, punch_out_time: new Date().toISOString()
+                        })
+                    });
+                } catch (e) {
+                    // If even this quick call fails, the offline-queue / catch block below
+                    // and the localStorage-marker retry on next load will still catch it.
                 }
 
                 try {
