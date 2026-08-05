@@ -610,6 +610,10 @@
             <div class="relative w-full aspect-[3/4] bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
                 <video id="camera-stream" autoplay playsinline class="w-full h-full object-cover transform -scale-x-100"></video>
                 <div id="camera-laser" class="hidden absolute inset-x-0 h-1 bg-cyan-400 shadow-[0_0_15px_#22d3ee] animate-laser"></div>
+                <button id="btn-switch-camera" onclick="toggleCameraFacing()" class="hidden absolute top-2 right-2 bg-slate-900/60 hover:bg-slate-900/80 text-white p-2 rounded-full transition backdrop-blur-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </button>
+                <p id="camera-facing-label" class="hidden absolute bottom-2 left-2 bg-slate-900/60 text-white text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-full backdrop-blur-sm"></p>
             </div>
             <button id="btn-capture-photo" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition shadow-lg">
                 Confirm & Capture
@@ -660,6 +664,7 @@
         let lockTimerInterval = null;
         let currentActiveTab = 'shifts'; 
         let currentCameraMode = null; 
+        let currentCameraFacingMode = "user";
 
         let capturedBillImages = { transport: [], food: [], material: [] };
         let pendingOptimisticPunchOutShiftId = null;
@@ -1985,6 +1990,8 @@
         async function initiateCameraWorkflow(mode) {
             currentCameraMode = mode;
             const laser = document.getElementById('camera-laser');
+            const switchBtn = document.getElementById('btn-switch-camera');
+            const facingLabel = document.getElementById('camera-facing-label');
 
             if (mode === 'out') {
                 const site_location = document.getElementById('shift-location').value.trim();
@@ -1994,30 +2001,22 @@
             }
 
             document.getElementById('camera-modal').classList.remove('hidden');
-            
-            if (mode === 'in' || mode === 'out' || mode === 'idcard') {
+
+            const isIdentitySelfie = (mode === 'in' || mode === 'out' || mode === 'idcard');
+
+            if (isIdentitySelfie) {
                 document.getElementById('camera-title').innerText = `${mode === 'in' ? 'Punch In' : (mode === 'out' ? 'Punch Out' : 'ID Card')} Identity Selfie`;
                 laser.classList.add('hidden');
+                switchBtn.classList.remove('hidden');
+                currentCameraFacingMode = "user";
             } else {
                 document.getElementById('camera-title').innerText = `Capture Proof: ${mode.toUpperCase()}`;
                 laser.classList.remove('hidden');
+                switchBtn.classList.add('hidden');
+                currentCameraFacingMode = "environment";
             }
 
-            const desiredFacingMode = (mode === 'in' || mode === 'out' || mode === 'idcard') ? "user" : "environment";
-
-            try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: desiredFacingMode } });
-                document.getElementById('camera-stream').srcObject = mediaStream;
-            } catch (err) { 
-                try {
-                    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    document.getElementById('camera-stream').srcObject = mediaStream;
-                } catch(e) {
-                    alert("Camera Access Error: Hardware mapping missing."); 
-                    closeCameraModal(); 
-                    return; 
-                }
-            }
+            await startCameraStream(currentCameraFacingMode);
 
             document.getElementById('btn-capture-photo').onclick = async () => {
                 capturePhotoSnapshotData();
@@ -2040,13 +2039,52 @@
             };
         }
 
+        async function startCameraStream(desiredFacingMode) {
+            if (mediaStream) { mediaStream.getTracks().forEach(track => track.stop()); mediaStream = null; }
+
+            const video = document.getElementById('camera-stream');
+            const facingLabel = document.getElementById('camera-facing-label');
+
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: desiredFacingMode } });
+                video.srcObject = mediaStream;
+            } catch (err) { 
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    video.srcObject = mediaStream;
+                } catch(e) {
+                    alert("Camera Access Error: Hardware mapping missing."); 
+                    closeCameraModal(); 
+                    return; 
+                }
+            }
+
+            // Mirror the preview/capture only for the front (selfie) camera - a rear
+            // camera shot mirrored looks wrong.
+            if (desiredFacingMode === "user") {
+                video.classList.add('-scale-x-100');
+                facingLabel.innerText = 'Front Camera';
+            } else {
+                video.classList.remove('-scale-x-100');
+                facingLabel.innerText = 'Back Camera';
+            }
+            facingLabel.classList.toggle('hidden', document.getElementById('btn-switch-camera').classList.contains('hidden'));
+        }
+
+        async function toggleCameraFacing() {
+            currentCameraFacingMode = (currentCameraFacingMode === "user") ? "environment" : "user";
+            await startCameraStream(currentCameraFacingMode);
+        }
+
         function capturePhotoSnapshotData() {
             const video = document.getElementById('camera-stream');
             const canvas = document.getElementById('photo-canvas');
             canvas.width = 320; canvas.height = 420; 
             const ctx = canvas.getContext('2d');
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
+            if (currentCameraFacingMode === "user") {
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+            }
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             temporaryCapturedBase64 = canvas.toDataURL('image/jpeg', 0.65);
         }
