@@ -376,6 +376,29 @@
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Residential Address</label>
                         <textarea id="prof-address" rows="2" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]"></textarea>
                     </div>
+
+                    <div class="pt-2 border-t border-slate-100">
+                        <h4 class="text-[10px] font-black uppercase tracking-wider text-emerald-700 mb-2">Bank Account Details (for salary transfer)</h4>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Account Holder Name</label>
+                                <input type="text" id="prof-bank-holder" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]" placeholder="As per bank passbook">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Bank Name</label>
+                                <input type="text" id="prof-bank-name" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]" placeholder="e.g. State Bank of India">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Account Number</label>
+                                <input type="text" inputmode="numeric" id="prof-bank-account" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium font-mono outline-none focus:border-[#1e3a5f]">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">IFSC Code</label>
+                                <input type="text" id="prof-bank-ifsc" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium font-mono uppercase outline-none focus:border-[#1e3a5f]" placeholder="e.g. SBIN0001234">
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">ID Card Photo</label>
                         <div class="flex items-center gap-2">
@@ -554,6 +577,11 @@
 
                 <p id="date-filter-status" class="hidden text-[9px] text-amber-300 px-1 font-mono"></p>
 
+                <div id="payment-tab-month-row" class="hidden items-center gap-2 px-1">
+                    <label class="text-[9px] font-bold text-slate-300 uppercase tracking-wider">Payment for month</label>
+                    <input type="month" id="payment-tab-month" onchange="renderActiveStreamTab()" class="p-1.5 bg-white/90 border border-slate-500/20 rounded-lg text-[10px] font-semibold outline-none">
+                </div>
+
                 <div class="flex bg-slate-900/40 p-1 rounded-xl border border-slate-500/20 gap-1">
                     <button onclick="switchStreamTab('shifts')" id="tab-btn-shifts" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer bg-white text-[#1e3a5f] shadow-sm">
                         Shifts
@@ -563,6 +591,9 @@
                     </button>
                     <button onclick="switchStreamTab('salary')" id="tab-btn-salary" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer text-slate-300 hover:text-white">
                         Salary Adv
+                    </button>
+                    <button onclick="switchStreamTab('payment')" id="tab-btn-payment" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer text-slate-300 hover:text-white">
+                        Payment
                     </button>
                 </div>
 
@@ -912,6 +943,10 @@
                 document.getElementById('prof-gmail').value = currentActiveUser.gmail_id || currentActiveUser.email || '';
                 document.getElementById('prof-uan').value = currentActiveUser.uan || '';
                 document.getElementById('prof-address').value = currentActiveUser.address || '';
+                document.getElementById('prof-bank-holder').value = currentActiveUser.bank_account_holder || '';
+                document.getElementById('prof-bank-name').value = currentActiveUser.bank_name || '';
+                document.getElementById('prof-bank-account').value = currentActiveUser.bank_account_number || '';
+                document.getElementById('prof-bank-ifsc').value = currentActiveUser.bank_ifsc || '';
                 document.getElementById('prof-photo-url').value = currentActiveUser.photo_url || '';
             } else {
                 viewSection.classList.remove('hidden');
@@ -935,7 +970,7 @@
             document.getElementById('id-card-gmail').innerText = currentActiveUser.gmail_id || currentActiveUser.email || '--';
             document.getElementById('id-card-uan').innerText = currentActiveUser.uan || '--';
             document.getElementById('id-card-address').innerText = currentActiveUser.address || '--';
-            
+
             if(currentActiveUser.photo_url) {
                 document.getElementById('id-card-photo').src = currentActiveUser.photo_url;
             }
@@ -952,6 +987,10 @@
                 gmail_id: document.getElementById('prof-gmail').value.trim(),
                 uan: document.getElementById('prof-uan').value.trim(),
                 address: document.getElementById('prof-address').value.trim(),
+                bank_account_holder: document.getElementById('prof-bank-holder').value.trim(),
+                bank_name: document.getElementById('prof-bank-name').value.trim(),
+                bank_account_number: document.getElementById('prof-bank-account').value.trim(),
+                bank_ifsc: document.getElementById('prof-bank-ifsc').value.trim().toUpperCase(),
                 photo_url: document.getElementById('prof-photo-url').value.trim(),
             };
 
@@ -1439,14 +1478,32 @@
             lockTimerInterval = setInterval(updateTimer, 30000);
         }
 
+        function getPreviousMonthString() {
+            const d = new Date();
+            d.setMonth(d.getMonth() - 1);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+
         function switchStreamTab(tabName) {
             currentActiveTab = tabName;
-            ['shifts', 'midday', 'salary'].forEach(t => {
+            ['shifts', 'midday', 'salary', 'payment'].forEach(t => {
                 const btn = document.getElementById(`tab-btn-${t}`);
                 btn.className = t === tabName 
                     ? "flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer bg-white text-[#1e3a5f] shadow-sm"
                     : "flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer text-slate-300 hover:text-white";
             });
+
+            const paymentMonthRow = document.getElementById('payment-tab-month-row');
+            if (tabName === 'payment') {
+                paymentMonthRow.classList.remove('hidden');
+                paymentMonthRow.classList.add('flex');
+                const paymentMonthInput = document.getElementById('payment-tab-month');
+                if (!paymentMonthInput.value) paymentMonthInput.value = getPreviousMonthString();
+            } else {
+                paymentMonthRow.classList.add('hidden');
+                paymentMonthRow.classList.remove('flex');
+            }
+
             renderActiveStreamTab();
         }
 
@@ -1583,6 +1640,40 @@
                             </div>
                         </div>`;
                 } else { stream.innerHTML = `<p class="text-xs text-slate-300 italic text-center py-4">No long-term outstanding salary advance balances found.</p>`; }
+            } else if (currentActiveTab === 'payment') {
+                const paymentMonthStr = document.getElementById('payment-tab-month').value || getPreviousMonthString();
+                const [payYear, payMonthNum] = paymentMonthStr.split('-').map(Number);
+                const monthLabel = new Date(payYear, payMonthNum - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+                const dueDateObj = new Date(payYear, payMonthNum, 1); // 1st of the following month
+                const dueLabel = dueDateObj.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
+                const approvedForPayMonth = activeShiftLogs.filter(log => {
+                    if (log.status !== 'Approved') return false;
+                    const logDate = new Date(log.punch_in_time || log.created_at);
+                    return logDate.getFullYear() === payYear && (logDate.getMonth() + 1) === payMonthNum;
+                });
+                const rate = parseFloat(currentActiveUser.fixed_salary || 0);
+                const earningsAmount = approvedForPayMonth.length * rate;
+                const salaryAdvanceForPayMonth = resolveMonthlyBalanceValue(workerMonthlyBalances, paymentMonthStr, 'salary_advance_taken');
+                const netPayable = earningsAmount - salaryAdvanceForPayMonth;
+
+                const paymentSnapshot = workerMonthlyBalances.find(r => r.month === paymentMonthStr);
+                const payStatus = (paymentSnapshot && paymentSnapshot.payment_status) || 'Unpaid';
+                const isPaid = payStatus === 'Paid';
+
+                stream.innerHTML = `
+                    <div class="bg-white p-4 rounded-xl border ${isPaid ? 'border-emerald-200' : 'border-amber-200'} shadow-sm text-xs space-y-2">
+                        <div class="flex justify-between items-center">
+                            <p class="font-bold text-slate-800">${monthLabel} Salary</p>
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${payStatus}</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-2 border-t border-slate-100">
+                            <span class="text-slate-500">Net Payable</span>
+                            <strong class="text-slate-900 font-mono text-sm">₹${netPayable.toLocaleString('en-IN')}</strong>
+                        </div>
+                        <p class="text-[10px] text-gray-400">${approvedForPayMonth.length} approved shift${approvedForPayMonth.length === 1 ? '' : 's'} &middot; ₹${earningsAmount.toLocaleString('en-IN')}${salaryAdvanceForPayMonth > 0 ? ` &minus; ₹${salaryAdvanceForPayMonth.toLocaleString('en-IN')} advance` : ''}</p>
+                        ${isPaid && paymentSnapshot ? `<p class="text-[10px] text-emerald-600 pt-1">Paid on ${paymentSnapshot.payment_date || '--'}${paymentSnapshot.payment_reference ? ` &middot; Ref: ${paymentSnapshot.payment_reference}` : ''}</p>` : `<p class="text-[10px] text-amber-600 pt-1">Transferred between the 1st and 10th of ${dueLabel}.</p>`}
+                    </div>`;
             }
         }
 
