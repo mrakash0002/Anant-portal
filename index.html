@@ -539,6 +539,21 @@
                         </div>
                     </div>
 
+                    <!-- Punch-Out Upload Progress Display (hidden until punch-out is in progress) -->
+                    <div id="punch-out-upload-status" class="hidden bg-[#1e3a5f]/5 border border-[#1e3a5f]/20 rounded-xl p-4 space-y-2.5">
+                        <div class="flex items-center gap-2.5">
+                            <svg class="animate-spin w-4 h-4 text-[#1e3a5f] shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <p id="punch-out-upload-status-text" class="text-xs font-bold text-[#1e3a5f]">Preparing...</p>
+                        </div>
+                        <div class="w-full h-1.5 bg-[#1e3a5f]/10 rounded-full overflow-hidden">
+                            <div id="punch-out-upload-progress-bar" class="h-full bg-[#1e3a5f] rounded-full transition-all duration-300" style="width: 8%;"></div>
+                        </div>
+                        <p class="text-[9px] text-slate-500">Please don't close this app until this finishes — it keeps your photos safe.</p>
+                    </div>
+
                     <button id="punch-out-button" onclick="initiateCameraWorkflow('out')" class="w-full bg-[#1e3a5f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer">
                         Capture Selfie & Punch Out
                     </button>
@@ -962,6 +977,22 @@
                     { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
                 );
             });
+        }
+
+        // --- ON-SCREEN PUNCH-OUT UPLOAD PROGRESS DISPLAY ---
+        // Visible status card (spinner + text + progress bar) shown on the Punch Out
+        // panel itself while the selfie/bill-photo upload is running, so the worker can
+        // see it's actively working rather than just staring at a disabled button.
+        function setPunchOutUploadStatus(text, percent) {
+            const box = document.getElementById('punch-out-upload-status');
+            if (!box) return;
+            box.classList.remove('hidden');
+            if (text != null) document.getElementById('punch-out-upload-status-text').innerText = text;
+            if (percent != null) document.getElementById('punch-out-upload-progress-bar').style.width = `${Math.max(4, Math.min(100, percent))}%`;
+        }
+        function hidePunchOutUploadStatus() {
+            const box = document.getElementById('punch-out-upload-status');
+            if (box) box.classList.add('hidden');
         }
 
         // --- PROFILE & ID CARD TOGGLE & LOGIC ---
@@ -2217,9 +2248,10 @@
             if (!runningActiveShift) return;
 
             const punchOutBtn = document.getElementById('punch-out-button');
-            punchOutBtn.innerText = "Preparing...";
+            punchOutBtn.innerText = "Please Wait...";
             punchOutBtn.disabled = true;
             punchOutBtn.className = "w-full bg-gray-400 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest cursor-not-allowed";
+            setPunchOutUploadStatus("Preparing...", 8);
 
             const transport_expense = parseFloat(document.getElementById('exp-transport').value) || 0;
             const food_expense = parseFloat(document.getElementById('exp-food').value) || 0;
@@ -2278,6 +2310,7 @@
 
                 document.getElementById('punch-out-panel').classList.add('hidden');
                 document.getElementById('punch-in-panel').classList.remove('hidden');
+                hidePunchOutUploadStatus();
                 punchOutBtn.innerText = "Capture Selfie & Punch Out";
                 punchOutBtn.className = "w-full bg-[#1e3a5f] hover:bg-[#14283f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest cursor-pointer shadow-md transition";
                 punchOutBtn.disabled = false;
@@ -2287,10 +2320,12 @@
 
             if (!wasOnline) {
                 punchOutBtn.innerText = "Saving Offline...";
+                setPunchOutUploadStatus("No internet - saving on this device to sync later...", 20);
                 const gpsCoords = await fetchCurrentGPSLocation();
                 const site_location = manualLocation ? `${manualLocation} (${gpsCoords})` : gpsCoords;
                 await savePunchToOfflineQueue('out', buildPayload(site_location), selfieBase64, billImagesSnapshot);
                 updateNetworkBadge(false);
+                setPunchOutUploadStatus("Saved on device. Will sync automatically once online.", 100);
                 openPunchInPanel();
                 return;
             }
@@ -2298,6 +2333,7 @@
             // Close the shift on the server with a fast, minimal request FIRST -
             // before the slower GPS lookup / selfie / bill-photo uploads. This keeps
             // the server's status correct even if something below fails outright.
+            setPunchOutUploadStatus("Closing your shift...", 15);
             try {
                 await fetch(`${SUPABASE_URL}shift_logs?id=eq.${shiftId}`, {
                     method: 'PATCH', headers: HEADERS,
@@ -2317,6 +2353,7 @@
             // the upload below. If the tab/app gets closed or suspended mid-upload, this
             // queued copy is what syncOfflineQueue() finishes on next load - the photos
             // are never silently lost.
+            setPunchOutUploadStatus("Securing your photos on this device...", 22);
             let queueId = null;
             try {
                 queueId = await savePunchToOfflineQueue('out', buildPayload(manualLocation || 'Location unavailable'), selfieBase64, billImagesSnapshot);
@@ -2326,6 +2363,7 @@
 
             try {
                 punchOutBtn.innerText = "Getting Location...";
+                setPunchOutUploadStatus("Getting your location...", 32);
                 const gpsCoords = await fetchCurrentGPSLocation();
                 const site_location = manualLocation ? `${manualLocation} (${gpsCoords})` : gpsCoords;
                 const shiftPayload = buildPayload(site_location);
@@ -2333,15 +2371,20 @@
                 let selfieUrl = null;
                 if (selfieBase64) {
                     punchOutBtn.innerText = "Uploading Selfie...";
+                    setPunchOutUploadStatus("Uploading your selfie...", 45);
                     const fileName = `out_${currentActiveUser.id || 'usr'}_${Date.now()}.jpg`;
                     selfieUrl = await uploadSelfieToSupabase(selfieBase64, fileName);
                 }
                 shiftPayload.punch_out_image_url = selfieUrl;
 
                 const totalBillPhotos = billImagesSnapshot.transport.length + billImagesSnapshot.food.length + billImagesSnapshot.material.length;
-                if (totalBillPhotos > 0) punchOutBtn.innerText = `Uploading Bill Photos (0/${totalBillPhotos})...`;
+                if (totalBillPhotos > 0) {
+                    punchOutBtn.innerText = `Uploading Bill Photos (0/${totalBillPhotos})...`;
+                    setPunchOutUploadStatus(`Uploading bill photos (0/${totalBillPhotos})...`, 55);
+                }
                 shiftPayload.bill_photo_urls = JSON.stringify(await uploadAllBillPhotos(billImagesSnapshot, (done, total) => {
                     punchOutBtn.innerText = `Uploading Bill Photos (${done}/${total})...`;
+                    setPunchOutUploadStatus(`Uploading bill photos (${done}/${total})...`, 55 + Math.round((done / total) * 35));
                 }));
 
                 const patchShiftId = shiftPayload.shift_id;
@@ -2349,12 +2392,14 @@
                 delete shiftPayload.remaining_balance;
 
                 punchOutBtn.innerText = "Finalizing...";
+                setPunchOutUploadStatus("Finalizing...", 95);
                 await fetch(`${SUPABASE_URL}shift_logs?id=eq.${patchShiftId}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(shiftPayload) });
                 await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ morning_advance: remainingCarryforwardBalance }) });
 
                 // Live attempt made it all the way through - the durable queued copy
                 // saved above is now redundant, so remove it.
                 await deleteFromOfflineQueue(queueId);
+                setPunchOutUploadStatus("Done!", 100);
 
             } catch(err) {
                 // The durable copy queued above already has everything needed - it'll
@@ -2362,6 +2407,7 @@
                 // the Punch In panel below so the worker isn't stuck if, say, their
                 // connection just dropped for a moment.
                 console.error('Punch-out upload did not complete live, queued for later sync:', err);
+                setPunchOutUploadStatus("Connection issue - saved safely, will finish syncing automatically.", 100);
             }
 
             openPunchInPanel();
