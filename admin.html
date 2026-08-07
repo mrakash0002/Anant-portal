@@ -1545,8 +1545,8 @@
                 const timestampClock = dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
                 let checkOutClock = "In Progress";
-                if (log.check_out_time) {
-                    const checkOutObj = new Date(log.check_out_time);
+                if (log.punch_out_time) {
+                    const checkOutObj = new Date(log.punch_out_time);
                     checkOutClock = checkOutObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
                 }
 
