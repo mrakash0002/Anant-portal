@@ -144,6 +144,18 @@
             </div>
         </div>
 
+        <!-- Bonus Notification Banner -->
+        <div id="bonus-notification-banner" class="hidden w-full mb-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-2xl shadow-lg p-4 items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 shrink-0 rounded-full bg-white/20 flex items-center justify-center text-xl">🎉</div>
+                <div class="min-w-0">
+                    <p class="font-black text-sm" id="bonus-banner-title">You received a bonus!</p>
+                    <p class="text-[11px] text-violet-100" id="bonus-banner-subtitle"></p>
+                </div>
+            </div>
+            <button onclick="dismissBonusBanner()" class="text-white/70 hover:text-white text-sm font-bold px-2 py-1 shrink-0 cursor-pointer">✕</button>
+        </div>
+
         <!-- Dashboard Section -->
         <div id="portal-dashboard" class="hidden w-full lg:columns-2 lg:gap-6">
             
@@ -164,26 +176,30 @@
                     <button onclick="localStorage.removeItem('anant_active_session'); location.reload();" class="bg-slate-800/40 hover:bg-slate-800/60 p-2 rounded-lg text-xs transition cursor-pointer">Log Out</button>
                 </div>
 
-                <div class="p-5 bg-rose-50/60 border-b border-rose-100">
-                    <div class="flex justify-between items-center bg-white border border-rose-200 p-4 rounded-xl shadow-sm">
-                        <div>
-                            <span class="text-[11px] uppercase font-black text-rose-800 block tracking-wider">Salary Advance Outstanding</span>
+                <div class="p-5 bg-slate-50/60 border-b border-slate-100">
+                    <div class="flex items-center gap-3 bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                        <div class="w-10 h-10 shrink-0 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 9V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/><path d="M22 12H12"/><path d="M18 8l4 4-4 4"/></svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <span class="text-[11px] uppercase font-black text-slate-700 block tracking-wider">Salary Advance Outstanding</span>
                             <span class="text-[10px] text-gray-500 block mt-0.5">Monthly reconciliation review item</span>
                         </div>
-                        <strong id="display-salary-advance-taken" class="text-xl font-black font-mono text-rose-600">₹0</strong>
+                        <strong id="display-salary-advance-taken" class="text-xl font-black font-mono text-slate-700 shrink-0">₹0</strong>
                     </div>
-                    <p id="salary-advance-source-debug" class="text-[9px] text-slate-400 font-mono mt-1 px-1"></p>
                 </div>
 
-                <div class="p-5 bg-amber-50/40 border-b border-amber-100">
-                    <div class="flex justify-between items-center bg-white border border-amber-100 p-4 rounded-xl shadow-sm">
-                        <div>
-                            <span class="text-[11px] uppercase font-black text-amber-800 block tracking-wider">Morning Wallet Balance</span>
+                <div class="p-5 bg-slate-50/30 border-b border-slate-100">
+                    <div class="flex items-center gap-3 bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+                        <div class="w-10 h-10 shrink-0 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v16"/><circle cx="16" cy="14" r="1.5" fill="currentColor" stroke="none"/></svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <span class="text-[11px] uppercase font-black text-slate-700 block tracking-wider">Morning Wallet Balance</span>
                             <span class="text-[10px] text-gray-500 block mt-0.5">Rolling field expense budget cash</span>
                         </div>
-                        <strong id="display-salary-advance" class="text-xl font-black font-mono text-amber-600">₹0</strong>
+                        <strong id="display-salary-advance" class="text-xl font-black font-mono text-slate-700 shrink-0">₹0</strong>
                     </div>
-                    <p id="morning-balance-source-debug" class="text-[9px] text-slate-400 font-mono mt-1 px-1"></p>
                 </div>
 
                 <div class="p-5 bg-slate-50/30 border-b border-slate-100 grid grid-cols-2 gap-4">
@@ -463,10 +479,16 @@
                             </div>
                         </div>
 
-                        <div class="bg-amber-50/50 p-3 rounded-xl border border-amber-100">
-                            <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Mid-Day Advance Cash Received Today</label>
-                            <input type="number" id="exp-advance" class="w-full p-2.5 bg-white border border-amber-200 rounded-lg font-mono font-bold text-xs text-amber-900 outline-none focus:border-amber-500" value="0">
-                            <p class="text-[9px] text-amber-600/80 mt-1">This will increase your rolling wallet balance availability.</p>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Mid-Day Advance Cash Received Today</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-black text-sm">₹</span>
+                                <input type="number" id="exp-advance" class="w-full pl-7 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg font-mono font-bold text-sm text-slate-800 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-100" value="0">
+                            </div>
+                            <p class="text-[9px] text-slate-500 mt-1.5 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                This will increase your rolling wallet balance availability.
+                            </p>
                         </div>
 
                         <div>
@@ -673,70 +695,6 @@
         let runtimeBarChartInstance = null;
         let isEditingProfile = false;
         let isProfileVisible = false;
-
-        // --- MOCK DATA DATASET (EMP-102 Ramesh Kumar - July 2026) ---
-        const rameshKumarMockUser = {
-            id: 102,
-            emp_no: "EMP-102",
-            name: "Ramesh Kumar",
-            email: "ramesh@anantelectrical.in",
-            password: "password123",
-            role: "Field Associate",
-            fixed_salary: 800.00,
-            morning_advance: 0.00,
-            salary_advance_taken: 1000.00,
-            blood_group: "B+",
-            dob: "1994-05-12",
-            phone: "+91 9876543210",
-            whatsapp: "+91 9876543211",
-            gmail_id: "ramesh.kumar@gmail.com",
-            uan: "101234567890",
-            address: "Koramangala 4th Block, Bengaluru, Karnataka",
-            photo_url: "https://via.placeholder.com/150"
-        };
-
-        const rameshKumarMockJulyLogs = [
-            {
-                id: "log-01",
-                worker_email: "ramesh@anantelectrical.in",
-                status: "Approved",
-                punch_in_time: "2026-07-01T09:00:00Z",
-                punch_out_time: "2026-07-01T18:00:00Z",
-                site_location: "Koramangala More Supermarket",
-                progress_notes: "Regular Shift - Panel wiring completed",
-                transport_expense: 0,
-                food_expense: 0,
-                material_expense: 0,
-                payment_advance_taken: 0
-            },
-            {
-                id: "log-02",
-                worker_email: "ramesh@anantelectrical.in",
-                status: "Rejected",
-                punch_in_time: "2026-07-02T09:00:00Z",
-                punch_out_time: "2026-07-02T18:00:00Z",
-                site_location: "Site Travel (Shift Bypassed)",
-                progress_notes: "Site Travel claim & material purchase",
-                transport_expense: 350,
-                food_expense: 250,
-                material_expense: 1200,
-                material_notes: "Bill #402 (Connectors)",
-                payment_advance_taken: 1000
-            },
-            {
-                id: "log-03",
-                worker_email: "ramesh@anantelectrical.in",
-                status: "Approved",
-                punch_in_time: "2026-07-03T09:00:00Z",
-                punch_out_time: "2026-07-03T18:00:00Z",
-                site_location: "Indiranagar Retail Outlet",
-                progress_notes: "Regular Shift - Lighting installation",
-                transport_expense: 0,
-                food_expense: 0,
-                material_expense: 0,
-                payment_advance_taken: 0
-            }
-        ];
 
         // --- INDEXEDDB OFFLINE QUEUE SYSTEM ---
         function openOfflineDB() {
@@ -1009,7 +967,7 @@
                     body: JSON.stringify(updatedData)
                 });
 
-                if (!response.ok && currentActiveUser.email !== rameshKumarMockUser.email) {
+                if (!response.ok) {
                     throw new Error("Failed to update profile data");
                 }
 
@@ -1064,21 +1022,14 @@
                 }
             });
 
-            if (currentActiveUser.emp_no === 'EMP-102' && selectedMonthVal === '6') {
-                grossEarned = 1600.00;
-                totalTransport = 350.00;
-                totalFood = 250.00;
-                totalMaterial = 1200.00;
-                totalMiddayAdvance = 1000.00;
-            }
-
             const totalReimbursements = totalTransport + totalFood + totalMaterial;
             const payslipCurrentRealMonth = getCurrentMonthString();
             const payslipTargetMonth = selectedMonthVal === 'ALL' ? payslipCurrentRealMonth : `${currentYear}-${String(parseInt(selectedMonthVal) + 1).padStart(2, '0')}`;
             const salaryAdvanceOutstanding = payslipTargetMonth === payslipCurrentRealMonth
                 ? parseFloat(currentActiveUser.salary_advance_taken || 0)
                 : resolveMonthlyBalanceValue(workerMonthlyBalances, payslipTargetMonth, 'salary_advance_taken');
-            const netPayout = (currentActiveUser.emp_no === 'EMP-102' && selectedMonthVal === '6') ? 2400.00 : (grossEarned + totalReimbursements - totalMiddayAdvance);
+            const payslipBonusAmount = resolveMonthlyBalanceValue(workerMonthlyBalances, payslipTargetMonth, 'bonus_amount');
+            const netPayout = grossEarned + totalReimbursements + payslipBonusAmount - totalMiddayAdvance;
 
             const paymentSnapshotForPayslip = workerMonthlyBalances.find(r => r.month === payslipTargetMonth);
             const isPayslipPaid = !!(paymentSnapshotForPayslip && paymentSnapshotForPayslip.payment_status === 'Paid');
@@ -1124,7 +1075,7 @@
                 body: [
                     [{ content: `Employee Name: ${currentActiveUser.name || 'Worker'}`, styles: { fontStyle: 'bold' } }, { content: `Role: ${currentActiveUser.role || 'Field Associate'}`, styles: { fontStyle: 'bold' } }],
                     [`Email: ${currentActiveUser.email}`, `Daily Base Rate: Rs. ${fixedSalaryRate.toLocaleString('en-IN')}`],
-                    [`Statement Generated: ${new Date().toLocaleDateString('en-IN')}`, `Status: System Reconciled (EMP-102)`]
+                    [`Statement Generated: ${new Date().toLocaleDateString('en-IN')}`, `Employee No: ${currentActiveUser.emp_no || '--'}`]
                 ]
             });
 
@@ -1136,7 +1087,8 @@
                     ['Transport Reimbursements (Approved)', '1 Claim', `Rs. ${totalTransport.toLocaleString('en-IN')}`],
                     ['Food & Meal Allowances (Approved)', '1 Claim', `Rs. ${totalFood.toLocaleString('en-IN')}`],
                     ['Site Material Expenses (Approved)', 'Connectors', `Rs. ${totalMaterial.toLocaleString('en-IN')}`],
-                    [{ content: 'Total Earnings & Reimbursements', styles: { fontStyle: 'bold' } }, '', { content: `Rs. ${(grossEarned + totalReimbursements).toLocaleString('en-IN')}`, styles: { fontStyle: 'bold' } }]
+                    ...(payslipBonusAmount > 0 ? [['Performance Bonus', 'Monthly', `Rs. ${payslipBonusAmount.toLocaleString('en-IN')}`]] : []),
+                    [{ content: 'Total Earnings & Reimbursements', styles: { fontStyle: 'bold' } }, '', { content: `Rs. ${(grossEarned + totalReimbursements + payslipBonusAmount).toLocaleString('en-IN')}`, styles: { fontStyle: 'bold' } }]
                 ],
                 headStyles: { fillColor: [74, 20, 140], textColor: [255, 255, 255], fontStyle: 'bold' },
                 alternateRowStyles: { fillColor: [248, 245, 255] }
@@ -1258,15 +1210,6 @@
 
             if (!saved.ts || (Date.now() - saved.ts) >= SESSION_DURATION_MS) {
                 localStorage.removeItem('anant_active_session');
-                return;
-            }
-
-            if (saved.email === rameshKumarMockUser.email.toLowerCase()) {
-                currentActiveUser = rameshKumarMockUser;
-                document.getElementById('auth-section').classList.add('hidden');
-                document.getElementById('portal-dashboard').classList.remove('hidden');
-                await syncDashboardPortalState(true);
-                scheduleSessionExpiry(saved.ts);
                 return;
             }
 
@@ -1465,15 +1408,6 @@
 
             if(!emailInput || !passwordInput) return alert("Please enter both email and password.");
 
-            if ((emailInput === "ramesh@anantelectrical.in" || emailInput === "emp-102") && passwordInput === "password123") {
-                currentActiveUser = rameshKumarMockUser;
-                saveActiveSession(rameshKumarMockUser.email);
-                scheduleSessionExpiry(Date.now());
-                await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
-                await syncDashboardPortalState(true);
-                return;
-            }
-
             try {
                 const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(emailInput)}`, { method: "GET", headers: HEADERS });
                 if (!res.ok) throw new Error(`Status ${res.status}`);
@@ -1523,6 +1457,42 @@
             const d = new Date();
             d.setMonth(d.getMonth() - 1);
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        // --- BONUS NOTIFICATION BANNER ---
+        function renderBonusNotificationBanner() {
+            const banner = document.getElementById('bonus-notification-banner');
+            if (!banner || !currentActiveUser) return;
+
+            const bonusEntries = (workerMonthlyBalances || [])
+                .filter(r => parseFloat(r.bonus_amount || 0) > 0)
+                .sort((a, b) => b.month.localeCompare(a.month));
+
+            const latestBonus = bonusEntries[0];
+            if (!latestBonus) { banner.classList.add('hidden'); banner.classList.remove('flex'); return; }
+
+            const dismissKey = `bonus_dismissed_${currentActiveUser.email}_${latestBonus.month}_${latestBonus.bonus_amount}`;
+            if (localStorage.getItem(dismissKey)) { banner.classList.add('hidden'); banner.classList.remove('flex'); return; }
+
+            const [bYear, bMonthNum] = latestBonus.month.split('-').map(Number);
+            const bonusMonthLabel = new Date(bYear, bMonthNum - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+            const bonusAmount = parseFloat(latestBonus.bonus_amount);
+
+            document.getElementById('bonus-banner-title').innerText = `You received a ₹${bonusAmount.toLocaleString('en-IN')} bonus!`;
+            document.getElementById('bonus-banner-subtitle').innerText = latestBonus.bonus_reason
+                ? `${bonusMonthLabel} \u2014 ${latestBonus.bonus_reason}`
+                : `For ${bonusMonthLabel}, added to your Net Payable.`;
+
+            banner.dataset.dismissKey = dismissKey;
+            banner.classList.remove('hidden');
+            banner.classList.add('flex');
+        }
+
+        function dismissBonusBanner() {
+            const banner = document.getElementById('bonus-notification-banner');
+            if (banner.dataset.dismissKey) localStorage.setItem(banner.dataset.dismissKey, '1');
+            banner.classList.add('hidden');
+            banner.classList.remove('flex');
         }
 
         function switchStreamTab(tabName) {
@@ -1696,7 +1666,8 @@
                 const rate = parseFloat(currentActiveUser.fixed_salary || 0);
                 const earningsAmount = approvedForPayMonth.length * rate;
                 const salaryAdvanceForPayMonth = resolveMonthlyBalanceValue(workerMonthlyBalances, paymentMonthStr, 'salary_advance_taken');
-                const netPayable = earningsAmount - salaryAdvanceForPayMonth;
+                const bonusForPayMonth = resolveMonthlyBalanceValue(workerMonthlyBalances, paymentMonthStr, 'bonus_amount');
+                const netPayable = earningsAmount + bonusForPayMonth - salaryAdvanceForPayMonth;
 
                 const paymentSnapshot = workerMonthlyBalances.find(r => r.month === paymentMonthStr);
                 const payStatus = (paymentSnapshot && paymentSnapshot.payment_status) || 'Unpaid';
@@ -1708,6 +1679,7 @@
                             <p class="font-bold text-slate-800">${monthLabel} Salary</p>
                             <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${payStatus}</span>
                         </div>
+                        ${bonusForPayMonth > 0 ? `<div class="flex justify-between items-center text-violet-600"><span>🎁 Bonus</span><strong class="font-mono">+ ₹${bonusForPayMonth.toLocaleString('en-IN')}</strong></div>${paymentSnapshot && paymentSnapshot.bonus_reason ? `<p class="text-[9px] text-violet-500">${paymentSnapshot.bonus_reason}</p>` : ''}` : ''}
                         <div class="flex justify-between items-center pt-2 border-t border-slate-100">
                             <span class="text-slate-500">Net Payable</span>
                             <strong class="text-slate-900 font-mono text-sm">₹${netPayable.toLocaleString('en-IN')}</strong>
@@ -1728,21 +1700,19 @@
             subscribeToShiftAlerts();
             pollForNewStaffAlerts();
 
-            if (currentActiveUser.email === rameshKumarMockUser.email) {
-                activeShiftLogs = rameshKumarMockJulyLogs;
-            } else {
-                try {
-                    const userRes = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: "GET", headers: HEADERS });
-                    const userData = await userRes.json();
-                    if(userData && userData.length > 0) currentActiveUser = userData[0];
+            try {
+                const userRes = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: "GET", headers: HEADERS });
+                const userData = await userRes.json();
+                if(userData && userData.length > 0) currentActiveUser = userData[0];
 
-                    const res = await fetch(`${SUPABASE_URL}shift_logs?worker_email=eq.${encodeURIComponent(currentActiveUser.email)}&order=created_at.desc`, { method: "GET", headers: HEADERS });
-                    activeShiftLogs = await res.json();
+                const res = await fetch(`${SUPABASE_URL}shift_logs?worker_email=eq.${encodeURIComponent(currentActiveUser.email)}&order=created_at.desc`, { method: "GET", headers: HEADERS });
+                activeShiftLogs = await res.json();
 
-                    const monthlyBalRes = await fetch(`${SUPABASE_URL}monthly_balances?worker_email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: "GET", headers: HEADERS });
-                    workerMonthlyBalances = monthlyBalRes.ok ? await monthlyBalRes.json() : [];
-                } catch(e) { console.error("Error updating user details:", e); }
-            }
+                const monthlyBalRes = await fetch(`${SUPABASE_URL}monthly_balances?worker_email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: "GET", headers: HEADERS });
+                workerMonthlyBalances = monthlyBalRes.ok ? await monthlyBalRes.json() : [];
+            } catch(e) { console.error("Error updating user details:", e); }
+
+            renderBonusNotificationBanner();
 
             runningActiveShift = activeShiftLogs.find(log => log.status === 'Active');
             if (runningActiveShift && pendingOptimisticPunchOutShiftId && String(runningActiveShift.id) === String(pendingOptimisticPunchOutShiftId)) {
@@ -1801,12 +1771,6 @@
             let allTimeApprovedCount = activeShiftLogs.filter(log => log.status === 'Approved').length;
             let allTimeGrossEarned = allTimeApprovedCount * parseFloat(currentActiveUser.fixed_salary || 0);
 
-            if (currentActiveUser.emp_no === 'EMP-102' && selectedMonthFilter === '6') {
-                monthlyApprovedCount = 2;
-                monthlyNetSalary = 2400.00;
-                allTimeGrossEarned = 1600.00;
-            }
-
             document.getElementById('display-approved-days').innerText = `${monthlyApprovedCount} Days`;
             document.getElementById('display-gross-salary').innerText = `₹${allTimeGrossEarned.toLocaleString('en-IN')}`;
             document.getElementById('display-net-payable').innerText = `₹${monthlyNetSalary.toLocaleString('en-IN')}`;
@@ -1817,12 +1781,6 @@
             document.getElementById('display-salary-advance').innerText = `₹${resolvedWalletBalance.toLocaleString('en-IN')}`;
             document.getElementById('display-salary-advance-taken').innerText = `₹${resolvedSalaryAdvance.toLocaleString('en-IN')}`;
 
-            const isLiveMonth = targetMonthStr === currentRealMonth;
-            const morningSourceNote = isLiveMonth ? 'live, current balance' : `snapshot for ${targetMonthStr}`;
-            const salarySourceNote = isLiveMonth ? 'live, current balance' : `snapshot for ${targetMonthStr}`;
-            document.getElementById('morning-balance-source-debug').innerText = `Showing: ${targetMonthStr} (${morningSourceNote})`;
-            document.getElementById('salary-advance-source-debug').innerText = `Showing: ${targetMonthStr} (${salarySourceNote})`;
-
             let siteSpent = 0, middayAdvance = 0;
             filteredShiftLogs.forEach(log => {
                 if (log.status === 'Approved' || log.status === 'Pending' || log.status === 'Rejected') {
@@ -1832,11 +1790,6 @@
                     middayAdvance += parseFloat(log.payment_advance_taken || 0);
                 }
             });
-
-            if (currentActiveUser.emp_no === 'EMP-102' && selectedMonthFilter === '6') {
-                siteSpent = 1800.00;
-                middayAdvance = 1000.00;
-            }
 
             // "Total Mid-Day Advances" must equal exactly what's shown in the itemized
             // Mid-Day Adv list: the sum of advances received during shifts, PLUS the
