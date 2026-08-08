@@ -121,6 +121,7 @@
             <button onclick="switchAdminMenu('employees')" id="menu-btn-employees" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Employees</button>
             <button onclick="switchAdminMenu('monthly')" id="menu-btn-monthly" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Monthly Statement</button>
             <button onclick="switchAdminMenu('payment')" id="menu-btn-payment" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Payment Status</button>
+            <button onclick="switchAdminMenu('projects')" id="menu-btn-projects" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Projects</button>
         </nav>
 
         <div id="punch-in-alerts-banner" class="hidden space-y-2"></div>
@@ -202,6 +203,106 @@
             </div>
             <div id="payment-status-view" class="space-y-3">
                 <p class="text-xs text-purple-900/60 italic p-4">Loading payment status...</p>
+            </div>
+        </section>
+        </div>
+
+        <!-- PROJECTS / CLIENT INVOICES -->
+        <div id="menu-view-projects" class="hidden space-y-6">
+        <section class="panel rounded-2xl shadow-sm p-6">
+            <div class="mb-4">
+                <h2 class="text-base font-bold tracking-tight text-slate-900">Projects &amp; Invoices</h2>
+                <p class="text-xs text-slate-500">Track each project's invoice value and whether the client has paid you yet.</p>
+            </div>
+
+            <div id="project-turnover-banner" class="mb-3"></div>
+            <div id="project-invoice-summary" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5"></div>
+
+            <!-- Add Invoice Form -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 space-y-3">
+                <h3 class="text-xs font-black uppercase tracking-wider text-slate-700">Add Project Invoice</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Project Name</label>
+                        <input type="text" id="proj-name" placeholder="e.g. Chola GL - Naganathapura" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Client / Bill To</label>
+                        <input type="text" id="proj-client" placeholder="e.g. Gabo Enterprises Pvt Ltd" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Invoice No</label>
+                        <input type="text" id="proj-invoice-no" placeholder="e.g. 41/26-27" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Invoice Date</label>
+                        <input type="date" id="proj-invoice-date" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Sub Total (₹)</label>
+                        <input type="number" id="proj-subtotal" placeholder="0" oninput="updateProjectInvoicePreview()" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold outline-none focus:border-[#16212E]">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 pt-1">
+                    <button type="button" onclick="setProjectInvoiceMode('auto')" id="proj-mode-btn-auto" class="flex-1 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition cursor-pointer bg-[#16212E] text-white">Auto-Calculate GST</button>
+                    <button type="button" onclick="setProjectInvoiceMode('manual')" id="proj-mode-btn-manual" class="flex-1 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition cursor-pointer text-slate-500 bg-white border border-gray-200">Enter Total Manually</button>
+                </div>
+
+                <div id="proj-auto-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">GST Type</label>
+                        <select id="proj-gst-type" onchange="updateProjectInvoicePreview()" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+                            <option value="IGST">IGST (Interstate)</option>
+                            <option value="CGST_SGST">CGST + SGST (Same State)</option>
+                            <option value="NONE">No GST</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">GST Rate (%)</label>
+                        <input type="number" id="proj-gst-rate" value="18" oninput="updateProjectInvoicePreview()" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold outline-none focus:border-[#16212E]">
+                    </div>
+                </div>
+
+                <div id="proj-manual-fields" class="hidden">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Grand Total (₹) &mdash; entered manually</label>
+                    <input type="number" id="proj-manual-total" placeholder="0" oninput="updateProjectInvoicePreview()" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold outline-none focus:border-[#16212E]">
+                    <p class="text-[9px] text-gray-400 mt-1">Use this for invoices with discounts, rounding, or a total that doesn't match a flat GST% of the Sub Total.</p>
+                </div>
+
+                <div class="pt-2 border-t border-slate-200">
+                    <h4 class="text-[10px] font-black uppercase tracking-wider text-slate-600 mb-2">Project Cost / Usage (for Profit &amp; Loss)</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Material Cost (₹)</label>
+                            <input type="number" id="proj-material-cost" placeholder="0" oninput="updateProjectInvoicePreview()" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold outline-none focus:border-[#16212E]">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Other Cost (₹)</label>
+                            <input type="number" id="proj-other-cost" placeholder="0" oninput="updateProjectInvoicePreview()" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold outline-none focus:border-[#16212E]">
+                        </div>
+                    </div>
+
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 mt-3">Labor Cost &mdash; pick employees who worked on this project</label>
+                    <div class="flex gap-2">
+                        <select id="proj-labor-employee-select" class="flex-1 p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+                            <option value="">Select employee...</option>
+                        </select>
+                        <input type="number" id="proj-labor-days" value="1" min="0.5" step="0.5" placeholder="Days" class="w-20 p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold outline-none focus:border-[#16212E]">
+                        <button type="button" onclick="addLaborLine()" class="bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-semibold px-3 rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap">+ Add</button>
+                    </div>
+                    <div id="proj-labor-lines" class="mt-2 space-y-1"></div>
+                    <p class="text-[9px] text-gray-400 mt-1">Cost is pulled automatically from each employee's daily pay rate on file &times; days entered.</p>
+                </div>
+
+                <div id="project-invoice-preview" class="bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-1 font-mono"></div>
+                <button onclick="addProjectInvoice()" class="w-full bg-[#16212E] hover:bg-[#0E1620] text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow-sm">
+                    Save Invoice
+                </button>
+            </div>
+
+            <div id="project-invoice-list" class="space-y-3">
+                <p class="text-xs text-purple-900/60 italic p-4">Loading projects...</p>
             </div>
         </section>
         </div>
@@ -449,6 +550,7 @@
         let runtimeWorkers = [];
         let runtimeShifts = [];
         let runtimeMonthlyBalances = [];
+        let runtimeProjectInvoices = [];
         let currentlySelectedWorkerEmail = null;
         let currentFilterStatus = "Pending";
         let monthlyAggregationStore = {};
@@ -478,6 +580,9 @@
                 document.getElementById('morning-dispatch-month').value = getCurrentMonthString();
                 document.getElementById('salary-advance-dispatch-month').value = getCurrentMonthString();
                 document.getElementById('payment-status-month').value = getPreviousMonthString();
+                document.getElementById('proj-invoice-date').value = new Date().toISOString().slice(0, 10);
+                renderLaborLines();
+                updateProjectInvoicePreview();
                 switchAdminMenu(localStorage.getItem('anant_admin_active_menu') || 'shifts');
                 fetchAllDataFromNode();
                 setInterval(fetchAllDataFromNode, 60000); // fallback poll in case realtime disconnects
@@ -493,7 +598,7 @@
 
         function switchAdminMenu(view) {
             localStorage.setItem('anant_admin_active_menu', view);
-            ['shifts', 'analytics', 'employees', 'monthly', 'payment'].forEach(v => {
+            ['shifts', 'analytics', 'employees', 'monthly', 'payment', 'projects'].forEach(v => {
                 const section = document.getElementById(`menu-view-${v}`);
                 const btn = document.getElementById(`menu-btn-${v}`);
                 if (v === view) {
@@ -517,12 +622,17 @@
                 const monthlyBalRes = await fetch(`${SUPABASE_URL}monthly_balances?order=month.desc`, { method: "GET", headers: HEADERS });
                 runtimeMonthlyBalances = monthlyBalRes.ok ? await monthlyBalRes.json() : [];
 
+                const projectInvoiceRes = await fetch(`${SUPABASE_URL}project_invoices?order=invoice_date.desc`, { method: "GET", headers: HEADERS });
+                runtimeProjectInvoices = projectInvoiceRes.ok ? await projectInvoiceRes.json() : [];
+
                 renderRegistrySelectorPanel();
                 renderAllDispatchDropdowns();
                 renderShiftsStreamDisplay();
                 renderMonthlyReport();
                 renderAnalyticsCharts();
                 renderPaymentStatusSection();
+                renderProjectInvoicesSection();
+                populateLaborEmployeeSelect();
                 checkForNewPunchIns();
 
                 if(currentlySelectedWorkerEmail) {
@@ -848,6 +958,360 @@
                 console.error("Bonus update error: ", err);
                 alert("Failed to save bonus. Please try again.");
             }
+        }
+
+        // --- PROJECTS / CLIENT INVOICES ---
+        let projectInvoiceMode = 'auto';
+        let pendingLaborLines = [];
+
+        function populateLaborEmployeeSelect() {
+            const select = document.getElementById('proj-labor-employee-select');
+            if (!select) return;
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">Select employee...</option>' +
+                (runtimeWorkers || []).map(w => `<option value="${w.email}">${w.name} (₹${parseFloat(w.fixed_salary || 0).toLocaleString('en-IN')}/day)</option>`).join('');
+            select.value = currentVal;
+        }
+
+        function addLaborLine() {
+            const select = document.getElementById('proj-labor-employee-select');
+            const daysInput = document.getElementById('proj-labor-days');
+            const email = select.value;
+            if (!email) return alert("Please select an employee first.");
+            const days = parseFloat(daysInput.value) || 0;
+            if (days <= 0) return alert("Please enter valid days worked.");
+            const worker = (runtimeWorkers || []).find(w => w.email === email);
+            const rate = parseFloat((worker && worker.fixed_salary) || 0);
+            const cost = rate * days;
+
+            pendingLaborLines.push({ email, name: worker ? worker.name : email, days, rate, cost });
+            select.value = '';
+            daysInput.value = 1;
+            renderLaborLines();
+            updateProjectInvoicePreview();
+        }
+
+        function removeLaborLine(index) {
+            pendingLaborLines.splice(index, 1);
+            renderLaborLines();
+            updateProjectInvoicePreview();
+        }
+
+        function renderLaborLines() {
+            const container = document.getElementById('proj-labor-lines');
+            if (!container) return;
+            if (pendingLaborLines.length === 0) {
+                container.innerHTML = `<p class="text-[10px] text-gray-400 italic">No employees added yet.</p>`;
+                return;
+            }
+            container.innerHTML = pendingLaborLines.map((line, i) => `
+                <div class="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-[11px]">
+                    <span class="font-semibold text-slate-700">${line.name}</span>
+                    <span class="text-slate-400">${line.days} day${line.days === 1 ? '' : 's'} &times; ₹${line.rate.toLocaleString('en-IN')}</span>
+                    <span class="font-mono font-bold text-slate-800">₹${line.cost.toLocaleString('en-IN')}</span>
+                    <button type="button" onclick="removeLaborLine(${i})" class="text-rose-500 hover:text-rose-700 font-bold px-1 cursor-pointer">✕</button>
+                </div>`).join('');
+        }
+
+        function getLaborLinesTotal() {
+            return pendingLaborLines.reduce((sum, line) => sum + line.cost, 0);
+        }
+
+        function setProjectInvoiceMode(mode) {
+            projectInvoiceMode = mode;
+            const autoBtn = document.getElementById('proj-mode-btn-auto');
+            const manualBtn = document.getElementById('proj-mode-btn-manual');
+            const autoFields = document.getElementById('proj-auto-fields');
+            const manualFields = document.getElementById('proj-manual-fields');
+
+            if (mode === 'auto') {
+                autoBtn.className = "flex-1 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition cursor-pointer bg-[#16212E] text-white";
+                manualBtn.className = "flex-1 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition cursor-pointer text-slate-500 bg-white border border-gray-200";
+                autoFields.classList.remove('hidden');
+                manualFields.classList.add('hidden');
+            } else {
+                manualBtn.className = "flex-1 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition cursor-pointer bg-[#16212E] text-white";
+                autoBtn.className = "flex-1 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition cursor-pointer text-slate-500 bg-white border border-gray-200";
+                manualFields.classList.remove('hidden');
+                autoFields.classList.add('hidden');
+            }
+            updateProjectInvoicePreview();
+        }
+
+        function computeGstBreakdown(subtotal, gstType, ratePercent) {
+            const rate = parseFloat(ratePercent) || 0;
+            const sub = parseFloat(subtotal) || 0;
+            if (gstType === 'NONE' || rate <= 0) {
+                return { igst: 0, cgst: 0, sgst: 0, taxTotal: 0, grandTotal: sub };
+            }
+            if (gstType === 'CGST_SGST') {
+                const half = sub * (rate / 2) / 100;
+                return { igst: 0, cgst: half, sgst: half, taxTotal: half * 2, grandTotal: sub + half * 2 };
+            }
+            const igst = sub * rate / 100;
+            return { igst, cgst: 0, sgst: 0, taxTotal: igst, grandTotal: sub + igst };
+        }
+
+        function updateProjectInvoicePreview() {
+            const previewEl = document.getElementById('project-invoice-preview');
+            if (!previewEl) return;
+            const subtotal = parseFloat(document.getElementById('proj-subtotal').value) || 0;
+            const materialCost = parseFloat(document.getElementById('proj-material-cost').value) || 0;
+            const laborCost = getLaborLinesTotal();
+            const otherCost = parseFloat(document.getElementById('proj-other-cost').value) || 0;
+            const totalCost = materialCost + laborCost + otherCost;
+            const costLine = totalCost > 0
+                ? `<div class="flex justify-between text-rose-500"><span>Total Cost (Material + Labor + Other)</span><span>&minus; ₹${totalCost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>`
+                : '';
+
+            if (projectInvoiceMode === 'manual') {
+                const manualTotal = parseFloat(document.getElementById('proj-manual-total').value) || 0;
+                const profit = subtotal - totalCost;
+                previewEl.innerHTML = `
+                    <div class="flex justify-between text-slate-600"><span>Sub Total</span><span>₹${subtotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
+                    <div class="flex justify-between font-bold text-slate-900 pt-1 border-t border-slate-100"><span>Grand Total (manual)</span><span>₹${manualTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
+                    ${costLine}
+                    <div class="flex justify-between font-bold pt-1 border-t border-slate-100 ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}"><span>${profit >= 0 ? 'Profit' : 'Loss'}</span><span>₹${Math.abs(profit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>`;
+                return;
+            }
+
+            const gstType = document.getElementById('proj-gst-type').value;
+            const gstRate = document.getElementById('proj-gst-rate').value;
+            const b = computeGstBreakdown(subtotal, gstType, gstRate);
+            const profit = subtotal - totalCost;
+
+            let taxLines = '';
+            if (gstType === 'CGST_SGST') {
+                taxLines = `
+                    <div class="flex justify-between text-slate-600"><span>CGST (${(gstRate / 2).toFixed(1)}%)</span><span>₹${b.cgst.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
+                    <div class="flex justify-between text-slate-600"><span>SGST (${(gstRate / 2).toFixed(1)}%)</span><span>₹${b.sgst.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>`;
+            } else if (gstType === 'IGST') {
+                taxLines = `<div class="flex justify-between text-slate-600"><span>IGST (${gstRate}%)</span><span>₹${b.igst.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>`;
+            }
+
+            previewEl.innerHTML = `
+                <div class="flex justify-between text-slate-600"><span>Sub Total</span><span>₹${subtotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
+                ${taxLines}
+                <div class="flex justify-between font-bold text-slate-900 pt-1 border-t border-slate-100"><span>Grand Total</span><span>₹${b.grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
+                ${costLine}
+                <div class="flex justify-between font-bold pt-1 border-t border-slate-100 ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}"><span>${profit >= 0 ? 'Profit' : 'Loss'}</span><span>₹${Math.abs(profit).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
+                <p class="text-[9px] text-gray-400 pt-0.5">Profit/Loss is Sub Total (excl. GST) minus your costs &mdash; GST is passed through, not revenue.</p>`;
+        }
+
+        async function addProjectInvoice() {
+            const project_name = document.getElementById('proj-name').value.trim();
+            const client_name = document.getElementById('proj-client').value.trim();
+            const invoice_no = document.getElementById('proj-invoice-no').value.trim();
+            const invoice_date = document.getElementById('proj-invoice-date').value;
+            const subtotal = parseFloat(document.getElementById('proj-subtotal').value) || 0;
+            const material_cost = parseFloat(document.getElementById('proj-material-cost').value) || 0;
+            const labor_cost = getLaborLinesTotal();
+            const other_cost = parseFloat(document.getElementById('proj-other-cost').value) || 0;
+
+            if (!project_name || !subtotal) return alert("Please enter at least a project name and Sub Total amount.");
+
+            let payload;
+            if (projectInvoiceMode === 'manual') {
+                const grand_total = parseFloat(document.getElementById('proj-manual-total').value) || 0;
+                if (!grand_total) return alert("Please enter the Grand Total amount.");
+                payload = {
+                    project_name, client_name, invoice_no, invoice_date,
+                    subtotal, gst_type: 'MANUAL', gst_rate: null,
+                    tax_amount: grand_total - subtotal, grand_total,
+                    material_cost, labor_cost, other_cost, labor_details: pendingLaborLines,
+                    payment_status: 'Pending'
+                };
+            } else {
+                const gst_type = document.getElementById('proj-gst-type').value;
+                const gst_rate = parseFloat(document.getElementById('proj-gst-rate').value) || 0;
+                const b = computeGstBreakdown(subtotal, gst_type, gst_rate);
+                payload = {
+                    project_name, client_name, invoice_no, invoice_date,
+                    subtotal, gst_type, gst_rate,
+                    tax_amount: b.taxTotal, grand_total: b.grandTotal,
+                    material_cost, labor_cost, other_cost, labor_details: pendingLaborLines,
+                    payment_status: 'Pending'
+                };
+            }
+
+            try {
+                await fetch(`${SUPABASE_URL}project_invoices`, {
+                    method: 'POST',
+                    headers: { ...HEADERS, 'Prefer': 'return=representation' },
+                    body: JSON.stringify(payload)
+                });
+                ['proj-name', 'proj-client', 'proj-invoice-no', 'proj-subtotal', 'proj-manual-total', 'proj-material-cost', 'proj-other-cost'].forEach(id => document.getElementById(id).value = '');
+                document.getElementById('proj-invoice-date').value = new Date().toISOString().slice(0, 10);
+                pendingLaborLines = [];
+                renderLaborLines();
+                updateProjectInvoicePreview();
+                await fetchAllDataFromNode();
+            } catch (err) {
+                console.error("Add invoice error: ", err);
+                alert("Failed to save invoice. Please try again.");
+            }
+        }
+
+        async function toggleProjectPaymentStatus(id, newStatus) {
+            try {
+                await fetch(`${SUPABASE_URL}project_invoices?id=eq.${id}`, {
+                    method: 'PATCH',
+                    headers: HEADERS,
+                    body: JSON.stringify({
+                        payment_status: newStatus,
+                        payment_received_date: newStatus === 'Received' ? new Date().toISOString().slice(0, 10) : null
+                    })
+                });
+                await fetchAllDataFromNode();
+            } catch (err) {
+                console.error("Payment status toggle error: ", err);
+                alert("Failed to update status. Please try again.");
+            }
+        }
+
+        async function deleteProjectInvoice(id) {
+            if (!confirm("Delete this invoice record? This cannot be undone.")) return;
+            try {
+                await fetch(`${SUPABASE_URL}project_invoices?id=eq.${id}`, { method: 'DELETE', headers: HEADERS });
+                await fetchAllDataFromNode();
+            } catch (err) {
+                console.error("Delete invoice error: ", err);
+                alert("Failed to delete invoice. Please try again.");
+            }
+        }
+
+        async function editProjectCosts(id) {
+            const inv = (runtimeProjectInvoices || []).find(i => i.id === id);
+            if (!inv) return;
+
+            const materialInput = prompt("Material cost used on this project (₹):", inv.material_cost || 0);
+            if (materialInput === null) return;
+            const otherInput = prompt("Any other cost (₹, optional):", inv.other_cost || 0);
+            if (otherInput === null) return;
+
+            const material_cost = parseFloat(materialInput) || 0;
+            const other_cost = parseFloat(otherInput) || 0;
+
+            let laborDetails = Array.isArray(inv.labor_details) ? [...inv.labor_details] : [];
+            const existingNames = laborDetails.length ? laborDetails.map(l => `${l.name} (${l.days}d, ₹${l.cost})`).join(', ') : 'none yet';
+
+            while (true) {
+                const nameInput = prompt(`Current labor on this project: ${existingNames}\n\nAdd another employee's labor (type their name, or leave blank to finish):`, "");
+                if (!nameInput) break;
+                const matches = (runtimeWorkers || []).filter(w => w.name.toLowerCase().includes(nameInput.trim().toLowerCase()));
+                if (matches.length === 0) { alert("No employee found matching that name. Try again."); continue; }
+                if (matches.length > 1) { alert(`Multiple matches: ${matches.map(w => w.name).join(', ')}. Please type more of the name.`); continue; }
+                const worker = matches[0];
+                const daysInput = prompt(`Days ${worker.name} worked on this project:`, "1");
+                if (daysInput === null) continue;
+                const days = parseFloat(daysInput) || 0;
+                if (days <= 0) continue;
+                const rate = parseFloat(worker.fixed_salary || 0);
+                laborDetails.push({ email: worker.email, name: worker.name, days, rate, cost: rate * days });
+            }
+
+            const labor_cost = laborDetails.reduce((sum, l) => sum + l.cost, 0);
+
+            try {
+                await fetch(`${SUPABASE_URL}project_invoices?id=eq.${id}`, {
+                    method: 'PATCH',
+                    headers: HEADERS,
+                    body: JSON.stringify({ material_cost, labor_cost, other_cost, labor_details: laborDetails })
+                });
+                await fetchAllDataFromNode();
+            } catch (err) {
+                console.error("Cost update error: ", err);
+                alert("Failed to update cost. Please try again.");
+            }
+        }
+
+        function renderProjectInvoicesSection() {
+            const turnoverEl = document.getElementById('project-turnover-banner');
+            const summaryEl = document.getElementById('project-invoice-summary');
+            const listEl = document.getElementById('project-invoice-list');
+            if (!summaryEl || !listEl) return;
+
+            const invoices = runtimeProjectInvoices || [];
+            const totalTurnover = invoices.reduce((sum, i) => sum + parseFloat(i.subtotal || 0), 0);
+            const totalInvoiced = invoices.reduce((sum, i) => sum + parseFloat(i.grand_total || 0), 0);
+            const totalReceived = invoices.filter(i => i.payment_status === 'Received').reduce((sum, i) => sum + parseFloat(i.grand_total || 0), 0);
+            const totalPending = totalInvoiced - totalReceived;
+            const totalProfit = invoices.reduce((sum, i) => {
+                const cost = parseFloat(i.material_cost || 0) + parseFloat(i.labor_cost || 0) + parseFloat(i.other_cost || 0);
+                return sum + (parseFloat(i.subtotal || 0) - cost);
+            }, 0);
+
+            if (turnoverEl) {
+                turnoverEl.innerHTML = `
+                    <div class="bg-gradient-to-r from-[#16212E] to-[#2A3B52] text-white rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Total Company Turnover</p>
+                            <p class="text-[9px] text-slate-400">Sum of all invoice Sub Totals (excl. GST) across ${invoices.length} invoice${invoices.length === 1 ? '' : 's'}</p>
+                        </div>
+                        <p class="text-2xl font-black">₹${totalTurnover.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    </div>`;
+            }
+
+            summaryEl.innerHTML = `
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Total Invoiced</p>
+                    <p class="text-sm font-black text-slate-900">₹${totalInvoiced.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                </div>
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
+                    <p class="text-[9px] font-bold text-emerald-700 uppercase tracking-wider">Received</p>
+                    <p class="text-sm font-black text-emerald-700">₹${totalReceived.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                    <p class="text-[9px] font-bold text-amber-700 uppercase tracking-wider">Pending</p>
+                    <p class="text-sm font-black text-amber-700">₹${totalPending.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                </div>
+                <div class="${totalProfit >= 0 ? 'bg-violet-50 border-violet-200' : 'bg-rose-50 border-rose-200'} border rounded-xl p-3 text-center">
+                    <p class="text-[9px] font-bold ${totalProfit >= 0 ? 'text-violet-700' : 'text-rose-700'} uppercase tracking-wider">${totalProfit >= 0 ? 'Total Profit' : 'Total Loss'}</p>
+                    <p class="text-sm font-black ${totalProfit >= 0 ? 'text-violet-700' : 'text-rose-700'}">₹${Math.abs(totalProfit).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                </div>`;
+
+            if (invoices.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-purple-900/60 italic p-4">No project invoices added yet.</p>`;
+                return;
+            }
+
+            listEl.innerHTML = invoices.map(inv => {
+                const isReceived = inv.payment_status === 'Received';
+                const gstLabel = inv.gst_type === 'CGST_SGST' ? `CGST+SGST ${inv.gst_rate}%` : (inv.gst_type === 'IGST' ? `IGST ${inv.gst_rate}%` : (inv.gst_type === 'MANUAL' ? 'Manual Total' : 'No GST'));
+                const materialCost = parseFloat(inv.material_cost || 0);
+                const laborCost = parseFloat(inv.labor_cost || 0);
+                const otherCost = parseFloat(inv.other_cost || 0);
+                const totalCost = materialCost + laborCost + otherCost;
+                const profit = parseFloat(inv.subtotal || 0) - totalCost;
+                const isProfit = profit >= 0;
+                return `
+                <div class="border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-bold text-sm text-slate-900">${inv.project_name}</span>
+                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${isReceived ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${inv.payment_status}</span>
+                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${isProfit ? 'bg-violet-100 text-violet-700' : 'bg-rose-100 text-rose-700'}">${isProfit ? 'Profit' : 'Loss'} ₹${Math.abs(profit).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-1">${inv.client_name || 'No client name'} ${inv.invoice_no ? `&middot; Invoice #${inv.invoice_no}` : ''} ${inv.invoice_date ? `&middot; ${new Date(inv.invoice_date).toLocaleDateString('en-IN')}` : ''}</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Sub Total ₹${parseFloat(inv.subtotal || 0).toLocaleString('en-IN')} &middot; ${gstLabel} &middot; Tax ₹${parseFloat(inv.tax_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
+                        ${totalCost > 0 ? `<p class="text-[10px] text-slate-400 mt-0.5">Cost: ₹${materialCost.toLocaleString('en-IN')} material + ₹${laborCost.toLocaleString('en-IN')} labor${otherCost > 0 ? ` + ₹${otherCost.toLocaleString('en-IN')} other` : ''} = ₹${totalCost.toLocaleString('en-IN')} total</p>` : `<p class="text-[10px] text-slate-400 mt-0.5">No cost/usage entered yet</p>`}
+                        ${Array.isArray(inv.labor_details) && inv.labor_details.length > 0 ? `<p class="text-[10px] text-slate-400 mt-0.5">Labor: ${inv.labor_details.map(l => `${l.name} (${l.days}d)`).join(', ')}</p>` : ''}
+                        ${isReceived && inv.payment_received_date ? `<p class="text-[10px] text-emerald-600 mt-1">Received on ${new Date(inv.payment_received_date).toLocaleDateString('en-IN')}</p>` : ''}
+                    </div>
+                    <div class="text-right shrink-0">
+                        <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Grand Total</p>
+                        <p class="text-base font-bold text-slate-900 mb-2">₹${parseFloat(inv.grand_total || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
+                        <div class="flex gap-1.5 justify-end">
+                            <button onclick="editProjectCosts(${inv.id})" class="bg-violet-100 hover:bg-violet-200 text-violet-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Edit Cost</button>
+                            ${isReceived
+                                ? `<button onclick="toggleProjectPaymentStatus(${inv.id}, 'Pending')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Mark Pending</button>`
+                                : `<button onclick="toggleProjectPaymentStatus(${inv.id}, 'Received')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Mark Received</button>`
+                            }
+                            <button onclick="deleteProjectInvoice(${inv.id})" class="bg-rose-50 hover:bg-rose-100 text-rose-600 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Delete</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
         async function markPaymentPaid(email, month) {
