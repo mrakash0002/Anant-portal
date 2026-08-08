@@ -539,21 +539,6 @@
                         </div>
                     </div>
 
-                    <!-- Punch-Out Upload Progress Display (hidden until punch-out is in progress) -->
-                    <div id="punch-out-upload-status" class="hidden bg-[#1e3a5f]/5 border border-[#1e3a5f]/20 rounded-xl p-4 space-y-2.5">
-                        <div class="flex items-center gap-2.5">
-                            <svg class="animate-spin w-4 h-4 text-[#1e3a5f] shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                            <p id="punch-out-upload-status-text" class="text-xs font-bold text-[#1e3a5f]">Preparing...</p>
-                        </div>
-                        <div class="w-full h-1.5 bg-[#1e3a5f]/10 rounded-full overflow-hidden">
-                            <div id="punch-out-upload-progress-bar" class="h-full bg-[#1e3a5f] rounded-full transition-all duration-300" style="width: 8%;"></div>
-                        </div>
-                        <p class="text-[9px] text-slate-500">Please don't close this app until this finishes — it keeps your photos safe.</p>
-                    </div>
-
                     <button id="punch-out-button" onclick="initiateCameraWorkflow('out')" class="w-full bg-[#1e3a5f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer">
                         Capture Selfie & Punch Out
                     </button>
@@ -684,45 +669,6 @@
         let capturedBillImages = { transport: [], food: [], material: [] };
         let pendingOptimisticPunchOutShiftId = null;
 
-        // The optimistic punch-out flag above lives only in memory, so a refresh
-        // mid-sync would forget it and re-show the shift as Active. These helpers
-        // mirror it into localStorage (written synchronously, before any await),
-        // so it survives a reload and we can detect + retry an unfinished punch-out.
-        function markPendingPunchOutPersisted(shiftId) {
-            try { localStorage.setItem('pendingPunchOutShiftId', String(shiftId)); } catch (e) {}
-        }
-        function clearPendingPunchOutPersisted(shiftId) {
-            try {
-                if (localStorage.getItem('pendingPunchOutShiftId') === String(shiftId)) {
-                    localStorage.removeItem('pendingPunchOutShiftId');
-                }
-            } catch (e) {}
-        }
-        function getPendingPunchOutPersisted() {
-            try { return localStorage.getItem('pendingPunchOutShiftId'); } catch (e) { return null; }
-        }
-        let pendingPunchOutRetryInFlight = false;
-        // Safety net: if we reload and the server still shows this shift as Active
-        // even though we already told the worker it was punched out, finish closing
-        // it now instead of leaving the app stuck showing "still on shift".
-        async function retryUnfinishedPunchOutClose(shiftId) {
-            if (pendingPunchOutRetryInFlight) return;
-            pendingPunchOutRetryInFlight = true;
-            try {
-                const gpsCoords = await fetchCurrentGPSLocation();
-                await fetch(`${SUPABASE_URL}shift_logs?id=eq.${shiftId}`, {
-                    method: 'PATCH', headers: HEADERS,
-                    body: JSON.stringify({ status: 'Pending', punch_out_time: new Date().toISOString(), site_location: gpsCoords })
-                });
-                clearPendingPunchOutPersisted(shiftId);
-                await syncDashboardPortalState();
-            } catch (e) {
-                console.error('Retry of unfinished punch-out failed, will retry again on next refresh/focus:', e);
-            } finally {
-                pendingPunchOutRetryInFlight = false;
-            }
-        }
-
         let runtimePieChartInstance = null;
         let runtimeBarChartInstance = null;
         let isEditingProfile = false;
@@ -812,23 +758,10 @@
             return new Promise((resolve, reject) => {
                 const tx = db.transaction("offline_queue", "readwrite");
                 const store = tx.objectStore("offline_queue");
-                const addReq = store.add({ type, payload, imageBase64, billImages: billImages || null, timestamp: Date.now() });
-                tx.oncomplete = () => resolve(addReq.result); // addReq.result is the generated id
+                store.add({ type, payload, imageBase64, billImages: billImages || null, timestamp: Date.now() });
+                tx.oncomplete = () => resolve();
                 tx.onerror = (e) => reject(e.target.error);
             });
-        }
-
-        async function deleteFromOfflineQueue(id) {
-            if (id == null) return;
-            try {
-                const db = await openOfflineDB();
-                await new Promise((resolve, reject) => {
-                    const tx = db.transaction("offline_queue", "readwrite");
-                    tx.objectStore("offline_queue").delete(id);
-                    tx.oncomplete = () => resolve();
-                    tx.onerror = (e) => reject(e.target.error);
-                });
-            } catch (e) { console.error('Could not clear synced offline-queue entry:', e); }
         }
 
         async function syncOfflineQueue() {
@@ -948,12 +881,9 @@
 
         // Uploads every captured bill photo (transport/food/material) to the bill-photos
         // bucket and returns { transport: [urls], food: [urls], material: [urls] }.
-        // onProgress(uploadedCount, totalCount), if given, fires after each photo upload.
-        async function uploadAllBillPhotos(imagesSource, onProgress) {
+        async function uploadAllBillPhotos(imagesSource) {
             const source = imagesSource || capturedBillImages;
             const urls = { transport: [], food: [], material: [] };
-            const totalCount = ['transport', 'food', 'material'].reduce((sum, t) => sum + source[t].length, 0);
-            let uploadedCount = 0;
             for (const type of ['transport', 'food', 'material']) {
                 let idx = 0;
                 for (const img of source[type]) {
@@ -961,8 +891,6 @@
                     const url = await uploadSelfieToSupabase(img, fileName, 'bill-photos');
                     urls[type].push(url);
                     idx++;
-                    uploadedCount++;
-                    if (onProgress) onProgress(uploadedCount, totalCount);
                 }
             }
             return urls;
@@ -977,22 +905,6 @@
                     { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
                 );
             });
-        }
-
-        // --- ON-SCREEN PUNCH-OUT UPLOAD PROGRESS DISPLAY ---
-        // Visible status card (spinner + text + progress bar) shown on the Punch Out
-        // panel itself while the selfie/bill-photo upload is running, so the worker can
-        // see it's actively working rather than just staring at a disabled button.
-        function setPunchOutUploadStatus(text, percent) {
-            const box = document.getElementById('punch-out-upload-status');
-            if (!box) return;
-            box.classList.remove('hidden');
-            if (text != null) document.getElementById('punch-out-upload-status-text').innerText = text;
-            if (percent != null) document.getElementById('punch-out-upload-progress-bar').style.width = `${Math.max(4, Math.min(100, percent))}%`;
-        }
-        function hidePunchOutUploadStatus() {
-            const box = document.getElementById('punch-out-upload-status');
-            if (box) box.classList.add('hidden');
         }
 
         // --- PROFILE & ID CARD TOGGLE & LOGIC ---
@@ -1168,6 +1080,12 @@
                 : resolveMonthlyBalanceValue(workerMonthlyBalances, payslipTargetMonth, 'salary_advance_taken');
             const netPayout = (currentActiveUser.emp_no === 'EMP-102' && selectedMonthVal === '6') ? 2400.00 : (grossEarned + totalReimbursements - totalMiddayAdvance);
 
+            const paymentSnapshotForPayslip = workerMonthlyBalances.find(r => r.month === payslipTargetMonth);
+            const isPayslipPaid = !!(paymentSnapshotForPayslip && paymentSnapshotForPayslip.payment_status === 'Paid');
+            const payslipPaidDateLabel = (paymentSnapshotForPayslip && paymentSnapshotForPayslip.payment_date)
+                ? new Date(paymentSnapshotForPayslip.payment_date).toLocaleDateString('en-IN')
+                : '';
+
             doc.setFillColor(74, 20, 140);
             doc.rect(0, 0, 210, 38, 'F');
             doc.setTextColor(255, 255, 255);
@@ -1178,6 +1096,27 @@
             doc.setFont("helvetica", "normal");
             doc.text("Official Field Operations Payslip & Ledger Statement", 14, 26);
             doc.text(`Period: ${selectedMonthName} ${currentYear}`, 196, 26, { align: "right" });
+
+            // Green "PAID" seal - only stamped when this month's payment_status is Paid
+            if (isPayslipPaid) {
+                const stampX = 178, stampY = 15;
+                doc.setFillColor(255, 255, 255);
+                doc.setDrawColor(16, 185, 129);
+                doc.setLineWidth(1);
+                doc.circle(stampX, stampY, 9.5, 'FD');
+                doc.setDrawColor(16, 185, 129);
+                doc.setLineWidth(0.4);
+                doc.circle(stampX, stampY, 7.8, 'S');
+                doc.setTextColor(16, 185, 129);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(9);
+                doc.text("PAID", stampX, stampY + 1.5, { align: "center", angle: -10 });
+                if (payslipPaidDateLabel) {
+                    doc.setFontSize(5);
+                    doc.setFont("helvetica", "normal");
+                    doc.text(payslipPaidDateLabel, stampX, stampY + 5.5, { align: "center", angle: -10 });
+                }
+            }
 
             doc.setTextColor(30, 41, 59);
             doc.autoTable({
@@ -1224,6 +1163,15 @@
             doc.text("NET PAYABLE AMOUNT:", 20, finalY + 14);
             doc.setFontSize(14);
             doc.text(`Rs. ${netPayout.toLocaleString('en-IN')}`, 190, finalY + 14, { align: "right" });
+            doc.setFontSize(7.5);
+            doc.setFont("helvetica", "bold");
+            if (isPayslipPaid) {
+                doc.setTextColor(16, 185, 129);
+                doc.text(`Payment Status: PAID${payslipPaidDateLabel ? ` on ${payslipPaidDateLabel}` : ''}${paymentSnapshotForPayslip.payment_reference ? ` | Ref: ${paymentSnapshotForPayslip.payment_reference}` : ''}`, 20, finalY + 19);
+            } else {
+                doc.setTextColor(180, 130, 20);
+                doc.text("Payment Status: Pending Transfer (1st-10th of following month)", 20, finalY + 19);
+            }
 
             doc.setFontSize(10);
             doc.setFont("helvetica", "bold");
@@ -1800,26 +1748,8 @@
             if (runningActiveShift && pendingOptimisticPunchOutShiftId && String(runningActiveShift.id) === String(pendingOptimisticPunchOutShiftId)) {
                 runningActiveShift = null;
             }
-            // Fallback for after a refresh: the in-memory guard above is gone, but the
-            // localStorage marker survives. If the server still shows this shift Active,
-            // our punch-out never actually landed - keep the UI showing "punched out"
-            // and quietly finish closing it on the server.
-            const persistedPendingId = getPendingPunchOutPersisted();
-            if (runningActiveShift && persistedPendingId && String(runningActiveShift.id) === String(persistedPendingId)) {
-                runningActiveShift = null;
-                retryUnfinishedPunchOutClose(persistedPendingId);
-            } else if (persistedPendingId && !runningActiveShift) {
-                // Shift is already closed on the server (sync succeeded after all) - clean up the marker.
-                clearPendingPunchOutPersisted(persistedPendingId);
-            }
 
-            // While a punch-out upload is actively in progress (pendingOptimisticPunchOutShiftId
-            // set), leave the panels exactly as they are - a background sync landing mid-upload
-            // (the 2-minute refresh, or the tab regaining focus) must not flip the screen back
-            // to the Punch In panel before that upload has actually finished.
-            if (pendingOptimisticPunchOutShiftId) {
-                // still fall through to update the rest of the dashboard below
-            } else if (runningActiveShift) {
+            if (runningActiveShift) {
                 document.getElementById('punch-in-panel').classList.add('hidden');
                 document.getElementById('punch-out-panel').classList.remove('hidden');
                 let startTimeISO = runningActiveShift.punch_in_time || runningActiveShift.created_at;
@@ -2248,10 +2178,8 @@
             if (!runningActiveShift) return;
 
             const punchOutBtn = document.getElementById('punch-out-button');
-            punchOutBtn.innerText = "Please Wait...";
+            punchOutBtn.innerText = "Ending Shift...";
             punchOutBtn.disabled = true;
-            punchOutBtn.className = "w-full bg-gray-400 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest cursor-not-allowed";
-            setPunchOutUploadStatus("Preparing...", 8);
 
             const transport_expense = parseFloat(document.getElementById('exp-transport').value) || 0;
             const food_expense = parseFloat(document.getElementById('exp-food').value) || 0;
@@ -2272,145 +2200,84 @@
             const billImagesSnapshot = JSON.parse(JSON.stringify(capturedBillImages));
             const wasOnline = navigator.onLine;
 
-            // The Punch In panel now only opens once the selfie + bill photos are actually
-            // uploaded (or durably queued for offline sync) - not the instant the button is
-            // tapped. The worker sees an "Uploading..." state on this same panel until then.
+            // The shift ends on screen right here - GPS lookup, photo uploads, and the
+            // actual server sync all continue below in the background so the worker
+            // isn't stuck waiting on a slow mobile connection to see the shift end.
             temporaryCapturedBase64 = null;
+            resetBillsVerificationState();
+            currentActiveUser.morning_advance = remainingCarryforwardBalance;
+            runningActiveShift = null;
             pendingOptimisticPunchOutShiftId = shiftId;
-            markPendingPunchOutPersisted(shiftId);
 
-            const buildPayload = (site_location) => ({
-                shift_id: shiftId,
-                site_location, progress_notes, transport_expense, food_expense, material_expense, material_notes,
-                payment_advance_taken, remaining_balance: remainingCarryforwardBalance, status: "Pending",
-                expense_status: totalShiftExpenses > 0 ? "Pending" : "N/A",
-                punch_out_time: new Date().toISOString(), punch_out_image_url: null, bill_photo_urls: null
-            });
-
-            // Once everything below is done (or durably queued), this actually flips the
-            // screen over to the Punch In panel and refreshes the shift history.
-            const openPunchInPanel = () => {
-                if (pendingOptimisticPunchOutShiftId === shiftId) pendingOptimisticPunchOutShiftId = null;
-                clearPendingPunchOutPersisted(shiftId);
-
-                resetBillsVerificationState();
-                currentActiveUser.morning_advance = remainingCarryforwardBalance;
-                runningActiveShift = null;
-
-                const localLogIdx = activeShiftLogs.findIndex(l => String(l.id) === String(shiftId));
-                if (localLogIdx > -1) {
-                    activeShiftLogs[localLogIdx] = {
-                        ...activeShiftLogs[localLogIdx],
-                        status: 'Pending',
-                        expense_status: totalShiftExpenses > 0 ? 'Pending' : 'N/A',
-                        transport_expense, food_expense, material_expense, material_notes,
-                        payment_advance_taken, punch_out_time: new Date().toISOString()
-                    };
-                }
-
-                document.getElementById('punch-out-panel').classList.add('hidden');
-                document.getElementById('punch-in-panel').classList.remove('hidden');
-                hidePunchOutUploadStatus();
-                punchOutBtn.innerText = "Capture Selfie & Punch Out";
-                punchOutBtn.className = "w-full bg-[#1e3a5f] hover:bg-[#14283f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest cursor-pointer shadow-md transition";
-                punchOutBtn.disabled = false;
-                playPunchOutSound();
-                syncDashboardPortalState();
-            };
-
-            if (!wasOnline) {
-                punchOutBtn.innerText = "Saving Offline...";
-                setPunchOutUploadStatus("No internet - saving on this device to sync later...", 20);
-                const gpsCoords = await fetchCurrentGPSLocation();
-                const site_location = manualLocation ? `${manualLocation} (${gpsCoords})` : gpsCoords;
-                await savePunchToOfflineQueue('out', buildPayload(site_location), selfieBase64, billImagesSnapshot);
-                updateNetworkBadge(false);
-                setPunchOutUploadStatus("Saved on device. Will sync automatically once online.", 100);
-                openPunchInPanel();
-                return;
+            const localLogIdx = activeShiftLogs.findIndex(l => String(l.id) === String(shiftId));
+            if (localLogIdx > -1) {
+                activeShiftLogs[localLogIdx] = {
+                    ...activeShiftLogs[localLogIdx],
+                    status: 'Pending',
+                    expense_status: totalShiftExpenses > 0 ? 'Pending' : 'N/A',
+                    transport_expense, food_expense, material_expense, material_notes,
+                    payment_advance_taken, punch_out_time: new Date().toISOString()
+                };
             }
 
-            // Close the shift on the server with a fast, minimal request FIRST -
-            // before the slower GPS lookup / selfie / bill-photo uploads. This keeps
-            // the server's status correct even if something below fails outright.
-            setPunchOutUploadStatus("Closing your shift...", 15);
-            try {
-                await fetch(`${SUPABASE_URL}shift_logs?id=eq.${shiftId}`, {
-                    method: 'PATCH', headers: HEADERS,
-                    body: JSON.stringify({
-                        status: "Pending",
-                        expense_status: totalShiftExpenses > 0 ? "Pending" : "N/A",
-                        progress_notes, transport_expense, food_expense, material_expense, material_notes,
-                        payment_advance_taken, punch_out_time: new Date().toISOString()
-                    })
+            document.getElementById('punch-out-panel').classList.add('hidden');
+            document.getElementById('punch-in-panel').classList.remove('hidden');
+            punchOutBtn.innerText = "Punch Out";
+            punchOutBtn.disabled = false;
+            playPunchOutSound();
+            syncDashboardPortalState();
+
+            (async () => {
+                const buildPayload = (site_location) => ({
+                    shift_id: shiftId,
+                    site_location, progress_notes, transport_expense, food_expense, material_expense, material_notes,
+                    payment_advance_taken, remaining_balance: remainingCarryforwardBalance, status: "Pending",
+                    expense_status: totalShiftExpenses > 0 ? "Pending" : "N/A",
+                    punch_out_time: new Date().toISOString(), punch_out_image_url: null, bill_photo_urls: null
                 });
-            } catch (e) {
-                // The offline-queue safety net below and the localStorage-marker retry
-                // on next load will still catch this.
-            }
 
-            // Durable safety net for the selfie + bill photos, saved BEFORE we attempt
-            // the upload below. If the tab/app gets closed or suspended mid-upload, this
-            // queued copy is what syncOfflineQueue() finishes on next load - the photos
-            // are never silently lost.
-            setPunchOutUploadStatus("Securing your photos on this device...", 22);
-            let queueId = null;
-            try {
-                queueId = await savePunchToOfflineQueue('out', buildPayload(manualLocation || 'Location unavailable'), selfieBase64, billImagesSnapshot);
-            } catch (e) {
-                console.error('Could not queue punch-out fallback copy:', e);
-            }
+                const finishUp = () => {
+                    // Only clear the guard (and pull fresh authoritative data) once the
+                    // background sync has actually concluded, one way or another.
+                    if (pendingOptimisticPunchOutShiftId === shiftId) pendingOptimisticPunchOutShiftId = null;
+                    syncDashboardPortalState();
+                };
 
-            try {
-                punchOutBtn.innerText = "Getting Location...";
-                setPunchOutUploadStatus("Getting your location...", 32);
-                const gpsCoords = await fetchCurrentGPSLocation();
-                const site_location = manualLocation ? `${manualLocation} (${gpsCoords})` : gpsCoords;
-                const shiftPayload = buildPayload(site_location);
-
-                let selfieUrl = null;
-                if (selfieBase64) {
-                    punchOutBtn.innerText = "Uploading Selfie...";
-                    setPunchOutUploadStatus("Uploading your selfie...", 45);
-                    const fileName = `out_${currentActiveUser.id || 'usr'}_${Date.now()}.jpg`;
-                    selfieUrl = await uploadSelfieToSupabase(selfieBase64, fileName);
+                if (!wasOnline) {
+                    const gpsCoords = await fetchCurrentGPSLocation();
+                    const site_location = manualLocation ? `${manualLocation} (${gpsCoords})` : gpsCoords;
+                    await savePunchToOfflineQueue('out', buildPayload(site_location), selfieBase64, billImagesSnapshot);
+                    updateNetworkBadge(false);
+                    finishUp();
+                    return;
                 }
-                shiftPayload.punch_out_image_url = selfieUrl;
 
-                const totalBillPhotos = billImagesSnapshot.transport.length + billImagesSnapshot.food.length + billImagesSnapshot.material.length;
-                if (totalBillPhotos > 0) {
-                    punchOutBtn.innerText = `Uploading Bill Photos (0/${totalBillPhotos})...`;
-                    setPunchOutUploadStatus(`Uploading bill photos (0/${totalBillPhotos})...`, 55);
+                try {
+                    const gpsCoords = await fetchCurrentGPSLocation();
+                    const site_location = manualLocation ? `${manualLocation} (${gpsCoords})` : gpsCoords;
+                    const shiftPayload = buildPayload(site_location);
+
+                    let selfieUrl = null;
+                    if (selfieBase64) {
+                        const fileName = `out_${currentActiveUser.id || 'usr'}_${Date.now()}.jpg`;
+                        selfieUrl = await uploadSelfieToSupabase(selfieBase64, fileName);
+                    }
+                    shiftPayload.punch_out_image_url = selfieUrl;
+                    shiftPayload.bill_photo_urls = JSON.stringify(await uploadAllBillPhotos(billImagesSnapshot));
+
+                    const patchShiftId = shiftPayload.shift_id;
+                    delete shiftPayload.shift_id;
+                    delete shiftPayload.remaining_balance;
+
+                    await fetch(`${SUPABASE_URL}shift_logs?id=eq.${patchShiftId}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(shiftPayload) });
+                    await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ morning_advance: remainingCarryforwardBalance }) });
+                    finishUp();
+
+                } catch(err) {
+                    await savePunchToOfflineQueue('out', buildPayload(manualLocation || 'GPS Unavailable'), selfieBase64, billImagesSnapshot);
+                    finishUp();
                 }
-                shiftPayload.bill_photo_urls = JSON.stringify(await uploadAllBillPhotos(billImagesSnapshot, (done, total) => {
-                    punchOutBtn.innerText = `Uploading Bill Photos (${done}/${total})...`;
-                    setPunchOutUploadStatus(`Uploading bill photos (${done}/${total})...`, 55 + Math.round((done / total) * 35));
-                }));
-
-                const patchShiftId = shiftPayload.shift_id;
-                delete shiftPayload.shift_id;
-                delete shiftPayload.remaining_balance;
-
-                punchOutBtn.innerText = "Finalizing...";
-                setPunchOutUploadStatus("Finalizing...", 95);
-                await fetch(`${SUPABASE_URL}shift_logs?id=eq.${patchShiftId}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(shiftPayload) });
-                await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ morning_advance: remainingCarryforwardBalance }) });
-
-                // Live attempt made it all the way through - the durable queued copy
-                // saved above is now redundant, so remove it.
-                await deleteFromOfflineQueue(queueId);
-                setPunchOutUploadStatus("Done!", 100);
-
-            } catch(err) {
-                // The durable copy queued above already has everything needed - it'll
-                // sync automatically on next app load or once back online. Still open
-                // the Punch In panel below so the worker isn't stuck if, say, their
-                // connection just dropped for a moment.
-                console.error('Punch-out upload did not complete live, queued for later sync:', err);
-                setPunchOutUploadStatus("Connection issue - saved safely, will finish syncing automatically.", 100);
-            }
-
-            openPunchInPanel();
+            })();
         }
 
         restoreSessionOnLoad();
