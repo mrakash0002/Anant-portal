@@ -218,9 +218,12 @@
             <div id="project-turnover-banner" class="mb-3"></div>
             <div id="project-invoice-summary" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5"></div>
 
-            <!-- Add Invoice Form -->
-            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 space-y-3">
-                <h3 class="text-xs font-black uppercase tracking-wider text-slate-700">Add Project Invoice</h3>
+            <!-- Add / Edit Invoice Form -->
+            <div id="project-invoice-form-card" class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 id="project-form-title" class="text-xs font-black uppercase tracking-wider text-slate-700">Add Project Invoice</h3>
+                    <button type="button" id="proj-cancel-edit-btn" onclick="cancelEditProjectInvoice()" class="hidden text-[10px] font-semibold text-rose-600 hover:text-rose-700 uppercase tracking-wide cursor-pointer">Cancel Edit</button>
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Project Name</label>
@@ -295,12 +298,89 @@
                     <p class="text-[9px] text-gray-400 mt-1">Cost is pulled automatically from each employee's daily pay rate on file &times; days entered.</p>
                 </div>
 
+                <div class="pt-2 border-t border-slate-200">
+                    <h4 class="text-[10px] font-black uppercase tracking-wider text-slate-600 mb-2">Invoice Details (for PDF) &mdash; optional</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="sm:col-span-2">
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Client Address</label>
+                            <textarea id="proj-client-address" rows="2" placeholder="e.g. No16/44, 1st Floor, Railway Station Road, Pallavaram, Chennai - 600043" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Client GSTIN</label>
+                            <input type="text" id="proj-client-gstin" placeholder="e.g. 33AAKCG9294R1ZK" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono uppercase outline-none focus:border-[#16212E]">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Client State</label>
+                                <input type="text" id="proj-client-state" placeholder="e.g. Tamil Nadu" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">State Code</label>
+                                <input type="text" id="proj-client-state-code" placeholder="e.g. 33" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
+                            </div>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Description of Work</label>
+                            <textarea id="proj-item-description" rows="2" placeholder="e.g. Supplying and Laying of HIKVISION Cat-6 Cable Model Number [DS-1LN6U-W/CCA] &amp; Necessary Pipe With Accessories" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">HSN/SAC</label>
+                            <input type="text" id="proj-hsn-sac" placeholder="e.g. 8544" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Quantity</label>
+                                <input type="text" id="proj-quantity" placeholder="e.g. 233Mtr" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Rate (₹/unit)</label>
+                                <input type="number" id="proj-rate" placeholder="e.g. 67" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-[9px] text-gray-400 mt-1">Fill these in if you want to generate a proper invoice PDF for this project. The amount shown will still use the Sub Total above.</p>
+                </div>
+
                 <div id="project-invoice-preview" class="bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-1 font-mono"></div>
-                <button onclick="addProjectInvoice()" class="w-full bg-[#16212E] hover:bg-[#0E1620] text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow-sm">
+                <button id="proj-save-btn" onclick="addProjectInvoice()" class="w-full bg-[#16212E] hover:bg-[#0E1620] text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow-sm">
                     Save Invoice
                 </button>
             </div>
 
+            <div class="relative mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="text" id="project-search-input" oninput="renderProjectInvoicesSection()" placeholder="Search by project name or client..." class="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+            </div>
+            <div class="flex flex-wrap items-center justify-end gap-1.5 mb-1.5">
+                <button type="button" onclick="setProjectFilterMode('month')" id="proj-filter-mode-btn-month" class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition cursor-pointer bg-[#16212E] text-white">Monthly</button>
+                <button type="button" onclick="setProjectFilterMode('year')" id="proj-filter-mode-btn-year" class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition cursor-pointer text-slate-500 bg-white border border-gray-200">Yearly</button>
+            </div>
+            <div id="proj-month-filter-row" class="flex flex-wrap items-center justify-end gap-1.5 mb-3">
+                <button type="button" onclick="stepProjectMonthFilter(-1)" class="p-2 bg-white hover:bg-slate-50 border border-gray-200 rounded-lg text-slate-500 transition cursor-pointer" title="Previous month">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <input type="month" id="project-month-filter" onchange="renderProjectInvoicesSection()" class="p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold outline-none focus:border-[#16212E]">
+                <button type="button" onclick="stepProjectMonthFilter(1)" class="p-2 bg-white hover:bg-slate-50 border border-gray-200 rounded-lg text-slate-500 transition cursor-pointer" title="Next month">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+                <span class="w-px h-5 bg-gray-200 mx-0.5"></span>
+                <button type="button" onclick="setProjectMonthFilterQuick('this')" class="px-2.5 py-2 bg-white hover:bg-slate-50 border border-gray-200 rounded-lg text-slate-600 text-[10px] font-semibold uppercase tracking-wide transition cursor-pointer whitespace-nowrap">This Month</button>
+                <button type="button" onclick="setProjectMonthFilterQuick('last')" class="px-2.5 py-2 bg-white hover:bg-slate-50 border border-gray-200 rounded-lg text-slate-600 text-[10px] font-semibold uppercase tracking-wide transition cursor-pointer whitespace-nowrap">Last Month</button>
+                <button type="button" onclick="clearProjectMonthFilter()" class="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap">All Time</button>
+            </div>
+            <div id="proj-year-filter-row" class="hidden flex-wrap items-center justify-end gap-1.5 mb-3">
+                <button type="button" onclick="stepProjectYearFilter(-1)" class="p-2 bg-white hover:bg-slate-50 border border-gray-200 rounded-lg text-slate-500 transition cursor-pointer" title="Previous year">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <input type="number" id="project-year-filter" placeholder="Year" min="2000" max="2100" onchange="renderProjectInvoicesSection()" class="w-24 p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold font-mono outline-none focus:border-[#16212E]">
+                <button type="button" onclick="stepProjectYearFilter(1)" class="p-2 bg-white hover:bg-slate-50 border border-gray-200 rounded-lg text-slate-500 transition cursor-pointer" title="Next year">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+                <span class="w-px h-5 bg-gray-200 mx-0.5"></span>
+                <button type="button" onclick="setProjectYearFilterQuick('this')" class="px-2.5 py-2 bg-white hover:bg-slate-50 border border-gray-200 rounded-lg text-slate-600 text-[10px] font-semibold uppercase tracking-wide transition cursor-pointer whitespace-nowrap">This Year</button>
+                <button type="button" onclick="setProjectYearFilterQuick('last')" class="px-2.5 py-2 bg-white hover:bg-slate-50 border border-gray-200 rounded-lg text-slate-600 text-[10px] font-semibold uppercase tracking-wide transition cursor-pointer whitespace-nowrap">Last Year</button>
+                <button type="button" onclick="clearProjectYearFilter()" class="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap">All Time</button>
+            </div>
             <div id="project-invoice-list" class="space-y-3">
                 <p class="text-xs text-purple-900/60 italic p-4">Loading projects...</p>
             </div>
@@ -1098,6 +1178,67 @@
                 <p class="text-[9px] text-gray-400 pt-0.5">Profit/Loss is Sub Total (excl. GST) minus your costs &mdash; GST is passed through, not revenue.</p>`;
         }
 
+        let editingInvoiceId = null;
+
+        function resetProjectInvoiceForm() {
+            editingInvoiceId = null;
+            ['proj-name', 'proj-client', 'proj-invoice-no', 'proj-subtotal', 'proj-manual-total', 'proj-material-cost', 'proj-other-cost',
+             'proj-client-address', 'proj-client-gstin', 'proj-client-state', 'proj-client-state-code', 'proj-item-description', 'proj-hsn-sac', 'proj-quantity', 'proj-rate'
+            ].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('proj-invoice-date').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('proj-gst-type').value = 'IGST';
+            document.getElementById('proj-gst-rate').value = 18;
+            pendingLaborLines = [];
+            renderLaborLines();
+            setProjectInvoiceMode('auto');
+            document.getElementById('project-form-title').innerText = 'Add Project Invoice';
+            document.getElementById('proj-save-btn').innerText = 'Save Invoice';
+            document.getElementById('proj-cancel-edit-btn').classList.add('hidden');
+        }
+
+        function editFullProjectInvoice(id) {
+            const inv = (runtimeProjectInvoices || []).find(i => i.id === id);
+            if (!inv) return;
+
+            editingInvoiceId = id;
+            document.getElementById('proj-name').value = inv.project_name || '';
+            document.getElementById('proj-client').value = inv.client_name || '';
+            document.getElementById('proj-invoice-no').value = inv.invoice_no || '';
+            document.getElementById('proj-invoice-date').value = inv.invoice_date || new Date().toISOString().slice(0, 10);
+            document.getElementById('proj-subtotal').value = inv.subtotal || '';
+            document.getElementById('proj-material-cost').value = inv.material_cost || '';
+            document.getElementById('proj-other-cost').value = inv.other_cost || '';
+            document.getElementById('proj-client-address').value = inv.client_address || '';
+            document.getElementById('proj-client-gstin').value = inv.client_gstin || '';
+            document.getElementById('proj-client-state').value = inv.client_state || '';
+            document.getElementById('proj-client-state-code').value = inv.client_state_code || '';
+            document.getElementById('proj-item-description').value = inv.item_description || '';
+            document.getElementById('proj-hsn-sac').value = inv.hsn_sac || '';
+            document.getElementById('proj-quantity').value = inv.quantity || '';
+            document.getElementById('proj-rate').value = inv.rate || '';
+            pendingLaborLines = Array.isArray(inv.labor_details) ? [...inv.labor_details] : [];
+            renderLaborLines();
+
+            if (inv.gst_type === 'MANUAL') {
+                setProjectInvoiceMode('manual');
+                document.getElementById('proj-manual-total').value = inv.grand_total || '';
+            } else {
+                setProjectInvoiceMode('auto');
+                document.getElementById('proj-gst-type').value = inv.gst_type || 'IGST';
+                document.getElementById('proj-gst-rate').value = inv.gst_rate || 18;
+            }
+            updateProjectInvoicePreview();
+
+            document.getElementById('project-form-title').innerText = `Editing: ${inv.project_name}`;
+            document.getElementById('proj-save-btn').innerText = 'Update Invoice';
+            document.getElementById('proj-cancel-edit-btn').classList.remove('hidden');
+            document.getElementById('project-invoice-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function cancelEditProjectInvoice() {
+            resetProjectInvoiceForm();
+        }
+
         async function addProjectInvoice() {
             const project_name = document.getElementById('proj-name').value.trim();
             const client_name = document.getElementById('proj-client').value.trim();
@@ -1110,6 +1251,17 @@
 
             if (!project_name || !subtotal) return alert("Please enter at least a project name and Sub Total amount.");
 
+            const pdfDetails = {
+                client_address: document.getElementById('proj-client-address').value.trim(),
+                client_gstin: document.getElementById('proj-client-gstin').value.trim().toUpperCase(),
+                client_state: document.getElementById('proj-client-state').value.trim(),
+                client_state_code: document.getElementById('proj-client-state-code').value.trim(),
+                item_description: document.getElementById('proj-item-description').value.trim(),
+                hsn_sac: document.getElementById('proj-hsn-sac').value.trim(),
+                quantity: document.getElementById('proj-quantity').value.trim(),
+                rate: parseFloat(document.getElementById('proj-rate').value) || null
+            };
+
             let payload;
             if (projectInvoiceMode === 'manual') {
                 const grand_total = parseFloat(document.getElementById('proj-manual-total').value) || 0;
@@ -1119,7 +1271,7 @@
                     subtotal, gst_type: 'MANUAL', gst_rate: null,
                     tax_amount: grand_total - subtotal, grand_total,
                     material_cost, labor_cost, other_cost, labor_details: pendingLaborLines,
-                    payment_status: 'Pending'
+                    ...pdfDetails
                 };
             } else {
                 const gst_type = document.getElementById('proj-gst-type').value;
@@ -1130,24 +1282,29 @@
                     subtotal, gst_type, gst_rate,
                     tax_amount: b.taxTotal, grand_total: b.grandTotal,
                     material_cost, labor_cost, other_cost, labor_details: pendingLaborLines,
-                    payment_status: 'Pending'
+                    ...pdfDetails
                 };
             }
 
             try {
-                await fetch(`${SUPABASE_URL}project_invoices`, {
-                    method: 'POST',
-                    headers: { ...HEADERS, 'Prefer': 'return=representation' },
-                    body: JSON.stringify(payload)
-                });
-                ['proj-name', 'proj-client', 'proj-invoice-no', 'proj-subtotal', 'proj-manual-total', 'proj-material-cost', 'proj-other-cost'].forEach(id => document.getElementById(id).value = '');
-                document.getElementById('proj-invoice-date').value = new Date().toISOString().slice(0, 10);
-                pendingLaborLines = [];
-                renderLaborLines();
-                updateProjectInvoicePreview();
+                if (editingInvoiceId) {
+                    await fetch(`${SUPABASE_URL}project_invoices?id=eq.${editingInvoiceId}`, {
+                        method: 'PATCH',
+                        headers: HEADERS,
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    payload.payment_status = 'Pending';
+                    await fetch(`${SUPABASE_URL}project_invoices`, {
+                        method: 'POST',
+                        headers: { ...HEADERS, 'Prefer': 'return=representation' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+                resetProjectInvoiceForm();
                 await fetchAllDataFromNode();
             } catch (err) {
-                console.error("Add invoice error: ", err);
+                console.error("Save invoice error: ", err);
                 alert("Failed to save invoice. Please try again.");
             }
         }
@@ -1178,6 +1335,168 @@
                 console.error("Delete invoice error: ", err);
                 alert("Failed to delete invoice. Please try again.");
             }
+        }
+
+        // --- INVOICE PDF GENERATION ---
+        function numberToWordsIndian(num) {
+            const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+                'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+            const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+            function twoDigits(n) {
+                if (n < 20) return ones[n];
+                return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+            }
+            function threeDigits(n) {
+                if (n < 100) return twoDigits(n);
+                return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + twoDigits(n % 100) : '');
+            }
+            function convert(n) {
+                if (n === 0) return 'Zero';
+                let result = '';
+                const crore = Math.floor(n / 10000000); n %= 10000000;
+                const lakh = Math.floor(n / 100000); n %= 100000;
+                const thousand = Math.floor(n / 1000); n %= 1000;
+                const hundred = n;
+                if (crore) result += threeDigits(crore) + ' Crore ';
+                if (lakh) result += threeDigits(lakh) + ' Lakh ';
+                if (thousand) result += threeDigits(thousand) + ' Thousand ';
+                if (hundred) result += threeDigits(hundred);
+                return result.trim();
+            }
+
+            const rupees = Math.floor(num);
+            const paise = Math.round((num - rupees) * 100);
+            let words = convert(rupees);
+            if (paise > 0) words += ' and ' + convert(paise) + ' Paise';
+            return words + ' Only';
+        }
+
+        function downloadProjectInvoicePDF(id) {
+            const inv = (runtimeProjectInvoices || []).find(i => i.id === id);
+            if (!inv) return;
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Company header
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.setTextColor(30, 64, 175);
+            doc.text("ANANT", 14, 18);
+            doc.setTextColor(180, 20, 130);
+            doc.text("ELECTRICAL", 40, 18);
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            doc.setTextColor(20, 20, 20);
+            doc.text([
+                "#39, 3rd Cross Road, Near Railway Gate Kengeri,",
+                "Bengaluru (Bangalore) Urban, Karnataka, 560060",
+                "Phone: 9972349924 / 9535751289",
+                "E-mail: Anantelectricals5@gmail.com",
+                "GSTIN: 29EYWPR1516N1ZD"
+            ], 196, 10, { align: 'right' });
+
+            doc.setDrawColor(140, 20, 130);
+            doc.setLineWidth(1);
+            doc.line(14, 32, 196, 32);
+
+            // Tax invoice bar
+            doc.setFillColor(230, 230, 230);
+            doc.rect(14, 36, 182, 7, 'F');
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            doc.text("Tax invoice", 105, 41, { align: 'center' });
+
+            let y = 43;
+            doc.autoTable({
+                startY: y,
+                theme: 'grid',
+                styles: { fontSize: 8, cellPadding: 2 },
+                body: [
+                    [{ content: `Invoice No: ${inv.invoice_no || '--'}\nInvoice Date: ${inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB') : '--'}`, styles: { fontStyle: 'bold' } },
+                     { content: `Place of Supply: ${inv.client_state_code || ''}-${inv.client_state || '--'}`, styles: { fontStyle: 'bold' } }]
+                ],
+                columnStyles: { 0: { cellWidth: 91 }, 1: { cellWidth: 91 } }
+            });
+
+            y = doc.lastAutoTable.finalY;
+            doc.autoTable({
+                startY: y,
+                theme: 'grid',
+                styles: { fontSize: 8, cellPadding: 2 },
+                body: [
+                    [{ content: `Bill To: ${inv.client_name || '--'}\n${inv.client_address || ''}`, styles: { fontStyle: 'bold' } },
+                     { content: `GSTIN: ${inv.client_gstin || '--'}\nState: ${inv.client_state || '--'}`, styles: { fontStyle: 'bold' } }],
+                    [{ content: `Project Name: ${inv.project_name}`, colSpan: 2, styles: { fontStyle: 'bold' } }, '']
+                ],
+                columnStyles: { 0: { cellWidth: 91 }, 1: { cellWidth: 91 } }
+            });
+
+            y = doc.lastAutoTable.finalY + 4;
+
+            const qty = inv.quantity || '1';
+            const rate = inv.rate || inv.subtotal;
+            doc.autoTable({
+                startY: y,
+                head: [['SL. no.', 'Description', 'HSN/SAC', 'QTY', 'RATE', 'AMOUNT']],
+                body: [['01', inv.item_description || inv.project_name, inv.hsn_sac || '', qty, rate ? `${rate}` : '', parseFloat(inv.subtotal || 0).toLocaleString('en-IN')]],
+                headStyles: { fillColor: [90, 150, 220], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+                styles: { fontSize: 8, cellPadding: 2.5 },
+                columnStyles: { 0: { cellWidth: 14 }, 1: { cellWidth: 80 }, 2: { cellWidth: 20 }, 3: { cellWidth: 22 }, 4: { cellWidth: 20 }, 5: { cellWidth: 26, halign: 'right' } }
+            });
+
+            y = doc.lastAutoTable.finalY;
+            const gstRows = [];
+            gstRows.push(['Sub Total', `${parseFloat(inv.subtotal || 0).toLocaleString('en-IN')}`]);
+            if (inv.gst_type === 'CGST_SGST') {
+                gstRows.push([`CGST (${(inv.gst_rate / 2).toFixed(1)}%)`, `${(parseFloat(inv.tax_amount || 0) / 2).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`]);
+                gstRows.push([`SGST (${(inv.gst_rate / 2).toFixed(1)}%)`, `${(parseFloat(inv.tax_amount || 0) / 2).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`]);
+            } else if (inv.gst_type === 'IGST') {
+                gstRows.push([`IGST (${inv.gst_rate}%)`, `${parseFloat(inv.tax_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`]);
+            }
+            gstRows.push([{ content: 'Grand Total', styles: { fontStyle: 'bold' } }, { content: `${parseFloat(inv.grand_total || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }]);
+
+            doc.autoTable({
+                startY: y,
+                theme: 'grid',
+                styles: { fontSize: 8, cellPadding: 2 },
+                body: gstRows,
+                columnStyles: { 0: { cellWidth: 148, halign: 'right' }, 1: { cellWidth: 34, halign: 'right' } },
+                margin: { left: 14 }
+            });
+
+            y = doc.lastAutoTable.finalY;
+            const amountWords = numberToWordsIndian(parseFloat(inv.grand_total || 0));
+            doc.autoTable({
+                startY: y,
+                theme: 'grid',
+                styles: { fontSize: 7.5, cellPadding: 2 },
+                body: [[`Amount in Words: ${amountWords}`]],
+                columnStyles: { 0: { cellWidth: 182 } }
+            });
+
+            y = doc.lastAutoTable.finalY + 6;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8);
+            doc.text("Company Bank Details", 14, y);
+            doc.setFont("helvetica", "normal");
+            doc.text([
+                "A/c Name: ANANT ELECTRICAL",
+                "A/c Number: 065361900010371",
+                "Bank Name: YES BANK",
+                "IFSC Code: YESB0000653",
+                "Branch: YES BANK LTD - BANGALORE JAYANAGAR"
+            ], 14, y + 5);
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            doc.text("For Anant Electrical", 165, y + 2, { align: 'center' });
+            doc.text("Authorized Signatory", 165, y + 7, { align: 'center' });
+
+            doc.save(`Anant_Electrical_Invoice_${(inv.invoice_no || inv.id).replace(/\//g, '-')}.pdf`);
         }
 
         async function editProjectCosts(id) {
@@ -1225,13 +1544,88 @@
             }
         }
 
+        function clearProjectMonthFilter() {
+            const monthInput = document.getElementById('project-month-filter');
+            if (monthInput) monthInput.value = '';
+            renderProjectInvoicesSection();
+        }
+
+        function setProjectMonthFilterQuick(which) {
+            const d = new Date();
+            if (which === 'last') d.setMonth(d.getMonth() - 1);
+            const monthInput = document.getElementById('project-month-filter');
+            if (monthInput) monthInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            renderProjectInvoicesSection();
+        }
+
+        function stepProjectMonthFilter(delta) {
+            const monthInput = document.getElementById('project-month-filter');
+            if (!monthInput) return;
+            const base = monthInput.value ? new Date(monthInput.value + '-01') : new Date();
+            base.setMonth(base.getMonth() + delta);
+            monthInput.value = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}`;
+            renderProjectInvoicesSection();
+        }
+
+        // --- YEARLY FILTER ---
+        let projectFilterMode = 'month';
+
+        function setProjectFilterMode(mode) {
+            projectFilterMode = mode;
+            const monthBtn = document.getElementById('proj-filter-mode-btn-month');
+            const yearBtn = document.getElementById('proj-filter-mode-btn-year');
+            const monthRow = document.getElementById('proj-month-filter-row');
+            const yearRow = document.getElementById('proj-year-filter-row');
+
+            if (mode === 'month') {
+                monthBtn.className = "px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition cursor-pointer bg-[#16212E] text-white";
+                yearBtn.className = "px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition cursor-pointer text-slate-500 bg-white border border-gray-200";
+                monthRow.classList.remove('hidden'); monthRow.classList.add('flex');
+                yearRow.classList.add('hidden'); yearRow.classList.remove('flex');
+                document.getElementById('project-year-filter').value = '';
+            } else {
+                yearBtn.className = "px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition cursor-pointer bg-[#16212E] text-white";
+                monthBtn.className = "px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition cursor-pointer text-slate-500 bg-white border border-gray-200";
+                yearRow.classList.remove('hidden'); yearRow.classList.add('flex');
+                monthRow.classList.add('hidden'); monthRow.classList.remove('flex');
+                document.getElementById('project-month-filter').value = '';
+            }
+            renderProjectInvoicesSection();
+        }
+
+        function setProjectYearFilterQuick(which) {
+            const year = new Date().getFullYear() - (which === 'last' ? 1 : 0);
+            document.getElementById('project-year-filter').value = year;
+            renderProjectInvoicesSection();
+        }
+
+        function stepProjectYearFilter(delta) {
+            const yearInput = document.getElementById('project-year-filter');
+            const current = parseInt(yearInput.value) || new Date().getFullYear();
+            yearInput.value = current + delta;
+            renderProjectInvoicesSection();
+        }
+
+        function clearProjectYearFilter() {
+            document.getElementById('project-year-filter').value = '';
+            renderProjectInvoicesSection();
+        }
+
         function renderProjectInvoicesSection() {
             const turnoverEl = document.getElementById('project-turnover-banner');
             const summaryEl = document.getElementById('project-invoice-summary');
             const listEl = document.getElementById('project-invoice-list');
             if (!summaryEl || !listEl) return;
 
-            const invoices = runtimeProjectInvoices || [];
+            const allInvoices = runtimeProjectInvoices || [];
+            const monthFilterVal = (document.getElementById('project-month-filter') || {}).value || '';
+            const yearFilterVal = (document.getElementById('project-year-filter') || {}).value || '';
+            const invoices = yearFilterVal
+                ? allInvoices.filter(i => (i.invoice_date || '').slice(0, 4) === String(yearFilterVal))
+                : (monthFilterVal
+                    ? allInvoices.filter(i => (i.invoice_date || '').slice(0, 7) === monthFilterVal)
+                    : allInvoices);
+
             const totalTurnover = invoices.reduce((sum, i) => sum + parseFloat(i.subtotal || 0), 0);
             const totalInvoiced = invoices.reduce((sum, i) => sum + parseFloat(i.grand_total || 0), 0);
             const totalReceived = invoices.filter(i => i.payment_status === 'Received').reduce((sum, i) => sum + parseFloat(i.grand_total || 0), 0);
@@ -1241,12 +1635,16 @@
                 return sum + (parseFloat(i.subtotal || 0) - cost);
             }, 0);
 
+            const monthLabel = yearFilterVal
+                ? String(yearFilterVal)
+                : (monthFilterVal ? new Date(monthFilterVal + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : null);
+
             if (turnoverEl) {
                 turnoverEl.innerHTML = `
                     <div class="bg-gradient-to-r from-[#16212E] to-[#2A3B52] text-white rounded-2xl p-4 flex items-center justify-between shadow-sm">
                         <div>
-                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Total Company Turnover</p>
-                            <p class="text-[9px] text-slate-400">Sum of all invoice Sub Totals (excl. GST) across ${invoices.length} invoice${invoices.length === 1 ? '' : 's'}</p>
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Total Company Turnover${monthLabel ? ` — ${monthLabel}` : ''}</p>
+                            <p class="text-[9px] text-slate-400">Sum of Sub Totals (excl. GST) across ${invoices.length} invoice${invoices.length === 1 ? '' : 's'}${monthLabel ? '' : ' (all time)'}</p>
                         </div>
                         <p class="text-2xl font-black">₹${totalTurnover.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
                     </div>`;
@@ -1270,12 +1668,26 @@
                     <p class="text-sm font-black ${totalProfit >= 0 ? 'text-violet-700' : 'text-rose-700'}">₹${Math.abs(totalProfit).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
                 </div>`;
 
-            if (invoices.length === 0) {
+            const searchInput = document.getElementById('project-search-input');
+            const searchTerm = (searchInput && searchInput.value.trim().toLowerCase()) || '';
+            const visibleInvoices = searchTerm
+                ? invoices.filter(i => (i.project_name || '').toLowerCase().includes(searchTerm) || (i.client_name || '').toLowerCase().includes(searchTerm))
+                : invoices;
+
+            if (allInvoices.length === 0) {
                 listEl.innerHTML = `<p class="text-xs text-purple-900/60 italic p-4">No project invoices added yet.</p>`;
                 return;
             }
+            if (invoices.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-purple-900/60 italic p-4">No invoices in ${monthLabel}.</p>`;
+                return;
+            }
+            if (visibleInvoices.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-purple-900/60 italic p-4">No projects match "${searchTerm}"${monthLabel ? ` in ${monthLabel}` : ''}.</p>`;
+                return;
+            }
 
-            listEl.innerHTML = invoices.map(inv => {
+            listEl.innerHTML = visibleInvoices.map(inv => {
                 const isReceived = inv.payment_status === 'Received';
                 const gstLabel = inv.gst_type === 'CGST_SGST' ? `CGST+SGST ${inv.gst_rate}%` : (inv.gst_type === 'IGST' ? `IGST ${inv.gst_rate}%` : (inv.gst_type === 'MANUAL' ? 'Manual Total' : 'No GST'));
                 const materialCost = parseFloat(inv.material_cost || 0);
@@ -1302,6 +1714,8 @@
                         <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Grand Total</p>
                         <p class="text-base font-bold text-slate-900 mb-2">₹${parseFloat(inv.grand_total || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
                         <div class="flex gap-1.5 justify-end">
+                            <button onclick="downloadProjectInvoicePDF(${inv.id})" class="bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Invoice PDF</button>
+                            <button onclick="editFullProjectInvoice(${inv.id})" class="bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Edit</button>
                             <button onclick="editProjectCosts(${inv.id})" class="bg-violet-100 hover:bg-violet-200 text-violet-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Edit Cost</button>
                             ${isReceived
                                 ? `<button onclick="toggleProjectPaymentStatus(${inv.id}, 'Pending')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Mark Pending</button>`
