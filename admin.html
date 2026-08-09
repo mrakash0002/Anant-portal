@@ -122,6 +122,7 @@
             <button onclick="switchAdminMenu('monthly')" id="menu-btn-monthly" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Monthly Statement</button>
             <button onclick="switchAdminMenu('payment')" id="menu-btn-payment" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Payment Status</button>
             <button onclick="switchAdminMenu('projects')" id="menu-btn-projects" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Projects</button>
+            <button onclick="switchAdminMenu('overview')" id="menu-btn-overview" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Company Overview</button>
         </nav>
 
         <div id="punch-in-alerts-banner" class="hidden space-y-2"></div>
@@ -383,6 +384,34 @@
             </div>
             <div id="project-invoice-list" class="space-y-3">
                 <p class="text-xs text-purple-900/60 italic p-4">Loading projects...</p>
+            </div>
+        </section>
+        </div>
+
+        <!-- COMPANY OVERVIEW (Payroll + Projects combined) -->
+        <div id="menu-view-overview" class="hidden space-y-6">
+        <section class="panel rounded-2xl shadow-sm p-6">
+            <div class="mb-4">
+                <h2 class="text-base font-bold tracking-tight text-slate-900">Company Overview</h2>
+                <p class="text-xs text-slate-500">Payroll cost and project revenue together.</p>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-end gap-1.5 mb-3">
+                <button type="button" onclick="stepOverviewMonthFilter(-1)" class="p-2 bg-white hover:bg-slate-50 border border-gray-200 rounded-lg text-slate-500 transition cursor-pointer" title="Previous month">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <input type="month" id="overview-month-filter" onchange="renderCompanyOverview()" class="p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold outline-none focus:border-[#16212E]">
+                <button type="button" onclick="stepOverviewMonthFilter(1)" class="p-2 bg-white hover:bg-slate-50 border border-gray-200 rounded-lg text-slate-500 transition cursor-pointer" title="Next month">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+                <span class="w-px h-5 bg-gray-200 mx-0.5"></span>
+                <button type="button" onclick="setOverviewMonthFilterQuick('this')" class="px-2.5 py-2 bg-white hover:bg-slate-50 border border-gray-200 rounded-lg text-slate-600 text-[10px] font-semibold uppercase tracking-wide transition cursor-pointer whitespace-nowrap">This Month</button>
+                <button type="button" onclick="setOverviewMonthFilterQuick('last')" class="px-2.5 py-2 bg-white hover:bg-slate-50 border border-gray-200 rounded-lg text-slate-600 text-[10px] font-semibold uppercase tracking-wide transition cursor-pointer whitespace-nowrap">Last Month</button>
+                <button type="button" onclick="clearOverviewMonthFilter()" id="overview-all-time-btn" class="px-2.5 py-2 bg-[#16212E] text-white text-[10px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap">All Time</button>
+            </div>
+
+            <div id="company-overview-view">
+                <p class="text-xs text-purple-900/60 italic p-4">Loading overview...</p>
             </div>
         </section>
         </div>
@@ -678,7 +707,7 @@
 
         function switchAdminMenu(view) {
             localStorage.setItem('anant_admin_active_menu', view);
-            ['shifts', 'analytics', 'employees', 'monthly', 'payment', 'projects'].forEach(v => {
+            ['shifts', 'analytics', 'employees', 'monthly', 'payment', 'projects', 'overview'].forEach(v => {
                 const section = document.getElementById(`menu-view-${v}`);
                 const btn = document.getElementById(`menu-btn-${v}`);
                 if (v === view) {
@@ -713,6 +742,7 @@
                 renderPaymentStatusSection();
                 renderProjectInvoicesSection();
                 populateLaborEmployeeSelect();
+                renderCompanyOverview();
                 checkForNewPunchIns();
 
                 if(currentlySelectedWorkerEmail) {
@@ -1326,6 +1356,32 @@
             }
         }
 
+        async function recordAdvancePayment(id) {
+            const inv = (runtimeProjectInvoices || []).find(i => i.id === id);
+            if (!inv) return;
+
+            const amountInput = prompt(`Total advance received so far for "${inv.project_name}" (₹):`, inv.advance_received || 0);
+            if (amountInput === null) return;
+            const advance_received = parseFloat(amountInput) || 0;
+            if (advance_received > parseFloat(inv.grand_total || 0)) {
+                if (!confirm("This advance is more than the Grand Total. Continue anyway?")) return;
+            }
+            const notesInput = prompt("Note (optional, e.g. 'via UPI on 5 Aug'):", inv.advance_notes || "");
+            if (notesInput === null) return;
+
+            try {
+                await fetch(`${SUPABASE_URL}project_invoices?id=eq.${id}`, {
+                    method: 'PATCH',
+                    headers: HEADERS,
+                    body: JSON.stringify({ advance_received, advance_notes: notesInput.trim() })
+                });
+                await fetchAllDataFromNode();
+            } catch (err) {
+                console.error("Advance update error: ", err);
+                alert("Failed to record advance. Please try again.");
+            }
+        }
+
         async function deleteProjectInvoice(id) {
             if (!confirm("Delete this invoice record? This cannot be undone.")) return;
             try {
@@ -1628,8 +1684,9 @@
 
             const totalTurnover = invoices.reduce((sum, i) => sum + parseFloat(i.subtotal || 0), 0);
             const totalInvoiced = invoices.reduce((sum, i) => sum + parseFloat(i.grand_total || 0), 0);
-            const totalReceived = invoices.filter(i => i.payment_status === 'Received').reduce((sum, i) => sum + parseFloat(i.grand_total || 0), 0);
+            const totalReceived = invoices.reduce((sum, i) => sum + (i.payment_status === 'Received' ? parseFloat(i.grand_total || 0) : parseFloat(i.advance_received || 0)), 0);
             const totalPending = totalInvoiced - totalReceived;
+            const overdueInvoices = invoices.filter(i => i.payment_status !== 'Received' && i.invoice_date && Math.floor((Date.now() - new Date(i.invoice_date).getTime()) / 86400000) >= 30);
             const totalProfit = invoices.reduce((sum, i) => {
                 const cost = parseFloat(i.material_cost || 0) + parseFloat(i.labor_cost || 0) + parseFloat(i.other_cost || 0);
                 return sum + (parseFloat(i.subtotal || 0) - cost);
@@ -1658,10 +1715,12 @@
                 <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
                     <p class="text-[9px] font-bold text-emerald-700 uppercase tracking-wider">Received</p>
                     <p class="text-sm font-black text-emerald-700">₹${totalReceived.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    <p class="text-[8px] text-emerald-600/70 mt-0.5">Incl. advances</p>
                 </div>
                 <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
                     <p class="text-[9px] font-bold text-amber-700 uppercase tracking-wider">Pending</p>
                     <p class="text-sm font-black text-amber-700">₹${totalPending.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    ${overdueInvoices.length > 0 ? `<p class="text-[8px] font-bold text-rose-600 mt-0.5">⚠ ${overdueInvoices.length} overdue 30d+</p>` : ''}
                 </div>
                 <div class="${totalProfit >= 0 ? 'bg-violet-50 border-violet-200' : 'bg-rose-50 border-rose-200'} border rounded-xl p-3 text-center">
                     <p class="text-[9px] font-bold ${totalProfit >= 0 ? 'text-violet-700' : 'text-rose-700'} uppercase tracking-wider">${totalProfit >= 0 ? 'Total Profit' : 'Total Loss'}</p>
@@ -1689,6 +1748,8 @@
 
             listEl.innerHTML = visibleInvoices.map(inv => {
                 const isReceived = inv.payment_status === 'Received';
+                const advanceReceived = parseFloat(inv.advance_received || 0);
+                const balanceDue = Math.max(0, parseFloat(inv.grand_total || 0) - advanceReceived);
                 const gstLabel = inv.gst_type === 'CGST_SGST' ? `CGST+SGST ${inv.gst_rate}%` : (inv.gst_type === 'IGST' ? `IGST ${inv.gst_rate}%` : (inv.gst_type === 'MANUAL' ? 'Manual Total' : 'No GST'));
                 const materialCost = parseFloat(inv.material_cost || 0);
                 const laborCost = parseFloat(inv.labor_cost || 0);
@@ -1696,18 +1757,23 @@
                 const totalCost = materialCost + laborCost + otherCost;
                 const profit = parseFloat(inv.subtotal || 0) - totalCost;
                 const isProfit = profit >= 0;
+                const daysSinceInvoice = inv.invoice_date ? Math.floor((Date.now() - new Date(inv.invoice_date).getTime()) / 86400000) : 0;
+                const isOverdue = !isReceived && daysSinceInvoice >= 30;
                 return `
-                <div class="border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                <div class="border ${isOverdue ? 'border-rose-300' : 'border-gray-200'} rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="font-bold text-sm text-slate-900">${inv.project_name}</span>
                             <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${isReceived ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${inv.payment_status}</span>
+                            ${!isReceived && advanceReceived > 0 ? `<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Advance ₹${advanceReceived.toLocaleString('en-IN')}</span>` : ''}
+                            ${isOverdue ? `<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">⚠ Overdue ${daysSinceInvoice}d</span>` : ''}
                             <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${isProfit ? 'bg-violet-100 text-violet-700' : 'bg-rose-100 text-rose-700'}">${isProfit ? 'Profit' : 'Loss'} ₹${Math.abs(profit).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                         </div>
                         <p class="text-[11px] text-slate-500 mt-1">${inv.client_name || 'No client name'} ${inv.invoice_no ? `&middot; Invoice #${inv.invoice_no}` : ''} ${inv.invoice_date ? `&middot; ${new Date(inv.invoice_date).toLocaleDateString('en-IN')}` : ''}</p>
                         <p class="text-[10px] text-slate-400 mt-1">Sub Total ₹${parseFloat(inv.subtotal || 0).toLocaleString('en-IN')} &middot; ${gstLabel} &middot; Tax ₹${parseFloat(inv.tax_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
                         ${totalCost > 0 ? `<p class="text-[10px] text-slate-400 mt-0.5">Cost: ₹${materialCost.toLocaleString('en-IN')} material + ₹${laborCost.toLocaleString('en-IN')} labor${otherCost > 0 ? ` + ₹${otherCost.toLocaleString('en-IN')} other` : ''} = ₹${totalCost.toLocaleString('en-IN')} total</p>` : `<p class="text-[10px] text-slate-400 mt-0.5">No cost/usage entered yet</p>`}
                         ${Array.isArray(inv.labor_details) && inv.labor_details.length > 0 ? `<p class="text-[10px] text-slate-400 mt-0.5">Labor: ${inv.labor_details.map(l => `${l.name} (${l.days}d)`).join(', ')}</p>` : ''}
+                        ${!isReceived && advanceReceived > 0 ? `<p class="text-[10px] text-blue-600 mt-1">Advance received: ₹${advanceReceived.toLocaleString('en-IN')} &middot; Balance due: ₹${balanceDue.toLocaleString('en-IN')}${inv.advance_notes ? ` &middot; ${inv.advance_notes}` : ''}</p>` : ''}
                         ${isReceived && inv.payment_received_date ? `<p class="text-[10px] text-emerald-600 mt-1">Received on ${new Date(inv.payment_received_date).toLocaleDateString('en-IN')}</p>` : ''}
                     </div>
                     <div class="text-right shrink-0">
@@ -1717,6 +1783,7 @@
                             <button onclick="downloadProjectInvoicePDF(${inv.id})" class="bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Invoice PDF</button>
                             <button onclick="editFullProjectInvoice(${inv.id})" class="bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Edit</button>
                             <button onclick="editProjectCosts(${inv.id})" class="bg-violet-100 hover:bg-violet-200 text-violet-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Edit Cost</button>
+                            ${!isReceived ? `<button onclick="recordAdvancePayment(${inv.id})" class="bg-blue-100 hover:bg-blue-200 text-blue-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">${advanceReceived > 0 ? 'Edit Advance' : 'Record Advance'}</button>` : ''}
                             ${isReceived
                                 ? `<button onclick="toggleProjectPaymentStatus(${inv.id}, 'Pending')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Mark Pending</button>`
                                 : `<button onclick="toggleProjectPaymentStatus(${inv.id}, 'Received')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Mark Received</button>`
@@ -1726,6 +1793,150 @@
                     </div>
                 </div>`;
             }).join('');
+        }
+
+        // --- COMPANY OVERVIEW (Payroll + Projects combined, all-time) ---
+        function stepOverviewMonthFilter(delta) {
+            const monthInput = document.getElementById('overview-month-filter');
+            if (!monthInput) return;
+            const base = monthInput.value ? new Date(monthInput.value + '-01') : new Date();
+            base.setMonth(base.getMonth() + delta);
+            monthInput.value = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}`;
+            renderCompanyOverview();
+        }
+
+        function setOverviewMonthFilterQuick(which) {
+            const d = new Date();
+            if (which === 'last') d.setMonth(d.getMonth() - 1);
+            document.getElementById('overview-month-filter').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            renderCompanyOverview();
+        }
+
+        function clearOverviewMonthFilter() {
+            document.getElementById('overview-month-filter').value = '';
+            renderCompanyOverview();
+        }
+
+        function renderCompanyOverview() {
+            const container = document.getElementById('company-overview-view');
+            if (!container) return;
+
+            const monthFilterVal = (document.getElementById('overview-month-filter') || {}).value || '';
+            const allTimeBtn = document.getElementById('overview-all-time-btn');
+            if (allTimeBtn) {
+                allTimeBtn.className = monthFilterVal
+                    ? "px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap"
+                    : "px-2.5 py-2 bg-[#16212E] text-white text-[10px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap";
+            }
+            const monthLabel = monthFilterVal ? new Date(monthFilterVal + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : null;
+
+            // Payroll cost: approved shifts x each worker's daily rate, filtered to the selected month (or all-time)
+            const approvedShifts = (runtimeShifts || []).filter(s => {
+                if (s.status !== 'Approved') return false;
+                if (!monthFilterVal) return true;
+                const d = new Date(s.punch_in_time || s.created_at);
+                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                return key === monthFilterVal;
+            });
+            const totalSalary = approvedShifts.reduce((sum, s) => {
+                const worker = (runtimeWorkers || []).find(w => w.email === s.worker_email);
+                return sum + parseFloat((worker && worker.fixed_salary) || 0);
+            }, 0);
+            const totalBrokerCharges = approvedShifts.reduce((sum, s) => {
+                const worker = (runtimeWorkers || []).find(w => w.email === s.worker_email);
+                return sum + parseFloat((worker && worker.broker_rate) || 0);
+            }, 0);
+            const approvedExpenseShifts = (runtimeShifts || []).filter(s => {
+                if (s.expense_status !== 'Approved') return false;
+                if (!monthFilterVal) return true;
+                const d = new Date(s.punch_in_time || s.created_at);
+                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                return key === monthFilterVal;
+            });
+            const totalDailyExpenses = approvedExpenseShifts.reduce((sum, s) =>
+                sum + parseFloat(s.transport_expense || 0) + parseFloat(s.food_expense || 0) + parseFloat(s.material_expense || 0), 0);
+            const totalBonuses = (runtimeMonthlyBalances || [])
+                .filter(r => !monthFilterVal || r.month === monthFilterVal)
+                .reduce((sum, r) => sum + parseFloat(r.bonus_amount || 0), 0);
+            const totalPayrollAllIn = totalSalary + totalBrokerCharges + totalDailyExpenses + totalBonuses;
+
+            // Project figures: filtered to the selected month (or all-time)
+            const invoices = (runtimeProjectInvoices || []).filter(i => !monthFilterVal || (i.invoice_date || '').slice(0, 7) === monthFilterVal);
+            const totalTurnover = invoices.reduce((sum, i) => sum + parseFloat(i.subtotal || 0), 0);
+            const totalInvoiced = invoices.reduce((sum, i) => sum + parseFloat(i.grand_total || 0), 0);
+            const totalReceived = invoices.reduce((sum, i) => sum + (i.payment_status === 'Received' ? parseFloat(i.grand_total || 0) : parseFloat(i.advance_received || 0)), 0);
+            const totalPending = totalInvoiced - totalReceived;
+            const totalMaterialOther = invoices.reduce((sum, i) => sum + parseFloat(i.material_cost || 0) + parseFloat(i.other_cost || 0), 0);
+            const totalProjectLabor = invoices.reduce((sum, i) => sum + parseFloat(i.labor_cost || 0), 0);
+
+            // Net company profit: turnover minus full payroll outflow minus material/other project costs
+            const netCompanyProfit = totalTurnover - totalPayrollAllIn - totalMaterialOther;
+            const isProfit = netCompanyProfit >= 0;
+
+            container.innerHTML = `
+                <div class="bg-gradient-to-r from-[#16212E] to-[#2A3B52] text-white rounded-2xl p-4 flex items-center justify-between shadow-sm mb-4">
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Net Company Profit${isProfit ? '' : ' (Loss)'}${monthLabel ? ` — ${monthLabel}` : ' — All Time'}</p>
+                        <p class="text-[9px] text-slate-400">Turnover minus full payroll outflow minus material/other project costs</p>
+                    </div>
+                    <p class="text-2xl font-black ${isProfit ? '' : 'text-rose-400'}">₹${Math.abs(netCompanyProfit).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                </div>
+
+                <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">Revenue (Projects)</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Turnover</p>
+                        <p class="text-sm font-black text-slate-900">₹${totalTurnover.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Invoiced (incl. GST)</p>
+                        <p class="text-sm font-black text-slate-900">₹${totalInvoiced.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
+                        <p class="text-[9px] font-bold text-emerald-700 uppercase tracking-wider">Received</p>
+                        <p class="text-sm font-black text-emerald-700">₹${totalReceived.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                        <p class="text-[8px] text-emerald-600/70 mt-0.5">Incl. advances</p>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                        <p class="text-[9px] font-bold text-amber-700 uppercase tracking-wider">Pending</p>
+                        <p class="text-sm font-black text-amber-700">₹${totalPending.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    </div>
+                </div>
+
+                <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">Payroll Outflow (all employees${monthLabel ? `, ${monthLabel}` : ', all-time'})</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Salary</p>
+                        <p class="text-sm font-black text-slate-900">₹${totalSalary.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                        <p class="text-[8px] text-slate-400 mt-0.5">Approved shifts &times; rate</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Broker Charges</p>
+                        <p class="text-sm font-black text-slate-900">₹${totalBrokerCharges.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                        <p class="text-[8px] text-slate-400 mt-0.5">Approved shifts &times; broker rate</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Daily Expenses</p>
+                        <p class="text-sm font-black text-slate-900">₹${totalDailyExpenses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                        <p class="text-[8px] text-slate-400 mt-0.5">Approved transport+food+material</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Bonuses</p>
+                        <p class="text-sm font-black text-slate-900">₹${totalBonuses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    </div>
+                </div>
+                <div class="bg-slate-100 border border-slate-300 rounded-xl p-3 text-center mb-5">
+                    <p class="text-[9px] font-bold text-slate-600 uppercase tracking-wider">Total Payroll Outflow</p>
+                    <p class="text-base font-black text-slate-900">₹${totalPayrollAllIn.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                </div>
+
+                <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">Project Costs</h3>
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Material + Other</p>
+                    <p class="text-sm font-black text-slate-900">₹${totalMaterialOther.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    <p class="text-[8px] text-slate-400 mt-0.5">From project invoices</p>
+                </div>
+                <p class="text-[9px] text-gray-400 mt-3">Note: "Total Payroll Outflow" above is your company-wide cost across all employees and shifts (salary + broker + daily expenses + bonuses), while each project's own "Labor Cost" (₹${totalProjectLabor.toLocaleString('en-IN', { maximumFractionDigits: 0 })} total) is the portion of that same payroll you've specifically attributed to a project in the Projects tab &mdash; the two aren't added together here to avoid double-counting.</p>`;
         }
 
         async function markPaymentPaid(email, month) {
