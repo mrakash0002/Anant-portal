@@ -13,6 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @theme {
             /* Copper accent scale - replaces the default Tailwind purple ramp everywhere
@@ -231,8 +232,17 @@
                         <input type="text" id="proj-name" placeholder="e.g. Chola GL - Naganathapura" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
                     </div>
                     <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Saved Client &mdash; pick to autofill</label>
+                        <select id="proj-saved-client-select" onchange="applySavedClient()" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+                            <option value="">Select saved client...</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Client / Bill To</label>
-                        <input type="text" id="proj-client" placeholder="e.g. Gabo Enterprises Pvt Ltd" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+                        <div class="flex gap-2">
+                            <input type="text" id="proj-client" placeholder="e.g. Gabo Enterprises Pvt Ltd" class="flex-1 p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+                            <button type="button" onclick="saveClientForReuse()" class="bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-semibold px-3 rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap" title="Save this client's details for next time">Save Client</button>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Invoice No</label>
@@ -245,6 +255,7 @@
                     <div>
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Sub Total (₹)</label>
                         <input type="number" id="proj-subtotal" placeholder="0" oninput="updateProjectInvoicePreview()" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono font-bold outline-none focus:border-[#16212E]">
+                        <p id="proj-subtotal-hint" class="text-[9px] text-gray-400 mt-1 hidden">Auto-filled from line items below &mdash; add/remove items to change it.</p>
                     </div>
                 </div>
 
@@ -297,10 +308,16 @@
                     </div>
                     <div id="proj-labor-lines" class="mt-2 space-y-1"></div>
                     <p class="text-[9px] text-gray-400 mt-1">Cost is pulled automatically from each employee's daily pay rate on file &times; days entered.</p>
+
+                    <label class="flex items-center gap-2 mt-3 cursor-pointer">
+                        <input type="checkbox" id="proj-include-in-overview" checked onchange="updateProjectInvoicePreview()" class="w-4 h-4 rounded border-gray-300 text-[#16212E] focus:ring-[#16212E]">
+                        <span class="text-[10px] font-semibold text-slate-600">Include Material + Other Cost in Company Overview</span>
+                    </label>
+                    <p class="text-[9px] text-gray-400 mt-0.5">Labor cost always counts in Company Overview automatically (it's already part of company-wide payroll). Turn this off to keep Material/Other Cost visible only here in Projects.</p>
                 </div>
 
                 <div class="pt-2 border-t border-slate-200">
-                    <h4 class="text-[10px] font-black uppercase tracking-wider text-slate-600 mb-2">Invoice Details (for PDF) &mdash; optional</h4>
+                    <h4 class="text-[10px] font-black uppercase tracking-wider text-slate-600 mb-2">Client Details (for PDF) &mdash; optional</h4>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div class="sm:col-span-2">
                             <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Client Address</label>
@@ -320,26 +337,30 @@
                                 <input type="text" id="proj-client-state-code" placeholder="e.g. 33" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-200">
+                    <h4 class="text-[10px] font-black uppercase tracking-wider text-slate-600 mb-2">Invoice Line Items (for PDF) &mdash; optional, add as many as needed</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                        <div class="sm:col-span-5">
+                            <input type="text" id="proj-item-description" placeholder="Description of work" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+                        </div>
                         <div class="sm:col-span-2">
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Description of Work</label>
-                            <textarea id="proj-item-description" rows="2" placeholder="e.g. Supplying and Laying of HIKVISION Cat-6 Cable Model Number [DS-1LN6U-W/CCA] &amp; Necessary Pipe With Accessories" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]"></textarea>
+                            <input type="text" id="proj-hsn-sac" placeholder="HSN/SAC" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">HSN/SAC</label>
-                            <input type="text" id="proj-hsn-sac" placeholder="e.g. 8544" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
+                        <div class="sm:col-span-2">
+                            <input type="text" id="proj-quantity" placeholder="Qty e.g. 233Mtr" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Quantity</label>
-                                <input type="text" id="proj-quantity" placeholder="e.g. 233Mtr" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Rate (₹/unit)</label>
-                                <input type="number" id="proj-rate" placeholder="e.g. 67" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
-                            </div>
+                        <div class="sm:col-span-2">
+                            <input type="number" id="proj-rate" placeholder="Rate ₹" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
+                        </div>
+                        <div class="sm:col-span-1">
+                            <button type="button" onclick="addInvoiceLineItem()" class="w-full h-full bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer">+ Add</button>
                         </div>
                     </div>
-                    <p class="text-[9px] text-gray-400 mt-1">Fill these in if you want to generate a proper invoice PDF for this project. The amount shown will still use the Sub Total above.</p>
+                    <div id="proj-line-items-list" class="mt-2 space-y-1"></div>
+                    <p class="text-[9px] text-gray-400 mt-1">Numeric Qty × Rate auto-fills the Sub Total above. Use plain text (e.g. "233Mtr") for Qty when Rate is per-unit but you don't want auto-calc for that row.</p>
                 </div>
 
                 <div id="project-invoice-preview" class="bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-1 font-mono"></div>
@@ -626,7 +647,11 @@
 
                 <!-- SEARCH + BULK ACTIONS -->
                 <div class="mb-3 space-y-2">
-                    <input type="text" id="shift-search-input" oninput="filterShiftsBySearch(this.value)" placeholder="Search by employee name or email..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-purple-400">
+                    <div class="flex gap-2">
+                        <input type="text" id="shift-search-input" oninput="filterShiftsBySearch(this.value)" placeholder="Search by employee name or email..." class="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-purple-400">
+                        <input type="month" id="shifts-month-filter" onchange="renderShiftsStreamDisplay()" class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold outline-none focus:border-purple-400">
+                        <button type="button" onclick="clearShiftsMonthFilter()" id="shifts-all-time-btn" class="px-3 py-2.5 bg-[#16212E] text-white text-[10px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap">All Time</button>
+                    </div>
                     <div id="bulk-actions-toolbar" class="hidden flex flex-wrap items-center gap-2 bg-purple-50 border border-purple-200 rounded-lg p-2.5">
                         <span id="bulk-selected-count" class="text-[10px] font-bold text-purple-900 uppercase tracking-wide mr-auto">0 selected</span>
                         <button onclick="bulkResolve('status', 'Approved')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition cursor-pointer">Approve Shifts</button>
@@ -636,6 +661,9 @@
                         <button onclick="clearBulkSelection()" class="text-[9px] font-semibold uppercase tracking-wide px-2 py-1.5 text-slate-500 hover:text-slate-700 transition cursor-pointer">Clear</button>
                     </div>
                 </div>
+
+                <!-- MONTHLY STATUS BREAKDOWN -->
+                <div id="shifts-monthly-breakdown" class="mb-3"></div>
 
                 <!-- SHIFT LOGS LIST -->
                 <div id="shifts-container-stream" class="space-y-4 flex-grow max-h-[620px] overflow-y-auto pr-1">
@@ -660,6 +688,8 @@
         let runtimeShifts = [];
         let runtimeMonthlyBalances = [];
         let runtimeProjectInvoices = [];
+        let runtimeProjectClients = [];
+        let runtimeOverviewPieChart = null;
         let currentlySelectedWorkerEmail = null;
         let currentFilterStatus = "Pending";
         let monthlyAggregationStore = {};
@@ -734,14 +764,19 @@
                 const projectInvoiceRes = await fetch(`${SUPABASE_URL}project_invoices?order=invoice_date.desc`, { method: "GET", headers: HEADERS });
                 runtimeProjectInvoices = projectInvoiceRes.ok ? await projectInvoiceRes.json() : [];
 
+                const projectClientsRes = await fetch(`${SUPABASE_URL}project_clients?order=name.asc`, { method: "GET", headers: HEADERS });
+                runtimeProjectClients = projectClientsRes.ok ? await projectClientsRes.json() : [];
+
                 renderRegistrySelectorPanel();
                 renderAllDispatchDropdowns();
                 renderShiftsStreamDisplay();
+                renderShiftsMonthlyBreakdown();
                 renderMonthlyReport();
                 renderAnalyticsCharts();
                 renderPaymentStatusSection();
                 renderProjectInvoicesSection();
                 populateLaborEmployeeSelect();
+                populateSavedClientSelect();
                 renderCompanyOverview();
                 checkForNewPunchIns();
 
@@ -1127,6 +1162,122 @@
             return pendingLaborLines.reduce((sum, line) => sum + line.cost, 0);
         }
 
+        // --- INVOICE LINE ITEMS (multiple items per invoice) ---
+        let pendingLineItems = [];
+
+        function addInvoiceLineItem() {
+            const description = document.getElementById('proj-item-description').value.trim();
+            const hsn_sac = document.getElementById('proj-hsn-sac').value.trim();
+            const quantity = document.getElementById('proj-quantity').value.trim();
+            const rateInput = document.getElementById('proj-rate').value;
+            const rate = parseFloat(rateInput) || 0;
+            if (!description) return alert("Please enter a description for the line item.");
+
+            // Auto-calc amount only when quantity is purely numeric; otherwise leave
+            // amount blank and let the Sub Total stay manually editable for this row.
+            const qtyNumeric = parseFloat(quantity);
+            const isQtyNumeric = quantity !== '' && !isNaN(qtyNumeric) && /^[\d.]+$/.test(quantity);
+            const amount = isQtyNumeric ? qtyNumeric * rate : (rate || 0);
+
+            pendingLineItems.push({ description, hsn_sac, quantity, rate, amount });
+            document.getElementById('proj-item-description').value = '';
+            document.getElementById('proj-hsn-sac').value = '';
+            document.getElementById('proj-quantity').value = '';
+            document.getElementById('proj-rate').value = '';
+            renderLineItems();
+            syncSubtotalFromLineItems();
+            updateProjectInvoicePreview();
+        }
+
+        function removeInvoiceLineItem(index) {
+            pendingLineItems.splice(index, 1);
+            renderLineItems();
+            syncSubtotalFromLineItems();
+            updateProjectInvoicePreview();
+        }
+
+        function renderLineItems() {
+            const container = document.getElementById('proj-line-items-list');
+            if (!container) return;
+            if (pendingLineItems.length === 0) {
+                container.innerHTML = `<p class="text-[10px] text-gray-400 italic">No line items added yet &mdash; Sub Total above stays manually editable.</p>`;
+                return;
+            }
+            container.innerHTML = pendingLineItems.map((item, i) => `
+                <div class="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-[11px] gap-2">
+                    <span class="font-semibold text-slate-700 truncate flex-1">${item.description}</span>
+                    <span class="text-slate-400 whitespace-nowrap">${item.hsn_sac || '--'} &middot; ${item.quantity || '--'} &times; ₹${item.rate.toLocaleString('en-IN')}</span>
+                    <span class="font-mono font-bold text-slate-800 whitespace-nowrap">₹${item.amount.toLocaleString('en-IN')}</span>
+                    <button type="button" onclick="removeInvoiceLineItem(${i})" class="text-rose-500 hover:text-rose-700 font-bold px-1 cursor-pointer">✕</button>
+                </div>`).join('');
+        }
+
+        function getLineItemsTotal() {
+            return pendingLineItems.reduce((sum, item) => sum + item.amount, 0);
+        }
+
+        function syncSubtotalFromLineItems() {
+            const subtotalInput = document.getElementById('proj-subtotal');
+            const hint = document.getElementById('proj-subtotal-hint');
+            if (pendingLineItems.length > 0) {
+                subtotalInput.value = getLineItemsTotal();
+                subtotalInput.readOnly = true;
+                subtotalInput.classList.add('bg-slate-100');
+                hint.classList.remove('hidden');
+            } else {
+                subtotalInput.readOnly = false;
+                subtotalInput.classList.remove('bg-slate-100');
+                hint.classList.add('hidden');
+            }
+        }
+
+        // --- SAVED CLIENTS (avoid retyping the same client's details every time) ---
+        function populateSavedClientSelect() {
+            const select = document.getElementById('proj-saved-client-select');
+            if (!select) return;
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">Select saved client...</option>' +
+                (runtimeProjectClients || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            select.value = currentVal;
+        }
+
+        function applySavedClient() {
+            const select = document.getElementById('proj-saved-client-select');
+            const client = (runtimeProjectClients || []).find(c => String(c.id) === select.value);
+            if (!client) return;
+            document.getElementById('proj-client').value = client.name || '';
+            document.getElementById('proj-client-address').value = client.address || '';
+            document.getElementById('proj-client-gstin').value = client.gstin || '';
+            document.getElementById('proj-client-state').value = client.state || '';
+            document.getElementById('proj-client-state-code').value = client.state_code || '';
+        }
+
+        async function saveClientForReuse() {
+            const name = document.getElementById('proj-client').value.trim();
+            if (!name) return alert("Enter the client name first.");
+            const payload = {
+                name,
+                address: document.getElementById('proj-client-address').value.trim(),
+                gstin: document.getElementById('proj-client-gstin').value.trim().toUpperCase(),
+                state: document.getElementById('proj-client-state').value.trim(),
+                state_code: document.getElementById('proj-client-state-code').value.trim()
+            };
+            try {
+                await fetch(`${SUPABASE_URL}project_clients?on_conflict=name`, {
+                    method: 'POST',
+                    headers: { ...HEADERS, 'Prefer': 'return=representation,resolution=merge-duplicates' },
+                    body: JSON.stringify(payload)
+                });
+                const res = await fetch(`${SUPABASE_URL}project_clients?order=name.asc`, { method: 'GET', headers: HEADERS });
+                runtimeProjectClients = res.ok ? await res.json() : [];
+                populateSavedClientSelect();
+                alert(`"${name}" saved. You can pick it from the Saved Client dropdown next time.`);
+            } catch (err) {
+                console.error("Save client error: ", err);
+                alert("Failed to save client. Please try again.");
+            }
+        }
+
         function setProjectInvoiceMode(mode) {
             projectInvoiceMode = mode;
             const autoBtn = document.getElementById('proj-mode-btn-auto');
@@ -1218,8 +1369,13 @@
             document.getElementById('proj-invoice-date').value = new Date().toISOString().slice(0, 10);
             document.getElementById('proj-gst-type').value = 'IGST';
             document.getElementById('proj-gst-rate').value = 18;
+            document.getElementById('proj-include-in-overview').checked = true;
+            document.getElementById('proj-saved-client-select').value = '';
             pendingLaborLines = [];
             renderLaborLines();
+            pendingLineItems = [];
+            renderLineItems();
+            syncSubtotalFromLineItems();
             setProjectInvoiceMode('auto');
             document.getElementById('project-form-title').innerText = 'Add Project Invoice';
             document.getElementById('proj-save-btn').innerText = 'Save Invoice';
@@ -1238,16 +1394,35 @@
             document.getElementById('proj-subtotal').value = inv.subtotal || '';
             document.getElementById('proj-material-cost').value = inv.material_cost || '';
             document.getElementById('proj-other-cost').value = inv.other_cost || '';
+            document.getElementById('proj-include-in-overview').checked = inv.include_cost_in_overview !== false;
             document.getElementById('proj-client-address').value = inv.client_address || '';
             document.getElementById('proj-client-gstin').value = inv.client_gstin || '';
             document.getElementById('proj-client-state').value = inv.client_state || '';
             document.getElementById('proj-client-state-code').value = inv.client_state_code || '';
-            document.getElementById('proj-item-description').value = inv.item_description || '';
-            document.getElementById('proj-hsn-sac').value = inv.hsn_sac || '';
-            document.getElementById('proj-quantity').value = inv.quantity || '';
-            document.getElementById('proj-rate').value = inv.rate || '';
+            document.getElementById('proj-item-description').value = '';
+            document.getElementById('proj-hsn-sac').value = '';
+            document.getElementById('proj-quantity').value = '';
+            document.getElementById('proj-rate').value = '';
+            document.getElementById('proj-saved-client-select').value = '';
             pendingLaborLines = Array.isArray(inv.labor_details) ? [...inv.labor_details] : [];
             renderLaborLines();
+            if (Array.isArray(inv.line_items) && inv.line_items.length > 0) {
+                pendingLineItems = [...inv.line_items];
+            } else if (inv.item_description) {
+                // Legacy single-item invoices: bring the old fields in as one line item
+                pendingLineItems = [{
+                    description: inv.item_description,
+                    hsn_sac: inv.hsn_sac || '',
+                    quantity: inv.quantity || '',
+                    rate: parseFloat(inv.rate) || 0,
+                    amount: parseFloat(inv.subtotal) || 0
+                }];
+            } else {
+                pendingLineItems = [];
+            }
+            renderLineItems();
+            syncSubtotalFromLineItems();
+            if (pendingLineItems.length > 0) document.getElementById('proj-subtotal').value = inv.subtotal || getLineItemsTotal();
 
             if (inv.gst_type === 'MANUAL') {
                 setProjectInvoiceMode('manual');
@@ -1286,10 +1461,8 @@
                 client_gstin: document.getElementById('proj-client-gstin').value.trim().toUpperCase(),
                 client_state: document.getElementById('proj-client-state').value.trim(),
                 client_state_code: document.getElementById('proj-client-state-code').value.trim(),
-                item_description: document.getElementById('proj-item-description').value.trim(),
-                hsn_sac: document.getElementById('proj-hsn-sac').value.trim(),
-                quantity: document.getElementById('proj-quantity').value.trim(),
-                rate: parseFloat(document.getElementById('proj-rate').value) || null
+                line_items: pendingLineItems,
+                include_cost_in_overview: document.getElementById('proj-include-in-overview').checked
             };
 
             let payload;
@@ -1493,12 +1666,25 @@
 
             y = doc.lastAutoTable.finalY + 4;
 
-            const qty = inv.quantity || '1';
-            const rate = inv.rate || inv.subtotal;
+            let itemRows;
+            if (Array.isArray(inv.line_items) && inv.line_items.length > 0) {
+                itemRows = inv.line_items.map((item, i) => [
+                    String(i + 1).padStart(2, '0'),
+                    item.description || '',
+                    item.hsn_sac || '',
+                    item.quantity || '',
+                    item.rate ? `${item.rate}` : '',
+                    parseFloat(item.amount || 0).toLocaleString('en-IN')
+                ]);
+            } else {
+                // Legacy single-item invoices
+                itemRows = [['01', inv.item_description || inv.project_name, inv.hsn_sac || '', inv.quantity || '1', inv.rate ? `${inv.rate}` : '', parseFloat(inv.subtotal || 0).toLocaleString('en-IN')]];
+            }
+
             doc.autoTable({
                 startY: y,
                 head: [['SL. no.', 'Description', 'HSN/SAC', 'QTY', 'RATE', 'AMOUNT']],
-                body: [['01', inv.item_description || inv.project_name, inv.hsn_sac || '', qty, rate ? `${rate}` : '', parseFloat(inv.subtotal || 0).toLocaleString('en-IN')]],
+                body: itemRows,
                 headStyles: { fillColor: [90, 150, 220], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
                 styles: { fontSize: 8, cellPadding: 2.5 },
                 columnStyles: { 0: { cellWidth: 14 }, 1: { cellWidth: 80 }, 2: { cellWidth: 20 }, 3: { cellWidth: 22 }, 4: { cellWidth: 20 }, 5: { cellWidth: 26, halign: 'right' } }
@@ -1866,7 +2052,7 @@
             const totalInvoiced = invoices.reduce((sum, i) => sum + parseFloat(i.grand_total || 0), 0);
             const totalReceived = invoices.reduce((sum, i) => sum + (i.payment_status === 'Received' ? parseFloat(i.grand_total || 0) : parseFloat(i.advance_received || 0)), 0);
             const totalPending = totalInvoiced - totalReceived;
-            const totalMaterialOther = invoices.reduce((sum, i) => sum + parseFloat(i.material_cost || 0) + parseFloat(i.other_cost || 0), 0);
+            const totalMaterialOther = invoices.filter(i => i.include_cost_in_overview !== false).reduce((sum, i) => sum + parseFloat(i.material_cost || 0) + parseFloat(i.other_cost || 0), 0);
             const totalProjectLabor = invoices.reduce((sum, i) => sum + parseFloat(i.labor_cost || 0), 0);
 
             // Net company profit: turnover minus full payroll outflow minus material/other project costs
@@ -1880,6 +2066,13 @@
                         <p class="text-[9px] text-slate-400">Turnover minus full payroll outflow minus material/other project costs</p>
                     </div>
                     <p class="text-2xl font-black ${isProfit ? '' : 'text-rose-400'}">₹${Math.abs(netCompanyProfit).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-xl p-4 mb-5">
+                    <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">Where Your Turnover Went${monthLabel ? ` — ${monthLabel}` : ' — All Time'}</h3>
+                    <div class="h-56 sm:h-64">
+                        <canvas id="overview-pie-chart"></canvas>
+                    </div>
                 </div>
 
                 <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">Revenue (Projects)</h3>
@@ -1937,6 +2130,37 @@
                     <p class="text-[8px] text-slate-400 mt-0.5">From project invoices</p>
                 </div>
                 <p class="text-[9px] text-gray-400 mt-3">Note: "Total Payroll Outflow" above is your company-wide cost across all employees and shifts (salary + broker + daily expenses + bonuses), while each project's own "Labor Cost" (₹${totalProjectLabor.toLocaleString('en-IN', { maximumFractionDigits: 0 })} total) is the portion of that same payroll you've specifically attributed to a project in the Projects tab &mdash; the two aren't added together here to avoid double-counting.</p>`;
+
+            const pieCanvas = document.getElementById('overview-pie-chart');
+            if (pieCanvas && window.Chart) {
+                if (runtimeOverviewPieChart) runtimeOverviewPieChart.destroy();
+                // These three slices sum to exactly Turnover (Payroll + Material/Other + Net Profit),
+                // showing where the revenue went rather than double-counting Turnover as its own slice.
+                const pieLabels = ['Payroll Outflow', 'Material + Other Cost'];
+                const pieValues = [Math.max(totalPayrollAllIn, 0), Math.max(totalMaterialOther, 0)];
+                const pieColors = ['#1e3a5f', '#f59e0b'];
+                if (netCompanyProfit >= 0) {
+                    pieLabels.push('Net Profit');
+                    pieValues.push(netCompanyProfit);
+                    pieColors.push('#10b981');
+                } else {
+                    pieLabels.push('Net Loss (overspend)');
+                    pieValues.push(Math.abs(netCompanyProfit));
+                    pieColors.push('#f43f5e');
+                }
+                runtimeOverviewPieChart = new Chart(pieCanvas.getContext('2d'), {
+                    type: 'pie',
+                    data: { labels: pieLabels, datasets: [{ data: pieValues, backgroundColor: pieColors, borderWidth: 1.5, borderColor: '#ffffff' }] },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 }, color: '#4b5563' } },
+                            tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ₹${ctx.raw.toLocaleString('en-IN')}` } }
+                        }
+                    }
+                });
+            }
         }
 
         async function markPaymentPaid(email, month) {
@@ -2641,6 +2865,59 @@
             `;
         }
 
+        function clearShiftsMonthFilter() {
+            document.getElementById('shifts-month-filter').value = '';
+            renderShiftsStreamDisplay();
+        }
+
+        function jumpToShiftsMonth(monthKey) {
+            document.getElementById('shifts-month-filter').value = monthKey;
+            filterShiftsByStatus('All');
+            renderShiftsStreamDisplay();
+        }
+
+        function renderShiftsMonthlyBreakdown() {
+            const container = document.getElementById('shifts-monthly-breakdown');
+            if (!container) return;
+
+            const byMonth = {};
+            (runtimeShifts || []).forEach(s => {
+                const d = new Date(s.punch_in_time || s.created_at);
+                if (isNaN(d.getTime())) return;
+                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                if (!byMonth[key]) byMonth[key] = { Approved: 0, Rejected: 0, Pending: 0, Active: 0 };
+                if (byMonth[key][s.status] !== undefined) byMonth[key][s.status]++;
+            });
+
+            const months = Object.keys(byMonth).sort((a, b) => b.localeCompare(a));
+            if (months.length === 0) { container.innerHTML = ''; return; }
+
+            container.innerHTML = `
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <div class="grid grid-cols-5 gap-1 bg-slate-50 px-3 py-2 text-[9px] font-black uppercase tracking-wider text-slate-500">
+                        <span>Month</span>
+                        <span class="text-center text-emerald-700">Approved</span>
+                        <span class="text-center text-rose-700">Rejected</span>
+                        <span class="text-center text-amber-700">Pending</span>
+                        <span class="text-center text-blue-700">Active</span>
+                    </div>
+                    <div class="max-h-40 overflow-y-auto divide-y divide-slate-100">
+                        ${months.map(key => {
+                            const c = byMonth[key];
+                            const label = new Date(key + '-01').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+                            return `
+                            <button type="button" onclick="jumpToShiftsMonth('${key}')" class="w-full grid grid-cols-5 gap-1 px-3 py-2 text-[10px] hover:bg-slate-50 transition cursor-pointer text-left">
+                                <span class="font-semibold text-slate-700">${label}</span>
+                                <span class="text-center font-mono text-emerald-700">${c.Approved}</span>
+                                <span class="text-center font-mono text-rose-700">${c.Rejected}</span>
+                                <span class="text-center font-mono text-amber-700">${c.Pending}</span>
+                                <span class="text-center font-mono text-blue-700">${c.Active}</span>
+                            </button>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+        }
+
         function renderShiftsStreamDisplay() {
             const container = document.getElementById('shifts-container-stream');
             container.innerHTML = '';
@@ -2655,9 +2932,24 @@
                     return nameStr.includes(shiftSearchQuery) || (s.worker_email || '').toLowerCase().includes(shiftSearchQuery);
                 });
             }
+            const monthFilterEl = document.getElementById('shifts-month-filter');
+            const monthFilterVal = monthFilterEl ? monthFilterEl.value : '';
+            const allTimeBtn = document.getElementById('shifts-all-time-btn');
+            if (allTimeBtn) {
+                allTimeBtn.className = monthFilterVal
+                    ? "px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap"
+                    : "px-3 py-2.5 bg-[#16212E] text-white text-[10px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap";
+            }
+            if (monthFilterVal) {
+                logsToDisplay = logsToDisplay.filter(s => {
+                    const d = new Date(s.punch_in_time || s.created_at);
+                    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    return key === monthFilterVal;
+                });
+            }
             updateBulkToolbar();
             if(logsToDisplay.length === 0) {
-                container.innerHTML = `<div class="text-center py-12 border border-dashed border-slate-200 rounded-xl bg-slate-50/50"><p class="text-xs text-gray-400 italic">No shifts found for status "${currentFilterStatus}".</p></div>`;
+                container.innerHTML = `<div class="text-center py-12 border border-dashed border-slate-200 rounded-xl bg-slate-50/50"><p class="text-xs text-gray-400 italic">No shifts found for status "${currentFilterStatus}"${monthFilterVal ? ` in ${new Date(monthFilterVal + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}` : ''}.</p></div>`;
                 return;
             }
             logsToDisplay.forEach(log => {
