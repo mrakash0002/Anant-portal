@@ -643,6 +643,15 @@
                         <p class="text-[9px] text-gray-400">Employees can also add/update this themselves from their staff portal profile.</p>
                     </div>
 
+                    <div class="pt-2 border-t border-slate-200 space-y-2">
+                        <label class="block text-[10px] font-semibold text-blue-700 uppercase tracking-wider">Reset Login Password</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="edit-reset-password" placeholder="New password" class="flex-1 p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
+                            <button onclick="resetEmployeePassword()" class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold px-3 rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap">Reset</button>
+                        </div>
+                        <p class="text-[9px] text-gray-400">Use this if the employee forgot their password. Takes effect immediately.</p>
+                    </div>
+
                     <button onclick="commitWorkerBalanceModifications()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow-sm">
                         Save Changes
                     </button>
@@ -2833,6 +2842,29 @@
             document.getElementById('edit-bank-name').value = targetWorker.bank_name || '';
             document.getElementById('edit-bank-account').value = targetWorker.bank_account_number || '';
             document.getElementById('edit-bank-ifsc').value = targetWorker.bank_ifsc || '';
+            document.getElementById('edit-reset-password').value = '';
+        }
+
+        async function resetEmployeePassword() {
+            if(!currentlySelectedWorkerEmail) return;
+            const newPassword = document.getElementById('edit-reset-password').value.trim();
+            if (!newPassword) return alert("Please enter a new password first.");
+            if (newPassword.length < 4) return alert("Please use a password of at least 4 characters.");
+            if (!confirm(`Reset the login password for this employee? They'll need the new password to log in.`)) return;
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}rpc/set_worker_password`, {
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify({ p_email: currentlySelectedWorkerEmail, p_password: newPassword })
+                });
+                if (!res.ok || (await res.json()) !== true) throw new Error("RPC returned failure");
+                document.getElementById('edit-reset-password').value = '';
+                alert("Password reset successfully.");
+            } catch (err) {
+                console.error("Password reset error: ", err);
+                alert("Failed to reset password. Please try again.");
+            }
         }
 
         async function commitWorkerBalanceModifications() {
