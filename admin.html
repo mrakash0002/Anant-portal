@@ -81,16 +81,16 @@
             <div class="space-y-3">
                 <div>
                     <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Email</label>
-                    <input type="email" id="auth-admin-email" value="akash@anantelectrical.in" disabled class="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-lg text-xs text-slate-500 outline-none cursor-not-allowed">
+                    <input type="email" id="auth-admin-email" placeholder="you@gmail.com" value="akash@anantelectrical.in" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs text-slate-700 outline-none focus:border-[#16212E]">
                 </div>
                 <div>
                     <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Password</label>
                     <input type="password" id="auth-admin-password" placeholder="Enter password" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs tracking-widest outline-none focus:border-[#16212E]">
                 </div>
-                <button onclick="verifyAdminGatekeeperCredentials()" class="w-full bg-[#16212E] hover:bg-[#0E1620] text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow-sm">
+                <button id="admin-signin-btn" onclick="verifyAdminGatekeeperCredentials()" class="w-full bg-[#16212E] hover:bg-[#0E1620] text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow-sm">
                     Sign In
                 </button>
-                <p id="auth-error-log" class="text-[10px] text-rose-600 font-medium text-center hidden">Incorrect password. Please try again.</p>
+                <p id="auth-error-log" class="text-[10px] text-rose-600 font-medium text-center hidden">Incorrect email or password. Please try again.</p>
             </div>
         </div>
     </div>
@@ -109,11 +109,32 @@
                 </div>
             </div>
             <div class="flex items-center gap-3">
+                <button onclick="openAdminAccountsPanel()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2.5 rounded-lg tracking-wide uppercase shadow-sm transition cursor-pointer">
+                    Manage Admins
+                </button>
                 <button onclick="fetchAllDataFromNode()" class="bg-[#16212E] hover:bg-[#0E1620] text-white text-xs font-semibold px-4 py-2.5 rounded-lg tracking-wide uppercase shadow-sm transition cursor-pointer">
                     Refresh Data
                 </button>
             </div>
         </header>
+
+        <!-- ADMIN ACCOUNTS PANEL -->
+        <div id="admin-accounts-modal" class="hidden fixed inset-0 panel-overlay z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-slate-200 max-h-[85vh] overflow-y-auto">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-display text-lg font-bold tracking-tight text-[#16212E]">Admin Accounts</h2>
+                    <button onclick="closeAdminAccountsPanel()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">✕</button>
+                </div>
+                <div id="admin-accounts-list" class="space-y-2"></div>
+                <div class="pt-3 border-t border-slate-200 space-y-2">
+                    <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500">Add New Admin</h3>
+                    <input type="text" id="new-admin-name" placeholder="Name" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                    <input type="email" id="new-admin-email" placeholder="Email / Gmail ID" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                    <input type="password" id="new-admin-password" placeholder="Password" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                    <button onclick="addAdminAccount()" class="w-full bg-[#16212E] hover:bg-[#0E1620] text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow-sm">Add Admin</button>
+                </div>
+            </div>
+        </div>
 
         <!-- SECTION MENU -->
         <nav class="panel rounded-2xl p-1.5 flex flex-wrap gap-1">
@@ -696,21 +717,38 @@
         let shiftSearchQuery = "";
         let bulkSelectedShiftIds = new Set();
 
+        let currentAdminAccount = null;
+
         function getAdminIdentity() {
-            let name = localStorage.getItem('anant_admin_display_name');
-            if (!name) {
-                name = (prompt("Enter your name (shown on approvals/rejections you make):") || "Admin").trim() || "Admin";
-                localStorage.setItem('anant_admin_display_name', name);
-            }
+            const name = (currentAdminAccount && currentAdminAccount.name) || 'Admin';
             document.getElementById('admin-identity-tag').innerText = `• ${name}`;
             return name;
         }
 
-        function verifyAdminGatekeeperCredentials() {
-            const secretKeyInput = document.getElementById('auth-admin-password').value;
+        async function verifyAdminGatekeeperCredentials() {
+            const emailInput = document.getElementById('auth-admin-email').value.trim().toLowerCase();
+            const passwordInput = document.getElementById('auth-admin-password').value;
             const logPanel = document.getElementById('auth-error-log');
+            const signInBtn = document.getElementById('admin-signin-btn');
+            if (signInBtn) { signInBtn.disabled = true; signInBtn.innerText = 'Checking...'; }
 
-            if(secretKeyInput === "9972349924") {
+            let account = null;
+            try {
+                const res = await fetch(`${SUPABASE_URL}rpc/verify_admin_login`, {
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify({ p_email: emailInput, p_password: passwordInput })
+                });
+                if (res.ok) account = await res.json();
+            } catch (err) {
+                console.error("Admin login check failed: ", err);
+            }
+
+            if (signInBtn) { signInBtn.disabled = false; signInBtn.innerText = 'Sign In'; }
+
+            if(account) {
+                currentAdminAccount = account;
+                localStorage.setItem('anant_admin_last_email', account.email);
                 logPanel.classList.add('hidden');
                 document.getElementById('admin-auth-shield').classList.add('hidden');
                 document.getElementById('main-admin-dashboard-layout').classList.remove('hidden');
@@ -732,6 +770,77 @@
             } else {
                 logPanel.classList.remove('hidden');
                 document.getElementById('auth-admin-password').value = "";
+            }
+        }
+
+        function openAdminAccountsPanel() {
+            document.getElementById('admin-accounts-modal').classList.remove('hidden');
+            renderAdminAccountsList();
+        }
+
+        function closeAdminAccountsPanel() {
+            document.getElementById('admin-accounts-modal').classList.add('hidden');
+        }
+
+        async function renderAdminAccountsList() {
+            const container = document.getElementById('admin-accounts-list');
+            container.innerHTML = `<p class="text-xs text-slate-400 italic">Loading...</p>`;
+            try {
+                const res = await fetch(`${SUPABASE_URL}rpc/list_admin_accounts`, { method: 'POST', headers: HEADERS, body: '{}' });
+                const accounts = res.ok ? await res.json() : [];
+                if (accounts.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 italic">No admin accounts found.</p>`; return; }
+                container.innerHTML = accounts.map(a => `
+                    <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                        <div class="min-w-0">
+                            <p class="text-xs font-semibold text-slate-800 truncate">${a.name}</p>
+                            <p class="text-[10px] text-slate-500 truncate">${a.email}</p>
+                        </div>
+                        ${accounts.length > 1 ? `<button onclick="removeAdminAccount(${a.id}, '${a.email}')" class="text-rose-500 hover:text-rose-700 text-[10px] font-semibold uppercase tracking-wide px-2 py-1 cursor-pointer shrink-0">Remove</button>` : ''}
+                    </div>`).join('');
+            } catch (err) {
+                console.error("List admins error: ", err);
+                container.innerHTML = `<p class="text-xs text-rose-500 italic">Failed to load admin accounts.</p>`;
+            }
+        }
+
+        async function addAdminAccount() {
+            const name = document.getElementById('new-admin-name').value.trim();
+            const email = document.getElementById('new-admin-email').value.trim().toLowerCase();
+            const password = document.getElementById('new-admin-password').value;
+            if (!name || !email || !password) return alert("Please fill in name, email, and password.");
+            if (password.length < 6) return alert("Please use a password of at least 6 characters.");
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}rpc/add_admin_account`, {
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify({ p_name: name, p_email: email, p_password: password })
+                });
+                if (!res.ok || (await res.json()) !== true) throw new Error("RPC returned failure");
+                document.getElementById('new-admin-name').value = '';
+                document.getElementById('new-admin-email').value = '';
+                document.getElementById('new-admin-password').value = '';
+                renderAdminAccountsList();
+                alert(`Admin account added for ${name}.`);
+            } catch (err) {
+                console.error("Add admin error: ", err);
+                alert("Failed to add admin account. That email may already be in use.");
+            }
+        }
+
+        async function removeAdminAccount(id, email) {
+            if (!confirm(`Remove admin access for ${email}?`)) return;
+            try {
+                const res = await fetch(`${SUPABASE_URL}rpc/remove_admin_account`, {
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify({ p_id: id })
+                });
+                if (!res.ok || (await res.json()) !== true) throw new Error("RPC returned failure");
+                renderAdminAccountsList();
+            } catch (err) {
+                console.error("Remove admin error: ", err);
+                alert("Failed to remove admin account.");
             }
         }
 
@@ -2374,7 +2483,7 @@
                 return;
             }
 
-            const newAccountPayload = { name, email, password, fixed_salary, broker_rate, role, morning_advance: 0, salary_advance_taken: 0 };
+            const newAccountPayload = { name, email, fixed_salary, broker_rate, role, morning_advance: 0, salary_advance_taken: 0 };
 
             try {
                 const res = await fetch(`${SUPABASE_URL}workers_registry`, {
@@ -2386,7 +2495,19 @@
                     const errLog = await res.json();
                     throw new Error(errLog.message || "Failed execution query.");
                 }
-                alert(`Account created for ${name}.`);
+
+                // Password is hashed server-side via RPC — never stored or sent in plaintext.
+                const pwRes = await fetch(`${SUPABASE_URL}rpc/set_worker_password`, {
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify({ p_email: email, p_password: password })
+                });
+                if (!pwRes.ok || (await pwRes.json()) !== true) {
+                    alert(`Account created for ${name}, but setting the password failed — please try again from the employee's edit panel.`);
+                } else {
+                    alert(`Account created for ${name}.`);
+                }
+
                 document.getElementById('new-worker-name').value = '';
                 document.getElementById('new-worker-email').value = '';
                 document.getElementById('new-worker-password').value = '';
@@ -3179,6 +3300,13 @@
             link.click();
             document.body.removeChild(link);
         }
+
+        // Prefill the last-used admin login email for convenience
+        (function initAdminLoginEmail() {
+            const savedEmail = localStorage.getItem('anant_admin_last_email');
+            const emailInput = document.getElementById('auth-admin-email');
+            if (savedEmail && emailInput) emailInput.value = savedEmail;
+        })();
     </script>
 </body>
 </html>
