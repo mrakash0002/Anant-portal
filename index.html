@@ -1409,21 +1409,26 @@
             if(!emailInput || !passwordInput) return alert("Please enter both email and password.");
 
             try {
-                const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(emailInput)}`, { method: "GET", headers: HEADERS });
+                // Password check happens server-side via RPC — the password itself
+                // (right or wrong) is never sent back to the browser.
+                const res = await fetch(`${SUPABASE_URL}rpc/verify_worker_login`, {
+                    method: "POST",
+                    headers: HEADERS,
+                    body: JSON.stringify({ p_email: emailInput, p_password: passwordInput })
+                });
                 if (!res.ok) throw new Error(`Status ${res.status}`);
-                const data = await res.json();
+                const worker = await res.json();
 
-                if(data && data.length > 0) {
-                    const worker = data[0];
-                    if(String(worker.password).trim() === String(passwordInput)) {
-                        currentActiveUser = worker;
-                        saveActiveSession(worker.email);
-                        scheduleSessionExpiry(Date.now());
-                        await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
-                        await syncDashboardPortalState(true);
-                        syncOfflineQueue();
-                    } else { alert("Authentication Failure: Password does not match."); }
-                } else { alert("Authentication Failure: No account registered under this email."); }
+                if(worker) {
+                    currentActiveUser = worker;
+                    saveActiveSession(worker.email);
+                    scheduleSessionExpiry(Date.now());
+                    await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
+                    await syncDashboardPortalState(true);
+                    syncOfflineQueue();
+                } else {
+                    alert("Authentication Failure: Email or password is incorrect.");
+                }
             } catch(err) { 
                 alert("Network communication error."); 
             }
