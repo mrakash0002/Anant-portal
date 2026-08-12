@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anant Electrical - Project Manager Portal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+    body { font-family: 'Inter', system-ui, sans-serif; background: #F4F1EA; }
+    .panel { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+</style>
+</head>
+<body class="min-h-screen p-4 sm:p-6">
+
+<!-- LOGIN SHIELD -->
+<div id="pm-auth-shield" class="fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-4">
+    <div class="panel rounded-2xl max-w-sm w-full p-6 space-y-4">
+        <div class="text-center mb-2">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2 font-bold text-white text-sm" style="background:#16212E;">AE</div>
+            <h2 class="text-xl font-bold tracking-tight text-[#16212E]">Project Manager Login</h2>
+            <p class="text-xs text-gray-500 mt-1">Sign in with your assigned email and password.</p>
+        </div>
+        <div>
+            <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Email</label>
+            <input type="email" id="pm-auth-email" placeholder="you@anantelectrical.in" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+        </div>
+        <div>
+            <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Password</label>
+            <input type="password" id="pm-auth-password" placeholder="Enter password" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+        </div>
+        <button id="pm-signin-btn" onclick="attemptPmLogin()" class="w-full bg-[#16212E] hover:bg-[#0E1620] text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer">Sign In</button>
+        <p id="pm-auth-error" class="text-[10px] text-rose-600 font-medium text-center hidden">Incorrect email or password. Please try again.</p>
+    </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="pm-dashboard" class="hidden max-w-3xl mx-auto w-full space-y-6">
+
+    <header class="panel rounded-2xl p-5 flex justify-between items-center">
+        <div>
+            <h1 class="text-lg font-bold tracking-tight text-[#16212E]">Anant Electrical</h1>
+            <p class="text-xs text-gray-500 mt-0.5">Project Manager &middot; <span id="pm-name-tag" class="font-semibold"></span></p>
+        </div>
+        <button onclick="pmLogout()" class="text-[10px] font-semibold text-rose-600 hover:text-rose-700 uppercase tracking-wide cursor-pointer">Log Out</button>
+    </header>
+
+    <!-- WALLET -->
+    <section class="panel rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-1">
+            <div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Wallet Balance</p>
+                <p id="pm-wallet-balance" class="text-3xl font-black text-[#16212E]">₹0</p>
+            </div>
+            <button onclick="openRequestFundsModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold px-3 py-2.5 rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap">Request More Funds</button>
+        </div>
+        <p class="text-[10px] text-slate-400">This is a running balance &mdash; admin tops it up whenever you need more, no daily reset.</p>
+    </section>
+
+    <!-- GIVE MID-DAY ADVANCE -->
+    <section class="panel rounded-2xl p-5 space-y-3">
+        <h2 class="text-sm font-bold text-slate-800">Give Mid-Day Advance</h2>
+        <select id="pm-advance-worker" class="w-full p-2.5 bg-slate-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+            <option value="">Select employee...</option>
+        </select>
+        <div class="flex gap-2">
+            <input type="number" id="pm-advance-amount" placeholder="Amount (₹)" class="flex-1 p-2.5 bg-slate-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
+            <input type="text" id="pm-advance-note" placeholder="Note (optional)" class="flex-1 p-2.5 bg-slate-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+        </div>
+        <button onclick="submitPmAdvance()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer">Give Advance</button>
+        <p id="pm-advance-error" class="hidden text-[11px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg p-2.5"></p>
+    </section>
+
+    <!-- WALLET HISTORY -->
+    <section class="panel rounded-2xl p-5">
+        <h2 class="text-sm font-bold text-slate-800 mb-3">Wallet History</h2>
+        <div id="pm-wallet-history" class="space-y-1.5">
+            <p class="text-xs text-slate-400 italic">Loading...</p>
+        </div>
+    </section>
+
+    <!-- SHIFT MANAGEMENT -->
+    <section class="panel rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-bold text-slate-800">Employee Shifts</h2>
+            <div class="flex gap-1 bg-slate-100 p-1 rounded-lg text-[9px] font-semibold uppercase tracking-wider text-gray-500">
+                <button onclick="filterPmShifts('Pending')" id="pm-shift-tab-Pending" class="px-2 py-1 rounded-md">Pending</button>
+                <button onclick="filterPmShifts('Approved')" id="pm-shift-tab-Approved" class="px-2 py-1 rounded-md">Approved</button>
+                <button onclick="filterPmShifts('Rejected')" id="pm-shift-tab-Rejected" class="px-2 py-1 rounded-md">Rejected</button>
+                <button onclick="filterPmShifts('All')" id="pm-shift-tab-All" class="px-2 py-1 rounded-md">All</button>
+            </div>
+        </div>
+        <div id="pm-shifts-list" class="space-y-2">
+            <p class="text-xs text-slate-400 italic">Loading...</p>
+        </div>
+    </section>
+</div>
+
+<!-- REQUEST FUNDS MODAL -->
+<div id="pm-request-modal" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+    <div class="panel rounded-2xl max-w-sm w-full p-6 space-y-3">
+        <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-800">Request More Funds</h2>
+            <button onclick="closeRequestFundsModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+        </div>
+        <input type="number" id="pm-request-amount" placeholder="Amount (₹)" class="w-full p-2.5 bg-slate-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
+        <textarea id="pm-request-note" rows="2" placeholder="Reason (optional)" class="w-full p-2.5 bg-slate-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]"></textarea>
+        <button onclick="submitFundRequest()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer">Send Request</button>
+        <div id="pm-request-history" class="pt-2 border-t border-slate-100 space-y-1.5"></div>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = "https://xeffbclwniepwbpsvorh.supabase.co/rest/v1/";
+    const SUPABASE_KEY = "sb_publishable_JfBR83l0-TTsig_geq1nUw_hwUeSvaH";
+    const HEADERS = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=representation" };
+
+    let currentPm = null;
+    let pmWorkers = [];
+    let pmShifts = [];
+    let pmShiftFilter = 'Pending';
+
+    async function attemptPmLogin() {
+        const email = document.getElementById('pm-auth-email').value.trim().toLowerCase();
+        const password = document.getElementById('pm-auth-password').value;
+        const errEl = document.getElementById('pm-auth-error');
+        const btn = document.getElementById('pm-signin-btn');
+        if (!email || !password) return alert("Please enter both email and password.");
+
+        btn.disabled = true; btn.innerText = 'Checking...';
+        let account = null;
+        try {
+            const res = await fetch(`${SUPABASE_URL}rpc/verify_pm_login`, {
+                method: 'POST', headers: HEADERS,
+                body: JSON.stringify({ p_email: email, p_password: password })
+            });
+            if (res.ok) account = await res.json();
+        } catch (err) { console.error(err); }
+        btn.disabled = false; btn.innerText = 'Sign In';
+
+        if (account) {
+            currentPm = account;
+            localStorage.setItem('anant_pm_session', JSON.stringify({ email: account.email, ts: Date.now() }));
+            errEl.classList.add('hidden');
+            document.getElementById('pm-auth-shield').classList.add('hidden');
+            document.getElementById('pm-dashboard').classList.remove('hidden');
+            await bootPmDashboard();
+        } else {
+            errEl.classList.remove('hidden');
+            document.getElementById('pm-auth-password').value = '';
+        }
+    }
+
+    function pmLogout() {
+        localStorage.removeItem('anant_pm_session');
+        location.reload();
+    }
+
+    async function restorePmSession() {
+        const saved = JSON.parse(localStorage.getItem('anant_pm_session') || 'null');
+        if (!saved || !saved.email) return;
+        // Session is a lightweight local flag; re-fetch the real wallet/profile from the
+        // PM list endpoint isn't available to anon without the RPC, so we just re-prompt
+        // login if the quick profile fetch fails. For simplicity we re-verify silently
+        // is not possible without the password, so we just show the login screen pre-filled.
+        document.getElementById('pm-auth-email').value = saved.email;
+    }
+
+    async function bootPmDashboard() {
+        document.getElementById('pm-name-tag').innerText = currentPm.name;
+        document.getElementById('pm-wallet-balance').innerText = `₹${parseFloat(currentPm.wallet_balance).toLocaleString('en-IN')}`;
+        await loadPmWorkers();
+        await loadPmShifts();
+        await loadPmWalletHistory();
+        filterPmShifts('Pending');
+    }
+
+    async function loadPmWorkers() {
+        try {
+            const res = await fetch(`${SUPABASE_URL}workers_registry?select=name,email,status&order=name.asc`, { headers: HEADERS });
+            pmWorkers = res.ok ? await res.json() : [];
+            const select = document.getElementById('pm-advance-worker');
+            select.innerHTML = '<option value="">Select employee...</option>' +
+                pmWorkers.filter(w => w.status !== 'inactive').map(w => `<option value="${w.email}">${w.name}</option>`).join('');
+        } catch (err) { console.error(err); }
+    }
+
+    async function submitPmAdvance() {
+        const email = document.getElementById('pm-advance-worker').value;
+        const amount = parseFloat(document.getElementById('pm-advance-amount').value) || 0;
+        const note = document.getElementById('pm-advance-note').value.trim();
+        const errEl = document.getElementById('pm-advance-error');
+        errEl.classList.add('hidden');
+
+        if (!email) return alert("Please select an employee.");
+        if (amount <= 0) return alert("Please enter a valid amount.");
+
+        try {
+            const res = await fetch(`${SUPABASE_URL}rpc/pm_give_advance`, {
+                method: 'POST', headers: HEADERS,
+                body: JSON.stringify({ p_pm_id: currentPm.id, p_worker_email: email, p_amount: amount, p_note: note })
+            });
+            const result = res.ok ? await res.json() : null;
+
+            if (result && result.success) {
+                currentPm.wallet_balance = result.wallet_balance;
+                document.getElementById('pm-wallet-balance').innerText = `₹${parseFloat(result.wallet_balance).toLocaleString('en-IN')}`;
+                document.getElementById('pm-advance-amount').value = '';
+                document.getElementById('pm-advance-note').value = '';
+                document.getElementById('pm-advance-worker').value = '';
+                await loadPmWalletHistory();
+                alert("Advance given successfully.");
+            } else if (result && result.reason === 'insufficient_funds') {
+                errEl.innerHTML = `Your wallet balance (₹${parseFloat(result.wallet_balance).toLocaleString('en-IN')}) isn't enough for this amount. <button onclick="openRequestFundsModal()" class="underline font-semibold cursor-pointer">Request more funds</button>`;
+                errEl.classList.remove('hidden');
+            } else {
+                errEl.innerText = "Something went wrong. Please try again.";
+                errEl.classList.remove('hidden');
+            }
+        } catch (err) {
+            console.error(err);
+            errEl.innerText = "Network error. Please try again.";
+            errEl.classList.remove('hidden');
+        }
+    }
+
+    async function loadPmWalletHistory() {
+        const container = document.getElementById('pm-wallet-history');
+        try {
+            const res = await fetch(`${SUPABASE_URL}rpc/pm_wallet_history`, {
+                method: 'POST', headers: HEADERS, body: JSON.stringify({ p_pm_id: currentPm.id })
+            });
+            const rows = res.ok ? await res.json() : [];
+            if (rows.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 italic">No transactions yet.</p>`; return; }
+            container.innerHTML = rows.map(r => {
+                const isPositive = parseFloat(r.amount) >= 0;
+                return `
+                <div class="flex items-center justify-between text-[11px] py-1.5 border-b border-slate-50 last:border-0">
+                    <div>
+                        <span class="font-semibold text-slate-700">${r.type}</span>
+                        ${r.worker_email ? `<span class="text-slate-400"> &middot; ${r.worker_email}</span>` : ''}
+                        ${r.note ? `<span class="text-slate-400"> &middot; ${r.note}</span>` : ''}
+                    </div>
+                    <span class="font-mono font-bold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}">${isPositive ? '+' : ''}₹${Math.abs(r.amount).toLocaleString('en-IN')}</span>
+                </div>`;
+            }).join('');
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = `<p class="text-xs text-rose-500 italic">Failed to load history.</p>`;
+        }
+    }
+
+    function openRequestFundsModal() {
+        document.getElementById('pm-request-modal').classList.remove('hidden');
+        loadFundRequestHistory();
+    }
+    function closeRequestFundsModal() {
+        document.getElementById('pm-request-modal').classList.add('hidden');
+    }
+
+    async function submitFundRequest() {
+        const amount = parseFloat(document.getElementById('pm-request-amount').value) || 0;
+        const note = document.getElementById('pm-request-note').value.trim();
+        if (amount <= 0) return alert("Please enter a valid amount.");
+        try {
+            const res = await fetch(`${SUPABASE_URL}rpc/pm_request_funds`, {
+                method: 'POST', headers: HEADERS,
+                body: JSON.stringify({ p_pm_id: currentPm.id, p_amount: amount, p_note: note })
+            });
+            if (!res.ok || (await res.json()) !== true) throw new Error("failed");
+            document.getElementById('pm-request-amount').value = '';
+            document.getElementById('pm-request-note').value = '';
+            alert("Fund request sent to admin.");
+            loadFundRequestHistory();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to send request. Please try again.");
+        }
+    }
+
+    async function loadFundRequestHistory() {
+        // No direct "my requests" RPC is exposed (list_pm_fund_requests is admin-wide),
+        // so we just show a lightweight confirmation area instead of pulling all PMs' data.
+        document.getElementById('pm-request-history').innerHTML = `<p class="text-[10px] text-slate-400">Your request will show up once admin reviews it. Ask admin directly if it's urgent.</p>`;
+    }
+
+    async function loadPmShifts() {
+        try {
+            const res = await fetch(`${SUPABASE_URL}shift_logs?order=created_at.desc&limit=200`, { headers: HEADERS });
+            pmShifts = res.ok ? await res.json() : [];
+        } catch (err) { console.error(err); pmShifts = []; }
+    }
+
+    function filterPmShifts(status) {
+        pmShiftFilter = status;
+        ['Pending', 'Approved', 'Rejected', 'All'].forEach(s => {
+            const btn = document.getElementById(`pm-shift-tab-${s}`);
+            btn.className = s === status
+                ? "px-2 py-1 rounded-md bg-white shadow-sm text-[#16212E]"
+                : "px-2 py-1 rounded-md text-gray-500";
+        });
+        renderPmShiftsList();
+    }
+
+    function renderPmShiftsList() {
+        const container = document.getElementById('pm-shifts-list');
+        let list = pmShiftFilter === 'All' ? pmShifts : pmShifts.filter(s => s.status === pmShiftFilter);
+        if (list.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 italic py-4 text-center">No ${pmShiftFilter.toLowerCase()} shifts.</p>`; return; }
+
+        container.innerHTML = list.slice(0, 50).map(s => {
+            const worker = pmWorkers.find(w => w.email === s.worker_email);
+            const dateStr = new Date(s.punch_in_time || s.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+            return `
+            <div class="border border-gray-200 rounded-lg p-3 flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                    <p class="text-xs font-semibold text-slate-800 truncate">${worker ? worker.name : s.worker_email}</p>
+                    <p class="text-[10px] text-slate-400">${dateStr} &middot; ${s.site_location || 'No site noted'}</p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${s.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : s.status === 'Rejected' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}">${s.status}</span>
+                    ${s.status === 'Pending' ? `
+                        <button onclick="resolvePmShift('${s.id}', 'Approved')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-semibold px-2 py-1.5 rounded-md uppercase cursor-pointer">Approve</button>
+                        <button onclick="resolvePmShift('${s.id}', 'Rejected')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[9px] font-semibold px-2 py-1.5 rounded-md uppercase cursor-pointer">Reject</button>
+                    ` : ''}
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    async function resolvePmShift(id, newStatus) {
+        try {
+            await fetch(`${SUPABASE_URL}shift_logs?id=eq.${id}`, {
+                method: 'PATCH', headers: HEADERS,
+                body: JSON.stringify({ status: newStatus })
+            });
+            await loadPmShifts();
+            renderPmShiftsList();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to update shift. Please try again.");
+        }
+    }
+
+    restorePmSession();
+</script>
+</body>
+</html>
