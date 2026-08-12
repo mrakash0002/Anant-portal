@@ -145,6 +145,7 @@
             <button onclick="switchAdminMenu('payment')" id="menu-btn-payment" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Payment Status</button>
             <button onclick="switchAdminMenu('projects')" id="menu-btn-projects" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Projects</button>
             <button onclick="switchAdminMenu('overview')" id="menu-btn-overview" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Company Overview</button>
+            <button onclick="switchAdminMenu('pms')" id="menu-btn-pms" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Project Managers</button>
         </nav>
 
         <div id="punch-in-alerts-banner" class="hidden space-y-2"></div>
@@ -454,6 +455,36 @@
 
             <div id="company-overview-view">
                 <p class="text-xs text-purple-900/60 italic p-4">Loading overview...</p>
+            </div>
+        </section>
+        </div>
+
+        <!-- PROJECT MANAGERS -->
+        <div id="menu-view-pms" class="hidden space-y-6">
+        <section class="panel rounded-2xl shadow-sm p-6">
+            <div class="mb-4">
+                <h2 class="text-base font-bold tracking-tight text-slate-900">Project Managers</h2>
+                <p class="text-xs text-slate-500">Manage PM accounts, top up their wallets, and resolve fund requests.</p>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 space-y-3">
+                <h3 class="text-xs font-black uppercase tracking-wider text-slate-700">Add New Project Manager</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input type="text" id="new-pm-name" placeholder="Name" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                    <input type="email" id="new-pm-email" placeholder="Email" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                    <input type="password" id="new-pm-password" placeholder="Password" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                </div>
+                <button onclick="addProjectManager()" class="w-full bg-[#16212E] hover:bg-[#0E1620] text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow-sm">Add Project Manager</button>
+            </div>
+
+            <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">Fund Requests</h3>
+            <div id="pm-fund-requests-list" class="space-y-2 mb-6">
+                <p class="text-xs text-purple-900/60 italic p-4">Loading...</p>
+            </div>
+
+            <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">All Project Managers</h3>
+            <div id="pm-accounts-list" class="space-y-2">
+                <p class="text-xs text-purple-900/60 italic p-4">Loading...</p>
             </div>
         </section>
         </div>
@@ -855,7 +886,7 @@
 
         function switchAdminMenu(view) {
             localStorage.setItem('anant_admin_active_menu', view);
-            ['shifts', 'analytics', 'employees', 'monthly', 'payment', 'projects', 'overview'].forEach(v => {
+            ['shifts', 'analytics', 'employees', 'monthly', 'payment', 'projects', 'overview', 'pms'].forEach(v => {
                 const section = document.getElementById(`menu-view-${v}`);
                 const btn = document.getElementById(`menu-btn-${v}`);
                 if (v === view) {
@@ -896,6 +927,7 @@
                 populateLaborEmployeeSelect();
                 populateSavedClientSelect();
                 renderCompanyOverview();
+                renderProjectManagersSection();
                 checkForNewPunchIns();
 
                 if(currentlySelectedWorkerEmail) {
@@ -2281,6 +2313,141 @@
             }
         }
 
+        // --- PROJECT MANAGERS ---
+        async function addProjectManager() {
+            const name = document.getElementById('new-pm-name').value.trim();
+            const email = document.getElementById('new-pm-email').value.trim().toLowerCase();
+            const password = document.getElementById('new-pm-password').value;
+            if (!name || !email || !password) return alert("Please fill in name, email, and password.");
+            if (password.length < 4) return alert("Please use a password of at least 4 characters.");
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}rpc/add_project_manager`, {
+                    method: 'POST', headers: HEADERS,
+                    body: JSON.stringify({ p_name: name, p_email: email, p_password: password })
+                });
+                const bodyText = await res.text();
+                if (!res.ok) throw new Error(`(${res.status}) ${bodyText}`);
+                let result;
+                try { result = JSON.parse(bodyText); } catch(e) { result = bodyText; }
+                if (result !== true) throw new Error(`Unexpected response: ${bodyText}`);
+
+                document.getElementById('new-pm-name').value = '';
+                document.getElementById('new-pm-email').value = '';
+                document.getElementById('new-pm-password').value = '';
+                await renderProjectManagersSection();
+                alert(`Project Manager account created for ${name}.`);
+            } catch (err) {
+                console.error("Add PM error: ", err);
+                alert(`Failed to add Project Manager.\n\nDetails: ${err.message}`);
+            }
+        }
+
+        async function allotPmFunds(pmId, pmName) {
+            const amountInput = prompt(`How much to add to ${pmName}'s wallet (₹)?`, "");
+            if (amountInput === null) return;
+            const amount = parseFloat(amountInput);
+            if (isNaN(amount) || amount <= 0) return alert("Please enter a valid amount.");
+            const note = prompt("Note (optional):", "") || "";
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}rpc/admin_allot_pm_funds`, {
+                    method: 'POST', headers: HEADERS,
+                    body: JSON.stringify({ p_pm_id: pmId, p_amount: amount, p_note: note.trim() })
+                });
+                if (!res.ok) throw new Error("failed");
+                await renderProjectManagersSection();
+            } catch (err) {
+                console.error("Allot funds error: ", err);
+                alert("Failed to add funds. Please try again.");
+            }
+        }
+
+        async function resetPmPassword(email, name) {
+            const newPassword = prompt(`New password for ${name}:`, "");
+            if (newPassword === null) return;
+            if (newPassword.trim().length < 4) return alert("Please use a password of at least 4 characters.");
+            try {
+                const res = await fetch(`${SUPABASE_URL}rpc/set_pm_password`, {
+                    method: 'POST', headers: HEADERS,
+                    body: JSON.stringify({ p_email: email, p_password: newPassword.trim() })
+                });
+                if (!res.ok || (await res.json()) !== true) throw new Error("failed");
+                alert("Password reset successfully.");
+            } catch (err) {
+                console.error("PM password reset error: ", err);
+                alert("Failed to reset password. Please try again.");
+            }
+        }
+
+        async function resolveFundRequest(requestId, approve) {
+            if (!confirm(approve ? "Approve this fund request?" : "Reject this fund request?")) return;
+            try {
+                const res = await fetch(`${SUPABASE_URL}rpc/admin_resolve_fund_request`, {
+                    method: 'POST', headers: HEADERS,
+                    body: JSON.stringify({ p_request_id: requestId, p_approve: approve })
+                });
+                if (!res.ok || (await res.json()) !== true) throw new Error("failed");
+                await renderProjectManagersSection();
+            } catch (err) {
+                console.error("Resolve fund request error: ", err);
+                alert("Failed to update request. Please try again.");
+            }
+        }
+
+        async function renderProjectManagersSection() {
+            const accountsEl = document.getElementById('pm-accounts-list');
+            const requestsEl = document.getElementById('pm-fund-requests-list');
+            if (!accountsEl || !requestsEl) return;
+
+            try {
+                const [pmRes, reqRes] = await Promise.all([
+                    fetch(`${SUPABASE_URL}rpc/list_project_managers`, { method: 'POST', headers: HEADERS, body: '{}' }),
+                    fetch(`${SUPABASE_URL}rpc/list_pm_fund_requests`, { method: 'POST', headers: HEADERS, body: '{}' })
+                ]);
+                const pms = pmRes.ok ? await pmRes.json() : [];
+                const requests = reqRes.ok ? await reqRes.json() : [];
+
+                if (pms.length === 0) {
+                    accountsEl.innerHTML = `<p class="text-xs text-purple-900/60 italic p-4">No Project Managers added yet.</p>`;
+                } else {
+                    accountsEl.innerHTML = pms.map(pm => `
+                        <div class="border border-gray-200 rounded-xl p-4 flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="font-bold text-sm text-slate-900">${pm.name}</p>
+                                <p class="text-[11px] text-slate-500">${pm.email}</p>
+                                <p class="text-[10px] text-slate-400 mt-0.5">Wallet: <span class="font-mono font-bold text-slate-700">₹${parseFloat(pm.wallet_balance).toLocaleString('en-IN')}</span></p>
+                            </div>
+                            <div class="flex gap-1.5 shrink-0">
+                                <button onclick="allotPmFunds(${pm.id}, '${pm.name.replace(/'/g, "\\'")}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Add Funds</button>
+                                <button onclick="resetPmPassword('${pm.email}', '${pm.name.replace(/'/g, "\\'")}')" class="bg-blue-100 hover:bg-blue-200 text-blue-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Reset Pwd</button>
+                            </div>
+                        </div>`).join('');
+                }
+
+                const pending = requests.filter(r => r.status === 'Pending');
+                if (pending.length === 0) {
+                    requestsEl.innerHTML = `<p class="text-xs text-purple-900/60 italic p-4">No pending fund requests.</p>`;
+                } else {
+                    requestsEl.innerHTML = pending.map(r => `
+                        <div class="border border-blue-200 bg-blue-50 rounded-xl p-4 flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="font-bold text-sm text-slate-900">${r.pm_name} <span class="font-mono text-blue-700">₹${parseFloat(r.amount).toLocaleString('en-IN')}</span></p>
+                                <p class="text-[11px] text-slate-500">${r.pm_email}${r.note ? ` &middot; ${r.note}` : ''}</p>
+                                <p class="text-[10px] text-slate-400 mt-0.5">${new Date(r.created_at).toLocaleString('en-IN')}</p>
+                            </div>
+                            <div class="flex gap-1.5 shrink-0">
+                                <button onclick="resolveFundRequest(${r.id}, true)" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Approve</button>
+                                <button onclick="resolveFundRequest(${r.id}, false)" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Reject</button>
+                            </div>
+                        </div>`).join('');
+                }
+            } catch (err) {
+                console.error("Render PM section error: ", err);
+                accountsEl.innerHTML = `<p class="text-xs text-rose-500 italic p-4">Failed to load Project Managers.</p>`;
+            }
+        }
+
         async function markPaymentPaid(email, month) {
             const reference = prompt("Enter transfer reference / UTR number (optional):", "");
             if (reference === null) return; // cancelled
@@ -2343,6 +2510,13 @@
                     });
                     if(!res.ok) throw new Error("Failed update transaction");
                 }
+
+                // Log to the shared mid-day advance ledger (also used by PM-given advances)
+                await fetch(`${SUPABASE_URL}morning_advance_log`, {
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify({ worker_email: email, amount: addAmount, given_by_type: 'Admin', given_by_name: getAdminIdentity(), note: msg || null })
+                });
 
                 alert(`Added ₹${addAmount} to ${targetWorker.name}'s morning balance for ${targetMonth}.\nNote: ${msg || 'No note added'}`);
                 document.getElementById('morning-dispatch-amount').value = '';
