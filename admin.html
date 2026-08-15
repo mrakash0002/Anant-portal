@@ -115,6 +115,9 @@
                 <button onclick="fetchAllDataFromNode()" class="bg-[#16212E] hover:bg-[#0E1620] text-white text-xs font-semibold px-4 py-2.5 rounded-lg tracking-wide uppercase shadow-sm transition cursor-pointer">
                     Refresh Data
                 </button>
+                <button onclick="adminLogout()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold px-4 py-2.5 rounded-lg tracking-wide uppercase shadow-sm transition cursor-pointer">
+                    Log Out
+                </button>
             </div>
         </header>
 
@@ -737,7 +740,7 @@
     <!-- FOOTER -->
     <footer class="mt-8 text-center text-[11px] text-slate-400 tracking-wide w-full py-4 border-t border-slate-200 max-w-6xl mx-auto">
         <div>&copy; 2026 Anant Electrical. All Rights Reserved.</div>
-        <div class="text-[10px] font-semibold text-slate-400 mt-0.5">Developed by Akash</div>
+        <div class="text-[10px] font-semibold mt-0.5">Developed by <span style="color:#2563eb;">Akash</span></div>
     </footer>
 
     <script>
@@ -758,11 +761,50 @@
         let bulkSelectedShiftIds = new Set();
 
         let currentAdminAccount = null;
+        const ADMIN_SESSION_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hour login session
 
         function getAdminIdentity() {
             const name = (currentAdminAccount && currentAdminAccount.name) || 'Admin';
             document.getElementById('admin-identity-tag').innerText = `• ${name}`;
             return name;
+        }
+
+        function bootAdminDashboard() {
+            document.getElementById('admin-auth-shield').classList.add('hidden');
+            document.getElementById('main-admin-dashboard-layout').classList.remove('hidden');
+            getAdminIdentity();
+            unlockAdminAudio();
+            document.getElementById('morning-dispatch-month').value = getCurrentMonthString();
+            document.getElementById('salary-advance-dispatch-month').value = getCurrentMonthString();
+            document.getElementById('payment-status-month').value = getPreviousMonthString();
+            document.getElementById('proj-invoice-date').value = new Date().toISOString().slice(0, 10);
+            renderLaborLines();
+            updateProjectInvoicePreview();
+            switchAdminMenu(localStorage.getItem('anant_admin_active_menu') || 'shifts');
+            fetchAllDataFromNode();
+            setInterval(fetchAllDataFromNode, 60000); // fallback poll in case realtime disconnects
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') fetchAllDataFromNode();
+            });
+            subscribeToRealtimePunchIns();
+        }
+
+        function adminLogout() {
+            localStorage.removeItem('anant_admin_session');
+            location.reload();
+        }
+
+        function restoreAdminSession() {
+            let saved;
+            try { saved = JSON.parse(localStorage.getItem('anant_admin_session')); } catch (e) { saved = null; }
+            if (!saved || !saved.email || !saved.ts) return false;
+            if ((Date.now() - saved.ts) >= ADMIN_SESSION_DURATION_MS) {
+                localStorage.removeItem('anant_admin_session');
+                return false;
+            }
+            currentAdminAccount = { id: saved.id, name: saved.name, email: saved.email };
+            bootAdminDashboard();
+            return true;
         }
 
         async function verifyAdminGatekeeperCredentials() {
@@ -789,24 +831,9 @@
             if(account) {
                 currentAdminAccount = account;
                 localStorage.setItem('anant_admin_last_email', account.email);
+                localStorage.setItem('anant_admin_session', JSON.stringify({ id: account.id, name: account.name, email: account.email, ts: Date.now() }));
                 logPanel.classList.add('hidden');
-                document.getElementById('admin-auth-shield').classList.add('hidden');
-                document.getElementById('main-admin-dashboard-layout').classList.remove('hidden');
-                getAdminIdentity();
-                unlockAdminAudio();
-                document.getElementById('morning-dispatch-month').value = getCurrentMonthString();
-                document.getElementById('salary-advance-dispatch-month').value = getCurrentMonthString();
-                document.getElementById('payment-status-month').value = getPreviousMonthString();
-                document.getElementById('proj-invoice-date').value = new Date().toISOString().slice(0, 10);
-                renderLaborLines();
-                updateProjectInvoicePreview();
-                switchAdminMenu(localStorage.getItem('anant_admin_active_menu') || 'shifts');
-                fetchAllDataFromNode();
-                setInterval(fetchAllDataFromNode, 60000); // fallback poll in case realtime disconnects
-                document.addEventListener('visibilitychange', () => {
-                    if (document.visibilityState === 'visible') fetchAllDataFromNode();
-                });
-                subscribeToRealtimePunchIns();
+                bootAdminDashboard();
             } else {
                 logPanel.classList.remove('hidden');
                 document.getElementById('auth-admin-password').value = "";
@@ -2395,6 +2422,7 @@
             }
         }
 
+
         async function renderProjectManagersSection() {
             const accountsEl = document.getElementById('pm-accounts-list');
             const requestsEl = document.getElementById('pm-fund-requests-list');
@@ -3507,11 +3535,14 @@
             document.body.removeChild(link);
         }
 
-        // Prefill the last-used admin login email for convenience
+        // Prefill the last-used admin login email for convenience,
+        // and auto-restore an active session if one exists (skips the
+        // login screen entirely so a page refresh doesn't log you out).
         (function initAdminLoginEmail() {
             const savedEmail = localStorage.getItem('anant_admin_last_email');
             const emailInput = document.getElementById('auth-admin-email');
             if (savedEmail && emailInput) emailInput.value = savedEmail;
+            restoreAdminSession();
         })();
     </script>
 </body>
