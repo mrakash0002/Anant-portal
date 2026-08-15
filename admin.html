@@ -719,8 +719,10 @@
                     <div id="bulk-actions-toolbar" class="hidden flex flex-wrap items-center gap-2 bg-purple-50 border border-purple-200 rounded-lg p-2.5">
                         <span id="bulk-selected-count" class="text-[10px] font-bold text-purple-900 uppercase tracking-wide mr-auto">0 selected</span>
                         <button onclick="bulkResolve('status', 'Approved')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition cursor-pointer">Approve Shifts</button>
+                        <button onclick="bulkResolve('status', 'Needs Correction')" class="bg-amber-50 hover:bg-amber-100 text-amber-700 text-[9px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition cursor-pointer">Request Shift Correction</button>
                         <button onclick="bulkResolve('status', 'Rejected')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[9px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition cursor-pointer">Reject Shifts</button>
                         <button onclick="bulkResolve('expense_status', 'Approved')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition cursor-pointer">Approve Expenses</button>
+                        <button onclick="bulkResolve('expense_status', 'Needs Correction')" class="bg-amber-50 hover:bg-amber-100 text-amber-700 text-[9px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition cursor-pointer">Request Expense Correction</button>
                         <button onclick="bulkResolve('expense_status', 'Rejected')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[9px] font-semibold uppercase tracking-wide px-2.5 py-1.5 rounded-md transition cursor-pointer">Reject Expenses</button>
                         <button onclick="clearBulkSelection()" class="text-[9px] font-semibold uppercase tracking-wide px-2 py-1.5 text-slate-500 hover:text-slate-700 transition cursor-pointer">Clear</button>
                     </div>
@@ -3139,8 +3141,8 @@
             if (bulkSelectedShiftIds.size === 0) return;
             const label = field === 'expense_status' ? 'expense claim(s)' : 'shift(s)';
             let reason = null;
-            if (resolveStatus === 'Rejected') {
-                reason = prompt(`Reason for rejecting these ${bulkSelectedShiftIds.size} ${label}:`);
+            if (resolveStatus === 'Rejected' || resolveStatus === 'Needs Correction') {
+                reason = prompt(`${resolveStatus === 'Needs Correction' ? 'What needs fixing on' : 'Reason for rejecting'} these ${bulkSelectedShiftIds.size} ${label}:`);
                 if (reason === null) return;
             }
             if (!confirm(`Mark ${bulkSelectedShiftIds.size} ${label} as ${resolveStatus}?`)) return;
@@ -3149,7 +3151,7 @@
             const reasonField = field === 'expense_status' ? 'expense_rejection_reason' : 'shift_rejection_reason';
             const resolvedByField = field === 'expense_status' ? 'expense_resolved_by' : 'shift_resolved_by';
             const patchBody = { [field]: resolveStatus, [resolvedByField]: adminName };
-            if (resolveStatus === 'Rejected') patchBody[reasonField] = reason;
+            if (resolveStatus === 'Rejected' || resolveStatus === 'Needs Correction') patchBody[reasonField] = reason;
             else patchBody[reasonField] = null;
 
             let walletAdjustments = [];
@@ -3390,19 +3392,23 @@
                     </div>
                     ${renderBillPhotosSection(log.bill_photo_urls)}
                     ${log.status === 'Rejected' && log.shift_rejection_reason ? `<p class="text-[10px] text-rose-700 bg-rose-50 border border-rose-100 rounded-lg p-2"><strong>Shift rejected${log.shift_resolved_by ? ' by ' + log.shift_resolved_by : ''}:</strong> ${log.shift_rejection_reason}</p>` : ''}
+                    ${log.status === 'Needs Correction' && log.shift_rejection_reason ? `<p class="text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2"><strong>Correction requested${log.shift_resolved_by ? ' by ' + log.shift_resolved_by : ''}:</strong> ${log.shift_rejection_reason} <span class="italic">(sent back to employee to fix and resubmit)</span></p>` : ''}
                     ${expenseStatus === 'Rejected' && log.expense_rejection_reason ? `<p class="text-[10px] text-rose-700 bg-rose-50 border border-rose-100 rounded-lg p-2"><strong>Expense rejected${log.expense_resolved_by ? ' by ' + log.expense_resolved_by : ''}:</strong> ${log.expense_rejection_reason}</p>` : ''}
+                    ${expenseStatus === 'Needs Correction' && log.expense_rejection_reason ? `<p class="text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2"><strong>Expense correction requested${log.expense_resolved_by ? ' by ' + log.expense_resolved_by : ''}:</strong> ${log.expense_rejection_reason} <span class="italic">(sent back to employee to fix and resubmit)</span></p>` : ''}
                     ${log.status === 'Pending' || (hasExpenseClaim && expenseStatus === 'Pending') ? `
                     <div class="pt-2 border-t border-slate-100 space-y-2">
                         ${log.status === 'Pending' ? `
-                        <div class="flex justify-end items-center gap-2">
+                        <div class="flex justify-end items-center gap-2 flex-wrap">
                             <span class="text-[9px] font-bold uppercase tracking-wide text-slate-400 mr-auto">Shift Attendance</span>
                             <button onclick="updateShiftStatusResolution('${log.id}', 'Rejected', 'status')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-semibold uppercase tracking-wide px-3 py-2 rounded-lg transition cursor-pointer">Reject Shift</button>
+                            <button onclick="updateShiftStatusResolution('${log.id}', 'Needs Correction', 'status')" class="bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-semibold uppercase tracking-wide px-3 py-2 rounded-lg transition cursor-pointer">Request Correction</button>
                             <button onclick="updateShiftStatusResolution('${log.id}', 'Approved', 'status')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold uppercase tracking-wide px-4 py-2 rounded-lg transition cursor-pointer shadow-sm">Approve Shift</button>
                         </div>` : ''}
                         ${hasExpenseClaim && expenseStatus === 'Pending' ? `
-                        <div class="flex justify-end items-center gap-2">
+                        <div class="flex justify-end items-center gap-2 flex-wrap">
                             <span class="text-[9px] font-bold uppercase tracking-wide text-slate-400 mr-auto">Daily Expense Claim</span>
                             <button onclick="updateShiftStatusResolution('${log.id}', 'Rejected', 'expense_status')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-semibold uppercase tracking-wide px-3 py-2 rounded-lg transition cursor-pointer">Reject Expense</button>
+                            <button onclick="updateShiftStatusResolution('${log.id}', 'Needs Correction', 'expense_status')" class="bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-semibold uppercase tracking-wide px-3 py-2 rounded-lg transition cursor-pointer">Request Correction</button>
                             <button onclick="updateShiftStatusResolution('${log.id}', 'Approved', 'expense_status')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold uppercase tracking-wide px-4 py-2 rounded-lg transition cursor-pointer shadow-sm">Approve Expense</button>
                         </div>` : ''}
                     </div>` : ''}
@@ -3416,8 +3422,10 @@
             const label = field === 'expense_status' ? 'expense claim' : 'shift';
 
             let reason = null;
-            if (resolveStatus === 'Rejected') {
-                reason = prompt(`Reason for rejecting this ${label} (shown to the employee):`);
+            if (resolveStatus === 'Rejected' || resolveStatus === 'Needs Correction') {
+                reason = prompt(resolveStatus === 'Needs Correction'
+                    ? `What does the employee need to fix on this ${label}? (shown to them, and they'll be able to re-enter details and resubmit):`
+                    : `Reason for rejecting this ${label} (shown to the employee):`);
                 if (reason === null) return;
             } else {
                 if(!confirm(`Are you sure you want to mark this ${label} as ${resolveStatus}?`)) return;
@@ -3426,7 +3434,7 @@
             const adminName = getAdminIdentity();
             const reasonField = field === 'expense_status' ? 'expense_rejection_reason' : 'shift_rejection_reason';
             const resolvedByField = field === 'expense_status' ? 'expense_resolved_by' : 'shift_resolved_by';
-            const patchBody = { [field]: resolveStatus, [resolvedByField]: adminName, [reasonField]: resolveStatus === 'Rejected' ? reason : null };
+            const patchBody = { [field]: resolveStatus, [resolvedByField]: adminName, [reasonField]: (resolveStatus === 'Rejected' || resolveStatus === 'Needs Correction') ? reason : null };
 
             try {
                 const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${id}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(patchBody) });
