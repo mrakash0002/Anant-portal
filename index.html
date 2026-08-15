@@ -645,12 +645,50 @@
             </button>
         </div>
     </div>
-    
+
+    <!-- CORRECTION / RESUBMIT MODAL -->
+    <div id="correction-modal" class="hidden fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5 space-y-3 max-h-[85vh] overflow-y-auto">
+            <div class="flex items-center justify-between">
+                <h2 class="text-sm font-bold text-slate-800">Fix &amp; Resubmit</h2>
+                <button onclick="closeCorrectionModal()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">✕</button>
+            </div>
+            <div id="correction-modal-notes" class="bg-orange-50 border border-orange-200 rounded-lg p-2.5 text-[11px] text-orange-800 space-y-1"></div>
+            <div>
+                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Site Location</label>
+                <input type="text" id="correction-site" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1e3a5f]">
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Work Summary</label>
+                <textarea id="correction-notes" rows="2" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1e3a5f]"></textarea>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Transport ₹</label>
+                    <input type="number" id="correction-transport" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#1e3a5f]">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Food ₹</label>
+                    <input type="number" id="correction-food" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#1e3a5f]">
+                </div>
+                <div>
+                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Material ₹</label>
+                    <input type="number" id="correction-material" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#1e3a5f]">
+                </div>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Material Items (optional)</label>
+                <input type="text" id="correction-material-notes" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1e3a5f]">
+            </div>
+            <button onclick="submitCorrection()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer">Resubmit for Review</button>
+        </div>
+    </div>
+
     <canvas id="photo-canvas" class="hidden"></canvas>
 
     <footer class="mt-12 text-center text-[11px] text-slate-300/40 font-mono tracking-wider w-full py-4 border-t border-slate-500/10 max-w-md lg:max-w-5xl mx-auto">
         <div>&copy; 2026 Anant Electrical. All Rights Reserved.</div>
-        <div class="text-[10px] font-sans font-bold text-slate-400/80 mt-0.5">Developed by Akash</div>
+        <div class="text-[10px] font-sans font-bold mt-0.5">Developed by <span style="color:#2563eb;">Akash</span></div>
         <div id="alert-connection-status" class="text-[9px] font-mono px-1 text-slate-500 mt-1">Alerts: not started</div>
     </footer>
 
@@ -664,6 +702,7 @@
         let currentActiveUser = null;
         let activeShiftLogs = [];
         let workerMonthlyBalances = [];
+        let workerAdvanceLog = [];
 
         function getCurrentMonthString() {
             const d = new Date();
@@ -1523,6 +1562,71 @@
             renderActiveStreamTab();
         }
 
+        // --- CORRECTION / RESUBMIT ---
+        function openCorrectionModal(logId) {
+            const log = activeShiftLogs.find(l => String(l.id) === String(logId));
+            if (!log) return;
+
+            const notesEl = document.getElementById('correction-modal-notes');
+            let notesHtml = '';
+            if (log.status === 'Needs Correction' && log.shift_rejection_reason) notesHtml += `<p><strong>Shift:</strong> ${log.shift_rejection_reason}</p>`;
+            if (log.expense_status === 'Needs Correction' && log.expense_rejection_reason) notesHtml += `<p><strong>Expense:</strong> ${log.expense_rejection_reason}</p>`;
+            notesEl.innerHTML = notesHtml || '<p>Please review and resubmit.</p>';
+
+            document.getElementById('correction-site').value = log.site_location || '';
+            document.getElementById('correction-notes').value = log.progress_notes || '';
+            document.getElementById('correction-transport').value = log.transport_expense || 0;
+            document.getElementById('correction-food').value = log.food_expense || 0;
+            document.getElementById('correction-material').value = log.material_expense || 0;
+            document.getElementById('correction-material-notes').value = log.material_notes || '';
+
+            document.getElementById('correction-modal').dataset.logId = logId;
+            document.getElementById('correction-modal').classList.remove('hidden');
+        }
+
+        function closeCorrectionModal() {
+            document.getElementById('correction-modal').classList.add('hidden');
+        }
+
+        async function submitCorrection() {
+            const logId = document.getElementById('correction-modal').dataset.logId;
+            const log = activeShiftLogs.find(l => String(l.id) === String(logId));
+            if (!log) return;
+
+            const payload = {
+                site_location: document.getElementById('correction-site').value.trim(),
+                progress_notes: document.getElementById('correction-notes').value.trim(),
+                transport_expense: parseFloat(document.getElementById('correction-transport').value) || 0,
+                food_expense: parseFloat(document.getElementById('correction-food').value) || 0,
+                material_expense: parseFloat(document.getElementById('correction-material').value) || 0,
+                material_notes: document.getElementById('correction-material-notes').value.trim()
+            };
+
+            if (log.status === 'Needs Correction') {
+                payload.status = 'Pending';
+                payload.shift_rejection_reason = null;
+                payload.shift_resolved_by = null;
+            }
+            if (log.expense_status === 'Needs Correction') {
+                payload.expense_status = 'Pending';
+                payload.expense_rejection_reason = null;
+                payload.expense_resolved_by = null;
+            }
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${logId}`, {
+                    method: 'PATCH', headers: HEADERS, body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error("Failed to resubmit");
+                closeCorrectionModal();
+                await syncDashboardPortalState(true);
+                alert("Resubmitted for review.");
+            } catch (err) {
+                console.error("Resubmit error: ", err);
+                alert("Failed to resubmit. Please try again.");
+            }
+        }
+
         function renderActiveStreamTab() {
             const stream = document.getElementById('personal-logs-stream');
             stream.innerHTML = '';
@@ -1570,12 +1674,14 @@
                 if(nonActiveLogs.length > 0) {
                     nonActiveLogs.forEach(log => {
                         let dateText = new Date(log.punch_in_time || log.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                        let statusColor = log.status === 'Approved' ? "bg-emerald-100 text-emerald-800 border-emerald-200" : (log.status === 'Rejected' ? "bg-rose-100 text-rose-800 border-rose-200" : "bg-amber-100 text-amber-800 border-amber-200");
+                        let statusColor = log.status === 'Approved' ? "bg-emerald-100 text-emerald-800 border-emerald-200" : (log.status === 'Rejected' ? "bg-rose-100 text-rose-800 border-rose-200" : (log.status === 'Needs Correction' ? "bg-orange-100 text-orange-800 border-orange-200" : "bg-amber-100 text-amber-800 border-amber-200"));
 
                         const totalSpent = parseFloat(log.transport_expense || 0) + parseFloat(log.food_expense || 0) + parseFloat(log.material_expense || 0);
                         const hasExpenseClaim = totalSpent > 0;
                         const expenseStatus = log.expense_status || (hasExpenseClaim ? 'Pending' : 'N/A');
-                        let expenseColor = expenseStatus === 'Approved' ? "bg-emerald-100 text-emerald-800 border-emerald-200" : (expenseStatus === 'Rejected' ? "bg-rose-100 text-rose-800 border-rose-200" : "bg-amber-100 text-amber-800 border-amber-200");
+                        let expenseColor = expenseStatus === 'Approved' ? "bg-emerald-100 text-emerald-800 border-emerald-200" : (expenseStatus === 'Rejected' ? "bg-rose-100 text-rose-800 border-rose-200" : (expenseStatus === 'Needs Correction' ? "bg-orange-100 text-orange-800 border-orange-200" : "bg-amber-100 text-amber-800 border-amber-200"));
+
+                        const needsCorrection = log.status === 'Needs Correction' || expenseStatus === 'Needs Correction';
 
                         let localImages = JSON.parse(localStorage.getItem(`selfies_${log.id}`)) || {};
                         let inImg = log.punch_in_image_url || localImages.in;
@@ -1589,7 +1695,7 @@
                             trackingThumbnailsHtml += `</div>`;
                         }
                         let div = document.createElement('div');
-                        div.className = "bg-white p-3.5 rounded-xl border border-slate-100/60 shadow-sm text-xs";
+                        div.className = needsCorrection ? "bg-orange-50/50 p-3.5 rounded-xl border border-orange-200 shadow-sm text-xs" : "bg-white p-3.5 rounded-xl border border-slate-100/60 shadow-sm text-xs";
                         div.innerHTML = `
                             <div class="flex justify-between items-center w-full">
                                 <div><p class="font-bold text-slate-800">${log.site_location || 'Field Location Site'}</p><p class="text-[10px] text-slate-400">${dateText} • Spent: ₹${totalSpent}</p></div>
@@ -1599,8 +1705,11 @@
                                 </div>
                             </div>
                             ${log.status === 'Rejected' && log.shift_rejection_reason ? `<p class="text-[10px] text-rose-600 mt-1.5 italic">Shift reason: ${log.shift_rejection_reason}</p>` : ''}
+                            ${log.status === 'Needs Correction' && log.shift_rejection_reason ? `<p class="text-[10px] text-orange-700 mt-1.5"><strong>Fix needed:</strong> ${log.shift_rejection_reason}</p>` : ''}
                             ${expenseStatus === 'Rejected' && log.expense_rejection_reason ? `<p class="text-[10px] text-rose-600 mt-1 italic">Expense reason: ${log.expense_rejection_reason}</p>` : ''}
+                            ${expenseStatus === 'Needs Correction' && log.expense_rejection_reason ? `<p class="text-[10px] text-orange-700 mt-1"><strong>Expense fix needed:</strong> ${log.expense_rejection_reason}</p>` : ''}
                             ${trackingThumbnailsHtml}
+                            ${needsCorrection ? `<button onclick="openCorrectionModal('${log.id}')" class="w-full mt-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 rounded-lg text-[10px] uppercase tracking-wider transition cursor-pointer">Edit &amp; Resubmit</button>` : ''}
                         `;
                         stream.appendChild(div);
                     });
@@ -1608,25 +1717,36 @@
             } else if (currentActiveTab === 'midday') {
                 const recordsWithAdvances = filteredShiftLogs.filter(log => parseFloat(log.payment_advance_taken || 0) > 0 && log.status !== 'Active');
                 const morningWalletAmt = resolvedWalletBalance;
+                const isNegative = morningWalletAmt < 0;
 
-                if (recordsWithAdvances.length > 0 || morningWalletAmt > 0) {
-                    if (morningWalletAmt > 0) {
-                        const morningNote = currentActiveUser.morning_advance_note;
-                        const morningUpdated = currentActiveUser.morning_advance_updated_at
-                            ? new Date(currentActiveUser.morning_advance_updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
-                            : null;
+                const morningNote = currentActiveUser.morning_advance_note;
+                const morningUpdated = currentActiveUser.morning_advance_updated_at
+                    ? new Date(currentActiveUser.morning_advance_updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+                    : null;
+                let balanceDiv = document.createElement('div');
+                balanceDiv.className = isNegative
+                    ? "bg-rose-50 p-3.5 rounded-xl border border-rose-200 shadow-sm text-xs space-y-1"
+                    : "bg-amber-50 p-3.5 rounded-xl border border-amber-200 shadow-sm text-xs space-y-1";
+                balanceDiv.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <p class="font-bold ${isNegative ? 'text-rose-900' : 'text-amber-900'}">${isNegative ? 'Balance Owed' : 'Current Wallet Balance'}</p>
+                        <strong class="${isNegative ? 'text-rose-600' : 'text-amber-600'} font-mono font-black text-sm">₹${morningWalletAmt.toLocaleString('en-IN')}</strong>
+                    </div>
+                    <p class="text-[10px] text-slate-500">${morningNote || 'Admin/PM allocated fund balance'}</p>
+                    ${morningUpdated ? `<p class="text-[9px] text-slate-400 font-mono">Last updated: ${morningUpdated}</p>` : ''}
+                `;
+                stream.appendChild(balanceDiv);
+
+                if (workerAdvanceLog.length > 0 || recordsWithAdvances.length > 0) {
+                    workerAdvanceLog.forEach(entry => {
+                        const dt = new Date(entry.created_at);
+                        const dateText = dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                        const timeText = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
                         let div = document.createElement('div');
-                        div.className = "bg-amber-50 p-3.5 rounded-xl border border-amber-200 shadow-sm text-xs space-y-1";
-                        div.innerHTML = `
-                            <div class="flex justify-between items-center">
-                                <p class="font-bold text-amber-900">Morning Cash (Opening Balance)</p>
-                                <strong class="text-amber-600 font-mono font-black text-sm">₹${morningWalletAmt.toLocaleString('en-IN')}</strong>
-                            </div>
-                            <p class="text-[10px] text-slate-500">${morningNote || 'Admin Allocated Fund Balance'}</p>
-                            ${morningUpdated ? `<p class="text-[9px] text-slate-400 font-mono">Updated: ${morningUpdated}</p>` : ''}
-                        `;
+                        div.className = "bg-white p-3.5 rounded-xl border border-amber-100 shadow-sm text-xs flex justify-between items-center";
+                        div.innerHTML = `<div><p class="font-bold text-amber-900">Mid-Day Balance Given</p><p class="text-[10px] text-slate-400">${dateText}, ${timeText} &middot; by ${entry.given_by_name || entry.given_by_type}${entry.note ? ` &middot; ${entry.note}` : ''}</p></div><strong class="text-emerald-600 font-mono font-black text-sm">+ ₹${parseFloat(entry.amount).toLocaleString('en-IN')}</strong>`;
                         stream.appendChild(div);
-                    }
+                    });
                     recordsWithAdvances.forEach(log => {
                         let dateText = new Date(log.punch_in_time || log.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
                         let div = document.createElement('div');
@@ -1634,7 +1754,7 @@
                         div.innerHTML = `<div><p class="font-bold text-amber-900">Mid-Day Advance Received</p><p class="text-[10px] text-slate-400">${dateText} • ${log.site_location || 'On-Site entry'}</p></div><strong class="text-amber-600 font-mono font-black text-sm">+ ₹${parseFloat(log.payment_advance_taken).toLocaleString('en-IN')}</strong>`;
                         stream.appendChild(div);
                     });
-                } else { stream.innerHTML = `<p class="text-xs text-slate-300 italic text-center py-4">No Mid-Day advances logged in this month range.</p>`; }
+                }
             } else if (currentActiveTab === 'salary') {
                 const salaryAdvance = parseFloat(currentActiveUser.salary_advance_taken || 0);
                 if (salaryAdvance > 0) {
@@ -1715,6 +1835,9 @@
 
                 const monthlyBalRes = await fetch(`${SUPABASE_URL}monthly_balances?worker_email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: "GET", headers: HEADERS });
                 workerMonthlyBalances = monthlyBalRes.ok ? await monthlyBalRes.json() : [];
+
+                const advanceLogRes = await fetch(`${SUPABASE_URL}morning_advance_log?worker_email=eq.${encodeURIComponent(currentActiveUser.email)}&order=created_at.desc&limit=100`, { method: "GET", headers: HEADERS });
+                workerAdvanceLog = advanceLogRes.ok ? await advanceLogRes.json() : [];
             } catch(e) { console.error("Error updating user details:", e); }
 
             renderBonusNotificationBanner();
@@ -1796,11 +1919,10 @@
                 }
             });
 
-            // "Total Mid-Day Advances" must equal exactly what's shown in the itemized
-            // Mid-Day Adv list: the sum of advances received during shifts, PLUS the
-            // Morning Cash opening balance line - but only when that line is actually
-            // shown (i.e. positive), matching the list's own display condition exactly.
-            const totalMidDayAdvances = middayAdvance + (resolvedWalletBalance > 0 ? resolvedWalletBalance : 0);
+            // "Total Mid-Day Advances" now always includes the real current wallet
+            // balance (even when it's zero or negative), since it's now always shown
+            // in the itemized Mid-Day Adv list too - nothing gets silently hidden.
+            const totalMidDayAdvances = middayAdvance + resolvedWalletBalance;
             document.getElementById('display-total-spent').innerText = `₹${siteSpent.toLocaleString('en-IN')}`;
             document.getElementById('display-midday-advance').innerText = `₹${totalMidDayAdvances.toLocaleString('en-IN')}`;
             
