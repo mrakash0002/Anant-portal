@@ -436,6 +436,13 @@
                     <p class="text-[9px] text-gray-400 mt-1">Numeric Qty × Rate auto-fills the Sub Total above. Use plain text (e.g. "233Mtr") for Qty when Rate is per-unit but you don't want auto-calc for that row.</p>
                 </div>
 
+                <div class="pt-2 border-t border-slate-200">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Attach Invoice File (photo or PDF) &mdash; optional</label>
+                    <input type="file" id="proj-invoice-file" accept="image/*,application/pdf" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                    <div id="proj-invoice-file-current" class="mt-1.5"></div>
+                    <p class="text-[9px] text-gray-400 mt-1">Just stores the file on this project for reference &mdash; fields above still need to be filled in manually.</p>
+                </div>
+
                 <div id="project-invoice-preview" class="bg-white border border-slate-200 rounded-lg p-3 text-xs space-y-1 font-mono"></div>
                 <button id="proj-save-btn" onclick="addProjectInvoice()" class="w-full bg-[#16212E] hover:bg-[#0E1620] text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow-sm">
                     Save Invoice
@@ -1674,6 +1681,8 @@
             document.getElementById('proj-gst-rate').value = 18;
             document.getElementById('proj-include-in-overview').checked = true;
             document.getElementById('proj-saved-client-select').value = '';
+            document.getElementById('proj-invoice-file').value = '';
+            document.getElementById('proj-invoice-file-current').innerHTML = '';
             pendingLaborLines = [];
             renderLaborLines();
             pendingLineItems = [];
@@ -1707,6 +1716,10 @@
             document.getElementById('proj-quantity').value = '';
             document.getElementById('proj-rate').value = '';
             document.getElementById('proj-saved-client-select').value = '';
+            document.getElementById('proj-invoice-file').value = '';
+            document.getElementById('proj-invoice-file-current').innerHTML = inv.source_invoice_url
+                ? `<a href="${inv.source_invoice_url}" target="_blank" class="text-[10px] text-blue-600 hover:underline">📎 View currently attached file</a> <span class="text-[9px] text-gray-400">(choose a new file above to replace it)</span>`
+                : '';
             pendingLaborLines = Array.isArray(inv.labor_details) ? [...inv.labor_details] : [];
             renderLaborLines();
             if (Array.isArray(inv.line_items) && inv.line_items.length > 0) {
@@ -1793,6 +1806,24 @@
             }
 
             try {
+                let source_invoice_url = undefined;
+                const fileInput = document.getElementById('proj-invoice-file');
+                if (fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    const safeExt = (file.name.split('.').pop() || 'file').toLowerCase();
+                    const fileName = `invoice_${Date.now()}.${safeExt}`;
+                    const storageBaseUrl = SUPABASE_URL.replace('/rest/v1/', '/storage/v1/object');
+                    const uploadRes = await fetch(`${storageBaseUrl}/project-invoice-files/${fileName}`, {
+                        method: 'POST',
+                        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": file.type || 'application/octet-stream', "x-upsert": "true" },
+                        body: file
+                    });
+                    if (!uploadRes.ok) throw new Error("Invoice file upload failed");
+                    const publicBaseUrl = SUPABASE_URL.replace('/rest/v1/', '/storage/v1/object/public');
+                    source_invoice_url = `${publicBaseUrl}/project-invoice-files/${fileName}`;
+                }
+                if (source_invoice_url) payload.source_invoice_url = source_invoice_url;
+
                 if (editingInvoiceId) {
                     await fetch(`${SUPABASE_URL}project_invoices?id=eq.${editingInvoiceId}`, {
                         method: 'PATCH',
@@ -1910,136 +1941,154 @@
 
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
+            const MARGIN = 14, PAGE_W = 210, CONTENT_W = 182;
 
-            // Company header
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(22);
-            doc.setTextColor(30, 64, 175);
-            doc.text("ANANT", 14, 18);
-            doc.setTextColor(180, 20, 130);
-            doc.text("ELECTRICAL", 40, 18);
+            // Tally Prime style: dense black-bordered grid tables, no fill colors,
+            // compact typography, everything boxed.
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.1);
 
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(8);
-            doc.setTextColor(20, 20, 20);
-            doc.text([
-                "#39, 3rd Cross Road, Near Railway Gate Kengeri,",
-                "Bengaluru (Bangalore) Urban, Karnataka, 560060",
-                "Phone: 9972349924 / 9535751289",
-                "E-mail: Anantelectricals5@gmail.com",
-                "GSTIN: 29EYWPR1516N1ZD"
-            ], 196, 10, { align: 'right' });
+            // Outer header box: company details left, Tax Invoice label right
+            doc.autoTable({
+                startY: 10,
+                theme: 'grid',
+                styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
+                body: [[
+                    { content: `ANANT ELECTRICAL\n#39, 3rd Cross Road, Near Railway Gate Kengeri,\nBengaluru (Bangalore) Urban, Karnataka, 560060\nPhone: 9972349924 / 9535751289\nE-mail: Anantelectricals5@gmail.com\nGSTIN/UIN: 29EYWPR1516N1ZD\nState Name: Karnataka, Code: 29`, styles: { fontStyle: 'bold', fontSize: 9 } },
+                    { content: `Tax Invoice`, styles: { fontStyle: 'bold', fontSize: 11, halign: 'center', valign: 'top' } }
+                ]],
+                columnStyles: { 0: { cellWidth: 130 }, 1: { cellWidth: 52 } },
+                margin: { left: MARGIN }
+            });
 
-            doc.setDrawColor(140, 20, 130);
-            doc.setLineWidth(1);
-            doc.line(14, 32, 196, 32);
+            let y = doc.lastAutoTable.finalY;
 
-            // Tax invoice bar
-            doc.setFillColor(230, 230, 230);
-            doc.rect(14, 36, 182, 7, 'F');
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-            doc.text("Tax invoice", 105, 41, { align: 'center' });
-
-            let y = 43;
+            // Invoice No / Date / Place of Supply row
             doc.autoTable({
                 startY: y,
                 theme: 'grid',
-                styles: { fontSize: 8, cellPadding: 2 },
-                body: [
-                    [{ content: `Invoice No: ${inv.invoice_no || '--'}\nInvoice Date: ${inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB') : '--'}`, styles: { fontStyle: 'bold' } },
-                     { content: `Place of Supply: ${inv.client_state_code || ''}-${inv.client_state || '--'}`, styles: { fontStyle: 'bold' } }]
-                ],
-                columnStyles: { 0: { cellWidth: 91 }, 1: { cellWidth: 91 } }
+                styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
+                body: [[
+                    { content: `Invoice No.\n${inv.invoice_no || '--'}`, styles: { fontStyle: 'bold' } },
+                    { content: `Dated\n${inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB') : '--'}`, styles: { fontStyle: 'bold' } },
+                    { content: `Place of Supply\n${inv.client_state_code || ''}-${inv.client_state || '--'}`, styles: { fontStyle: 'bold' } }
+                ]],
+                columnStyles: { 0: { cellWidth: 61 }, 1: { cellWidth: 61 }, 2: { cellWidth: 60 } },
+                margin: { left: MARGIN }
             });
 
             y = doc.lastAutoTable.finalY;
+
+            // Buyer (Bill to) box
             doc.autoTable({
                 startY: y,
                 theme: 'grid',
-                styles: { fontSize: 8, cellPadding: 2 },
-                body: [
-                    [{ content: `Bill To: ${inv.client_name || '--'}\n${inv.client_address || ''}`, styles: { fontStyle: 'bold' } },
-                     { content: `GSTIN: ${inv.client_gstin || '--'}\nState: ${inv.client_state || '--'}`, styles: { fontStyle: 'bold' } }],
-                    [{ content: `Project Name: ${inv.project_name}`, colSpan: 2, styles: { fontStyle: 'bold' } }, '']
-                ],
-                columnStyles: { 0: { cellWidth: 91 }, 1: { cellWidth: 91 } }
+                styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
+                body: [[
+                    { content: `Buyer (Bill to)\n${inv.client_name || '--'}\n${inv.client_address || ''}\nGSTIN/UIN: ${inv.client_gstin || '--'}\nState Name: ${inv.client_state || '--'}, Code: ${inv.client_state_code || '--'}`, styles: { fontSize: 8 } }
+                ]],
+                columnStyles: { 0: { cellWidth: CONTENT_W } },
+                margin: { left: MARGIN }
             });
 
-            y = doc.lastAutoTable.finalY + 4;
+            y = doc.lastAutoTable.finalY;
+            if (inv.project_name) {
+                doc.autoTable({
+                    startY: y,
+                    theme: 'grid',
+                    styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
+                    body: [[{ content: `Project / Buyer's Reference: ${inv.project_name}`, styles: { fontStyle: 'bold' } }]],
+                    columnStyles: { 0: { cellWidth: CONTENT_W } },
+                    margin: { left: MARGIN }
+                });
+                y = doc.lastAutoTable.finalY;
+            }
 
+            // Item table - classic Tally columns
             let itemRows;
             if (Array.isArray(inv.line_items) && inv.line_items.length > 0) {
                 itemRows = inv.line_items.map((item, i) => [
-                    String(i + 1).padStart(2, '0'),
-                    item.description || '',
-                    item.hsn_sac || '',
-                    item.quantity || '',
-                    item.rate ? `${item.rate}` : '',
-                    parseFloat(item.amount || 0).toLocaleString('en-IN')
+                    String(i + 1), item.description || '', item.hsn_sac || '',
+                    item.quantity || '', item.rate ? `${item.rate}` : '', 'Nos',
+                    parseFloat(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })
                 ]);
             } else {
-                // Legacy single-item invoices
-                itemRows = [['01', inv.item_description || inv.project_name, inv.hsn_sac || '', inv.quantity || '1', inv.rate ? `${inv.rate}` : '', parseFloat(inv.subtotal || 0).toLocaleString('en-IN')]];
+                itemRows = [[
+                    '1', inv.item_description || inv.project_name, inv.hsn_sac || '',
+                    inv.quantity || '1', inv.rate ? `${inv.rate}` : '', 'Nos',
+                    parseFloat(inv.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })
+                ]];
             }
+            itemRows.push([
+                { content: 'Total', colSpan: 6, styles: { fontStyle: 'bold', halign: 'right' } },
+                { content: `₹ ${parseFloat(inv.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }
+            ]);
 
             doc.autoTable({
                 startY: y,
-                head: [['SL. no.', 'Description', 'HSN/SAC', 'QTY', 'RATE', 'AMOUNT']],
+                head: [['Sl No.', 'Description of Goods', 'HSN/SAC', 'Quantity', 'Rate', 'per', 'Amount']],
                 body: itemRows,
-                headStyles: { fillColor: [90, 150, 220], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-                styles: { fontSize: 8, cellPadding: 2.5 },
-                columnStyles: { 0: { cellWidth: 14 }, 1: { cellWidth: 80 }, 2: { cellWidth: 20 }, 3: { cellWidth: 22 }, 4: { cellWidth: 20 }, 5: { cellWidth: 26, halign: 'right' } }
+                theme: 'grid',
+                headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', fontSize: 8, lineColor: [0, 0, 0], lineWidth: 0.1 },
+                styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
+                columnStyles: { 0: { cellWidth: 14, halign: 'center' }, 1: { cellWidth: 72 }, 2: { cellWidth: 20, halign: 'center' }, 3: { cellWidth: 22, halign: 'center' }, 4: { cellWidth: 18, halign: 'right' }, 5: { cellWidth: 12, halign: 'center' }, 6: { cellWidth: 24, halign: 'right' } },
+                margin: { left: MARGIN }
             });
 
             y = doc.lastAutoTable.finalY;
+
+            // GST breakup box
             const gstRows = [];
-            gstRows.push(['Sub Total', `${parseFloat(inv.subtotal || 0).toLocaleString('en-IN')}`]);
             if (inv.gst_type === 'CGST_SGST') {
-                gstRows.push([`CGST (${(inv.gst_rate / 2).toFixed(1)}%)`, `${(parseFloat(inv.tax_amount || 0) / 2).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`]);
-                gstRows.push([`SGST (${(inv.gst_rate / 2).toFixed(1)}%)`, `${(parseFloat(inv.tax_amount || 0) / 2).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`]);
+                gstRows.push([`Add: CGST @ ${(inv.gst_rate / 2).toFixed(1)}%`, `₹ ${(parseFloat(inv.tax_amount || 0) / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`]);
+                gstRows.push([`Add: SGST @ ${(inv.gst_rate / 2).toFixed(1)}%`, `₹ ${(parseFloat(inv.tax_amount || 0) / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`]);
             } else if (inv.gst_type === 'IGST') {
-                gstRows.push([`IGST (${inv.gst_rate}%)`, `${parseFloat(inv.tax_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`]);
+                gstRows.push([`Add: IGST @ ${inv.gst_rate}%`, `₹ ${parseFloat(inv.tax_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`]);
             }
-            gstRows.push([{ content: 'Grand Total', styles: { fontStyle: 'bold' } }, { content: `${parseFloat(inv.grand_total || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }]);
+            gstRows.push([{ content: 'Grand Total', styles: { fontStyle: 'bold' } }, { content: `₹ ${parseFloat(inv.grand_total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }]);
 
             doc.autoTable({
                 startY: y,
                 theme: 'grid',
-                styles: { fontSize: 8, cellPadding: 2 },
+                styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
                 body: gstRows,
                 columnStyles: { 0: { cellWidth: 148, halign: 'right' }, 1: { cellWidth: 34, halign: 'right' } },
-                margin: { left: 14 }
+                margin: { left: MARGIN }
             });
 
             y = doc.lastAutoTable.finalY;
+
+            // Amount in words
             const amountWords = numberToWordsIndian(parseFloat(inv.grand_total || 0));
             doc.autoTable({
                 startY: y,
                 theme: 'grid',
-                styles: { fontSize: 7.5, cellPadding: 2 },
-                body: [[`Amount in Words: ${amountWords}`]],
-                columnStyles: { 0: { cellWidth: 182 } }
+                styles: { fontSize: 7.5, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
+                body: [[{ content: `Amount Chargeable (in words)\nINR ${amountWords}`, styles: { fontStyle: 'bold' } }]],
+                columnStyles: { 0: { cellWidth: CONTENT_W } },
+                margin: { left: MARGIN }
             });
 
-            y = doc.lastAutoTable.finalY + 6;
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(8);
-            doc.text("Company Bank Details", 14, y);
-            doc.setFont("helvetica", "normal");
-            doc.text([
-                "A/c Name: ANANT ELECTRICAL",
-                "A/c Number: 065361900010371",
-                "Bank Name: YES BANK",
-                "IFSC Code: YESB0000653",
-                "Branch: YES BANK LTD - BANGALORE JAYANAGAR"
-            ], 14, y + 5);
+            y = doc.lastAutoTable.finalY;
 
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(8);
-            doc.text("For Anant Electrical", 165, y + 2, { align: 'center' });
-            doc.text("Authorized Signatory", 165, y + 7, { align: 'center' });
+            // Bank details + Declaration (left) / Signatory (right)
+            doc.autoTable({
+                startY: y,
+                theme: 'grid',
+                styles: { fontSize: 7.5, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0], valign: 'top' },
+                body: [[
+                    { content: `Company's Bank Details\nA/c Holder Name: ANANT ELECTRICAL\nBank Name: YES BANK\nA/c No.: 065361900010371\nBranch & IFSC: BANGALORE JAYANAGAR & YESB0000653\n\nDeclaration\nWe declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.` },
+                    { content: `for ANANT ELECTRICAL\n\n\n\n\nAuthorised Signatory`, styles: { halign: 'center' } }
+                ]],
+                columnStyles: { 0: { cellWidth: 122 }, 1: { cellWidth: 60 } },
+                margin: { left: MARGIN }
+            });
+
+            y = doc.lastAutoTable.finalY + 4;
+            doc.setFont("helvetica", "italic");
+            doc.setFontSize(7);
+            doc.setTextColor(90, 90, 90);
+            doc.text("This is a Computer Generated Invoice", 105, y, { align: 'center' });
 
             doc.save(`Anant_Electrical_Invoice_${(inv.invoice_no || inv.id).replace(/\//g, '-')}.pdf`);
         }
@@ -2270,6 +2319,7 @@
                         <p class="text-base font-bold text-slate-900 mb-2">₹${parseFloat(inv.grand_total || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
                         <div class="flex gap-1.5 justify-end">
                             <button onclick="downloadProjectInvoicePDF(${inv.id})" class="bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Invoice PDF</button>
+                            ${inv.source_invoice_url ? `<a href="${inv.source_invoice_url}" target="_blank" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer inline-block">📎 Attached File</a>` : ''}
                             <button onclick="editFullProjectInvoice(${inv.id})" class="bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Edit</button>
                             <button onclick="editProjectCosts(${inv.id})" class="bg-violet-100 hover:bg-violet-200 text-violet-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Edit Cost</button>
                             ${!isReceived ? `<button onclick="recordAdvancePayment(${inv.id})" class="bg-blue-100 hover:bg-blue-200 text-blue-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">${advanceReceived > 0 ? 'Edit Advance' : 'Record Advance'}</button>` : ''}
