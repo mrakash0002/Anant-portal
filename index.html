@@ -619,6 +619,10 @@
                     </button>
                 </div>
 
+                <button onclick="openAddEntryModal()" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-semibold py-2 rounded-lg uppercase tracking-wider transition cursor-pointer">
+                    + Add Shift / Expense Entry
+                </button>
+
                 <div id="personal-logs-stream" class="space-y-3 max-h-[350px] overflow-y-auto pr-1"></div>
             </div>
 
@@ -650,10 +654,15 @@
     <div id="correction-modal" class="hidden fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5 space-y-3 max-h-[85vh] overflow-y-auto">
             <div class="flex items-center justify-between">
-                <h2 class="text-sm font-bold text-slate-800">Fix &amp; Resubmit</h2>
+                <h2 id="correction-modal-title" class="text-sm font-bold text-slate-800">Fix &amp; Resubmit</h2>
                 <button onclick="closeCorrectionModal()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">✕</button>
             </div>
-            <div id="correction-modal-notes" class="bg-orange-50 border border-orange-200 rounded-lg p-2.5 text-[11px] text-orange-800 space-y-1"></div>
+            <div id="correction-modal-notes" class="hidden bg-orange-50 border border-orange-200 rounded-lg p-2.5 text-[11px] text-orange-800 space-y-1"></div>
+
+            <div id="correction-date-row" class="hidden">
+                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Date</label>
+                <input type="date" id="correction-date" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1e3a5f]">
+            </div>
             <div>
                 <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Site Location</label>
                 <input type="text" id="correction-site" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1e3a5f]">
@@ -680,7 +689,54 @@
                 <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Material Items (optional)</label>
                 <input type="text" id="correction-material-notes" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1e3a5f]">
             </div>
-            <button onclick="submitCorrection()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer">Resubmit for Review</button>
+
+            <div class="pt-2 border-t border-slate-100">
+                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Check-In Photo</label>
+                <div class="flex items-center gap-2">
+                    <img id="correction-checkin-preview" class="hidden w-14 h-14 rounded-lg object-cover border border-slate-200">
+                    <span id="correction-checkin-empty" class="text-[10px] text-slate-400 italic">No photo yet</span>
+                    <label class="ml-auto bg-slate-100 hover:bg-slate-200 text-slate-600 text-[9px] font-semibold px-2.5 py-1.5 rounded-md uppercase cursor-pointer">
+                        Replace
+                        <input type="file" accept="image/*" capture="environment" id="correction-checkin-file" class="hidden" onchange="previewCorrectionPhoto('checkin')">
+                    </label>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Bill Photos</label>
+            </div>
+            <div id="correction-bills-transport" class="bg-slate-50 rounded-lg p-2 space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-[9px] font-bold text-slate-500 uppercase">Transport</span>
+                    <label class="bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer">
+                        + Add
+                        <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('transport', this)">
+                    </label>
+                </div>
+                <div id="correction-bills-transport-list" class="flex gap-1.5 flex-wrap"></div>
+            </div>
+            <div id="correction-bills-food" class="bg-slate-50 rounded-lg p-2 space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-[9px] font-bold text-slate-500 uppercase">Food</span>
+                    <label class="bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer">
+                        + Add
+                        <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('food', this)">
+                    </label>
+                </div>
+                <div id="correction-bills-food-list" class="flex gap-1.5 flex-wrap"></div>
+            </div>
+            <div id="correction-bills-material" class="bg-slate-50 rounded-lg p-2 space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-[9px] font-bold text-slate-500 uppercase">Material</span>
+                    <label class="bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer">
+                        + Add
+                        <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('material', this)">
+                    </label>
+                </div>
+                <div id="correction-bills-material-list" class="flex gap-1.5 flex-wrap"></div>
+            </div>
+
+            <button id="correction-submit-btn" onclick="submitCorrection()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer">Resubmit for Review</button>
         </div>
     </div>
 
@@ -1562,16 +1618,49 @@
             renderActiveStreamTab();
         }
 
-        // --- CORRECTION / RESUBMIT ---
+        // --- CORRECTION / RESUBMIT + MANUAL ADD ---
+        let correctionMode = 'edit'; // 'edit' | 'add'
+        let correctionLogId = null;
+        let correctionCheckinFile = null; // base64 data URL, pending upload
+        let correctionExistingCheckinUrl = null;
+        let correctionExistingBills = { transport: [], food: [], material: [] }; // URLs already saved
+        let correctionPendingBills = { transport: [], food: [], material: [] }; // base64, pending upload
+
+        function resetCorrectionModalState() {
+            correctionLogId = null;
+            correctionCheckinFile = null;
+            correctionExistingCheckinUrl = null;
+            correctionExistingBills = { transport: [], food: [], material: [] };
+            correctionPendingBills = { transport: [], food: [], material: [] };
+            document.getElementById('correction-site').value = '';
+            document.getElementById('correction-notes').value = '';
+            document.getElementById('correction-transport').value = '';
+            document.getElementById('correction-food').value = '';
+            document.getElementById('correction-material').value = '';
+            document.getElementById('correction-material-notes').value = '';
+            document.getElementById('correction-date').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('correction-checkin-preview').classList.add('hidden');
+            document.getElementById('correction-checkin-empty').classList.remove('hidden');
+            ['transport', 'food', 'material'].forEach(renderCorrectionBillList);
+        }
+
         function openCorrectionModal(logId) {
+            correctionMode = 'edit';
+            resetCorrectionModalState();
             const log = activeShiftLogs.find(l => String(l.id) === String(logId));
             if (!log) return;
+            correctionLogId = logId;
+
+            document.getElementById('correction-modal-title').innerText = 'Fix & Resubmit';
+            document.getElementById('correction-submit-btn').innerText = 'Resubmit for Review';
+            document.getElementById('correction-date-row').classList.add('hidden');
 
             const notesEl = document.getElementById('correction-modal-notes');
             let notesHtml = '';
             if (log.status === 'Needs Correction' && log.shift_rejection_reason) notesHtml += `<p><strong>Shift:</strong> ${log.shift_rejection_reason}</p>`;
             if (log.expense_status === 'Needs Correction' && log.expense_rejection_reason) notesHtml += `<p><strong>Expense:</strong> ${log.expense_rejection_reason}</p>`;
             notesEl.innerHTML = notesHtml || '<p>Please review and resubmit.</p>';
+            notesEl.classList.remove('hidden');
 
             document.getElementById('correction-site').value = log.site_location || '';
             document.getElementById('correction-notes').value = log.progress_notes || '';
@@ -1580,7 +1669,32 @@
             document.getElementById('correction-material').value = log.material_expense || 0;
             document.getElementById('correction-material-notes').value = log.material_notes || '';
 
-            document.getElementById('correction-modal').dataset.logId = logId;
+            correctionExistingCheckinUrl = log.punch_in_image_url || null;
+            if (correctionExistingCheckinUrl) {
+                const preview = document.getElementById('correction-checkin-preview');
+                preview.src = correctionExistingCheckinUrl;
+                preview.classList.remove('hidden');
+                document.getElementById('correction-checkin-empty').classList.add('hidden');
+            }
+
+            try {
+                const parsed = log.bill_photo_urls ? (typeof log.bill_photo_urls === 'string' ? JSON.parse(log.bill_photo_urls) : log.bill_photo_urls) : null;
+                if (parsed) {
+                    correctionExistingBills = { transport: parsed.transport || [], food: parsed.food || [], material: parsed.material || [] };
+                }
+            } catch (e) { /* ignore malformed data */ }
+            ['transport', 'food', 'material'].forEach(renderCorrectionBillList);
+
+            document.getElementById('correction-modal').classList.remove('hidden');
+        }
+
+        function openAddEntryModal() {
+            correctionMode = 'add';
+            resetCorrectionModalState();
+            document.getElementById('correction-modal-title').innerText = 'Add Shift / Expense Entry';
+            document.getElementById('correction-submit-btn').innerText = 'Submit for Review';
+            document.getElementById('correction-date-row').classList.remove('hidden');
+            document.getElementById('correction-modal-notes').classList.add('hidden');
             document.getElementById('correction-modal').classList.remove('hidden');
         }
 
@@ -1588,42 +1702,131 @@
             document.getElementById('correction-modal').classList.add('hidden');
         }
 
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function previewCorrectionPhoto(which) {
+            const input = document.getElementById('correction-checkin-file');
+            const file = input.files[0];
+            if (!file) return;
+            correctionCheckinFile = await fileToBase64(file);
+            const preview = document.getElementById('correction-checkin-preview');
+            preview.src = correctionCheckinFile;
+            preview.classList.remove('hidden');
+            document.getElementById('correction-checkin-empty').classList.add('hidden');
+        }
+
+        async function addCorrectionBillPhoto(type, inputEl) {
+            const file = inputEl.files[0];
+            if (!file) return;
+            const base64 = await fileToBase64(file);
+            correctionPendingBills[type].push(base64);
+            inputEl.value = '';
+            renderCorrectionBillList(type);
+        }
+
+        function removeCorrectionExistingBill(type, index) {
+            correctionExistingBills[type].splice(index, 1);
+            renderCorrectionBillList(type);
+        }
+
+        function removeCorrectionPendingBill(type, index) {
+            correctionPendingBills[type].splice(index, 1);
+            renderCorrectionBillList(type);
+        }
+
+        function renderCorrectionBillList(type) {
+            const container = document.getElementById(`correction-bills-${type}-list`);
+            if (!container) return;
+            const existingThumbs = correctionExistingBills[type].map((url, i) => `
+                <div class="relative">
+                    <a href="${url}" target="_blank"><img src="${url}" class="w-12 h-12 rounded-md object-cover border border-slate-200"></a>
+                    <button onclick="removeCorrectionExistingBill('${type}', ${i})" class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center cursor-pointer">✕</button>
+                </div>`).join('');
+            const pendingThumbs = correctionPendingBills[type].map((base64, i) => `
+                <div class="relative">
+                    <img src="${base64}" class="w-12 h-12 rounded-md object-cover border-2 border-blue-400">
+                    <span class="absolute bottom-0 left-0 right-0 bg-blue-500 text-white text-[7px] text-center rounded-b-md">NEW</span>
+                    <button onclick="removeCorrectionPendingBill('${type}', ${i})" class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center cursor-pointer">✕</button>
+                </div>`).join('');
+            container.innerHTML = existingThumbs + pendingThumbs || `<p class="text-[9px] text-slate-400 italic">No photos yet</p>`;
+        }
+
         async function submitCorrection() {
-            const logId = document.getElementById('correction-modal').dataset.logId;
-            const log = activeShiftLogs.find(l => String(l.id) === String(logId));
-            if (!log) return;
+            const site_location = document.getElementById('correction-site').value.trim();
+            const progress_notes = document.getElementById('correction-notes').value.trim();
+            const transport_expense = parseFloat(document.getElementById('correction-transport').value) || 0;
+            const food_expense = parseFloat(document.getElementById('correction-food').value) || 0;
+            const material_expense = parseFloat(document.getElementById('correction-material').value) || 0;
+            const material_notes = document.getElementById('correction-material-notes').value.trim();
 
-            const payload = {
-                site_location: document.getElementById('correction-site').value.trim(),
-                progress_notes: document.getElementById('correction-notes').value.trim(),
-                transport_expense: parseFloat(document.getElementById('correction-transport').value) || 0,
-                food_expense: parseFloat(document.getElementById('correction-food').value) || 0,
-                material_expense: parseFloat(document.getElementById('correction-material').value) || 0,
-                material_notes: document.getElementById('correction-material-notes').value.trim()
-            };
-
-            if (log.status === 'Needs Correction') {
-                payload.status = 'Pending';
-                payload.shift_rejection_reason = null;
-                payload.shift_resolved_by = null;
-            }
-            if (log.expense_status === 'Needs Correction') {
-                payload.expense_status = 'Pending';
-                payload.expense_rejection_reason = null;
-                payload.expense_resolved_by = null;
-            }
+            const submitBtn = document.getElementById('correction-submit-btn');
+            submitBtn.disabled = true; submitBtn.innerText = 'Uploading...';
 
             try {
-                const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${logId}`, {
-                    method: 'PATCH', headers: HEADERS, body: JSON.stringify(payload)
-                });
-                if (!res.ok) throw new Error("Failed to resubmit");
-                closeCorrectionModal();
-                await syncDashboardPortalState(true);
-                alert("Resubmitted for review.");
+                let punch_in_image_url = correctionExistingCheckinUrl;
+                if (correctionCheckinFile) {
+                    const fileName = `checkin_${currentActiveUser?.id || 'usr'}_${Date.now()}.jpg`;
+                    punch_in_image_url = await uploadSelfieToSupabase(correctionCheckinFile, fileName, 'shift-selfies');
+                }
+
+                const billUrls = { transport: [...correctionExistingBills.transport], food: [...correctionExistingBills.food], material: [...correctionExistingBills.material] };
+                for (const type of ['transport', 'food', 'material']) {
+                    let idx = 0;
+                    for (const base64 of correctionPendingBills[type]) {
+                        const fileName = `${type}_${currentActiveUser?.id || 'usr'}_${Date.now()}_${idx}.jpg`;
+                        const url = await uploadSelfieToSupabase(base64, fileName, 'bill-photos');
+                        billUrls[type].push(url);
+                        idx++;
+                    }
+                }
+                const hasBills = billUrls.transport.length || billUrls.food.length || billUrls.material.length;
+
+                if (correctionMode === 'edit') {
+                    const log = activeShiftLogs.find(l => String(l.id) === String(correctionLogId));
+                    if (!log) return;
+                    const payload = {
+                        site_location, progress_notes, transport_expense, food_expense, material_expense, material_notes,
+                        punch_in_image_url, bill_photo_urls: hasBills ? JSON.stringify(billUrls) : null
+                    };
+                    if (log.status === 'Needs Correction') { payload.status = 'Pending'; payload.shift_rejection_reason = null; payload.shift_resolved_by = null; }
+                    if (log.expense_status === 'Needs Correction') { payload.expense_status = 'Pending'; payload.expense_rejection_reason = null; payload.expense_resolved_by = null; }
+
+                    const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${correctionLogId}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(payload) });
+                    if (!res.ok) throw new Error("Failed to resubmit");
+                    closeCorrectionModal();
+                    await syncDashboardPortalState(true);
+                    alert("Resubmitted for review.");
+                } else {
+                    const dateVal = document.getElementById('correction-date').value || new Date().toISOString().slice(0, 10);
+                    if (!site_location) { alert("Please enter a site location."); return; }
+                    const payload = {
+                        worker_email: currentActiveUser.email,
+                        punch_in_time: new Date(dateVal + 'T12:00:00').toISOString(),
+                        punch_out_time: new Date(dateVal + 'T12:00:00').toISOString(),
+                        status: 'Pending',
+                        site_location, progress_notes, transport_expense, food_expense, material_expense, material_notes,
+                        punch_in_image_url, bill_photo_urls: hasBills ? JSON.stringify(billUrls) : null,
+                        expense_status: (transport_expense + food_expense + material_expense) > 0 ? 'Pending' : null
+                    };
+                    const res = await fetch(`${SUPABASE_URL}shift_logs`, { method: 'POST', headers: HEADERS, body: JSON.stringify(payload) });
+                    if (!res.ok) throw new Error("Failed to add entry");
+                    closeCorrectionModal();
+                    await syncDashboardPortalState(true);
+                    alert("Added and sent for review.");
+                }
             } catch (err) {
-                console.error("Resubmit error: ", err);
-                alert("Failed to resubmit. Please try again.");
+                console.error("Correction/Add submit error: ", err);
+                alert("Failed to submit. Please try again.");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = correctionMode === 'edit' ? 'Resubmit for Review' : 'Submit for Review';
             }
         }
 
