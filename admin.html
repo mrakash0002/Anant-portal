@@ -139,6 +139,54 @@
             </div>
         </div>
 
+        <!-- ADD SHIFT & EXPENSE MODAL -->
+        <div id="add-shift-modal" class="hidden fixed inset-0 panel-overlay z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-3 border border-slate-200 max-h-[85vh] overflow-y-auto">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-display text-lg font-bold tracking-tight text-[#16212E]">Add Shift &amp; Expense</h2>
+                    <button onclick="closeAddShiftModal()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">✕</button>
+                </div>
+                <p class="text-[10px] text-slate-400">For manually logging a shift the employee forgot to punch, or a correction. Saved as Approved by default.</p>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Employee</label>
+                    <select id="add-shift-worker" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                        <option value="">Select employee...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Site Location</label>
+                    <input type="text" id="add-shift-site" placeholder="e.g. Koramangala More Supermarket" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Punch In</label>
+                        <input type="datetime-local" id="add-shift-in" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Punch Out (optional)</label>
+                        <input type="datetime-local" id="add-shift-out" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Work Summary (optional)</label>
+                    <textarea id="add-shift-notes" rows="2" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]"></textarea>
+                </div>
+
+                <div class="pt-2 border-t border-slate-200">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Expense (optional)</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <input type="number" id="add-shift-transport" placeholder="Transport ₹" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
+                        <input type="number" id="add-shift-food" placeholder="Food ₹" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
+                        <input type="number" id="add-shift-material" placeholder="Material ₹" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
+                    </div>
+                    <input type="text" id="add-shift-material-notes" placeholder="Material items (optional)" class="w-full mt-2 p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                </div>
+
+                <button onclick="submitManualShift()" class="w-full bg-[#16212E] hover:bg-[#0E1620] text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow-sm">Save Shift</button>
+            </div>
+        </div>
+
         <!-- SECTION MENU -->
         <nav class="panel rounded-2xl p-1.5 flex flex-wrap gap-1">
             <button onclick="switchAdminMenu('shifts')" id="menu-btn-shifts" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Shift Logs</button>
@@ -701,11 +749,14 @@
                         <h2 class="text-lg font-bold tracking-tight text-slate-800">Shift Logs</h2>
                         <p class="text-xs text-gray-400">Review shifts, expenses, and check-in photos, then approve or reject.</p>
                     </div>
-                    <div class="flex gap-1 bg-slate-100 p-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider text-gray-500">
-                        <button onclick="filterShiftsByStatus('Pending')" id="tab-Pending" class="px-2.5 py-1.5 rounded-md transition-all cursor-pointer bg-white text-purple-900 shadow-sm">Pending</button>
-                        <button onclick="filterShiftsByStatus('Approved')" id="tab-Approved" class="px-2.5 py-1.5 rounded-md transition-all cursor-pointer">Approved</button>
-                        <button onclick="filterShiftsByStatus('Active')" id="tab-Active" class="px-2.5 py-1.5 rounded-md transition-all cursor-pointer">Active</button>
-                        <button onclick="filterShiftsByStatus('All')" id="tab-All" class="px-2.5 py-1.5 rounded-md transition-all cursor-pointer">All</button>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button onclick="openAddShiftModal()" class="bg-[#16212E] hover:bg-[#0E1620] text-white text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer shadow-sm whitespace-nowrap">+ Add Shift &amp; Expense</button>
+                        <div class="flex gap-1 bg-slate-100 p-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                            <button onclick="filterShiftsByStatus('Pending')" id="tab-Pending" class="px-2.5 py-1.5 rounded-md transition-all cursor-pointer bg-white text-purple-900 shadow-sm">Pending</button>
+                            <button onclick="filterShiftsByStatus('Approved')" id="tab-Approved" class="px-2.5 py-1.5 rounded-md transition-all cursor-pointer">Approved</button>
+                            <button onclick="filterShiftsByStatus('Active')" id="tab-Active" class="px-2.5 py-1.5 rounded-md transition-all cursor-pointer">Active</button>
+                            <button onclick="filterShiftsByStatus('All')" id="tab-All" class="px-2.5 py-1.5 rounded-md transition-all cursor-pointer">All</button>
+                        </div>
                     </div>
                 </div>
 
@@ -1295,6 +1346,79 @@
             select.innerHTML = '<option value="">Select employee...</option>' +
                 (runtimeWorkers || []).map(w => `<option value="${w.email}">${w.name} (₹${parseFloat(w.fixed_salary || 0).toLocaleString('en-IN')}/day)</option>`).join('');
             select.value = currentVal;
+        }
+
+        // --- ADD SHIFT & EXPENSE (manual entry) ---
+        function openAddShiftModal() {
+            const select = document.getElementById('add-shift-worker');
+            select.innerHTML = '<option value="">Select employee...</option>' +
+                (runtimeWorkers || []).filter(w => w.status !== 'inactive').map(w => `<option value="${w.email}">${w.name}</option>`).join('');
+
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('add-shift-in').value = now.toISOString().slice(0, 16);
+            document.getElementById('add-shift-out').value = '';
+            document.getElementById('add-shift-site').value = '';
+            document.getElementById('add-shift-notes').value = '';
+            document.getElementById('add-shift-transport').value = '';
+            document.getElementById('add-shift-food').value = '';
+            document.getElementById('add-shift-material').value = '';
+            document.getElementById('add-shift-material-notes').value = '';
+
+            document.getElementById('add-shift-modal').classList.remove('hidden');
+        }
+
+        function closeAddShiftModal() {
+            document.getElementById('add-shift-modal').classList.add('hidden');
+        }
+
+        async function submitManualShift() {
+            const worker_email = document.getElementById('add-shift-worker').value;
+            const site_location = document.getElementById('add-shift-site').value.trim();
+            const punchInVal = document.getElementById('add-shift-in').value;
+            const punchOutVal = document.getElementById('add-shift-out').value;
+            const progress_notes = document.getElementById('add-shift-notes').value.trim();
+            const transport_expense = parseFloat(document.getElementById('add-shift-transport').value) || 0;
+            const food_expense = parseFloat(document.getElementById('add-shift-food').value) || 0;
+            const material_expense = parseFloat(document.getElementById('add-shift-material').value) || 0;
+            const material_notes = document.getElementById('add-shift-material-notes').value.trim();
+
+            if (!worker_email) return alert("Please select an employee.");
+            if (!punchInVal) return alert("Please enter a Punch In time.");
+
+            const hasExpense = (transport_expense + food_expense + material_expense) > 0;
+            const adminName = getAdminIdentity();
+
+            const payload = {
+                worker_email,
+                site_location,
+                punch_in_time: new Date(punchInVal).toISOString(),
+                punch_out_time: punchOutVal ? new Date(punchOutVal).toISOString() : null,
+                progress_notes,
+                status: 'Approved',
+                shift_resolved_by: `${adminName} (manual entry)`,
+                transport_expense,
+                food_expense,
+                material_expense,
+                material_notes,
+                expense_status: hasExpense ? 'Approved' : null,
+                expense_resolved_by: hasExpense ? `${adminName} (manual entry)` : null
+            };
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}shift_logs`, {
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error("Insert failed");
+                closeAddShiftModal();
+                await fetchAllDataFromNode();
+                alert("Shift saved.");
+            } catch (err) {
+                console.error("Manual shift add error: ", err);
+                alert("Failed to save shift. Please try again.");
+            }
         }
 
         function addLaborLine() {
