@@ -789,6 +789,21 @@
                 <!-- MONTHLY STATUS BREAKDOWN -->
                 <div id="shifts-monthly-breakdown" class="mb-3"></div>
 
+                <!-- MORNING / MID-DAY BALANCE RECORDS -->
+                <div class="mb-4 border border-slate-200 rounded-xl overflow-hidden">
+                    <button onclick="toggleBalanceRecordsPanel()" class="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition cursor-pointer">
+                        <span class="text-xs font-bold text-slate-700">📒 Morning &amp; Mid-Day Balance Records</span>
+                        <span id="balance-records-toggle-icon" class="text-slate-400 text-xs">▼ Show</span>
+                    </button>
+                    <div id="balance-records-panel" class="hidden p-3">
+                        <h4 class="text-[9px] font-black uppercase tracking-wider text-slate-500 mb-1.5">Per Employee &mdash; Current Balance &amp; Every Top-Up (by day, most recent first)</h4>
+                        <div id="balance-records-current" class="hidden"></div>
+                        <div id="balance-records-history" class="max-h-96 overflow-y-auto pr-1">
+                            <p class="text-xs text-slate-400 italic">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- SHIFT LOGS LIST -->
                 <div id="shifts-container-stream" class="space-y-4 flex-grow max-h-[620px] overflow-y-auto pr-1">
                     <p class="text-xs text-gray-400 italic text-center py-8">Loading shifts...</p>
@@ -1007,6 +1022,7 @@
                 renderAllDispatchDropdowns();
                 renderShiftsStreamDisplay();
                 renderShiftsMonthlyBreakdown();
+                if (balanceRecordsPanelOpen) loadBalanceRecords();
                 renderMonthlyReport();
                 renderAnalyticsCharts();
                 renderPaymentStatusSection();
@@ -2716,11 +2732,17 @@
                 }
 
                 // Log to the shared mid-day advance ledger (also used by PM-given advances)
-                await fetch(`${SUPABASE_URL}morning_advance_log`, {
+                const logRes = await fetch(`${SUPABASE_URL}morning_advance_log`, {
                     method: 'POST',
                     headers: HEADERS,
                     body: JSON.stringify({ worker_email: email, amount: addAmount, given_by_type: 'Admin', given_by_name: getAdminIdentity(), note: msg || null })
                 });
+                if (!logRes.ok) {
+                    const errBody = await logRes.text();
+                    console.error("morning_advance_log insert failed:", logRes.status, errBody);
+                    alert(`Balance was added to the employee's wallet, but the record log failed to save (${logRes.status}). Open the browser console for details and share it so this can be fixed.`);
+                }
+                if (balanceRecordsPanelOpen) loadBalanceRecords();
 
                 alert(`Added ₹${addAmount} to ${targetWorker.name}'s morning balance for ${targetMonth}.\nNote: ${msg || 'No note added'}`);
                 document.getElementById('morning-dispatch-amount').value = '';
@@ -3405,6 +3427,89 @@
             document.getElementById('shifts-month-filter').value = monthKey;
             filterShiftsByStatus('All');
             renderShiftsStreamDisplay();
+        }
+
+        let balanceRecordsPanelOpen = false;
+        let runtimeMorningAdvanceLog = [];
+
+        function toggleBalanceRecordsPanel() {
+            balanceRecordsPanelOpen = !balanceRecordsPanelOpen;
+            const panel = document.getElementById('balance-records-panel');
+            const icon = document.getElementById('balance-records-toggle-icon');
+            if (balanceRecordsPanelOpen) {
+                panel.classList.remove('hidden');
+                icon.innerText = '▲ Hide';
+                loadBalanceRecords();
+            } else {
+                panel.classList.add('hidden');
+                icon.innerText = '▼ Show';
+            }
+        }
+
+        async function loadBalanceRecords() {
+            const currentEl = document.getElementById('balance-records-current');
+            const historyEl = document.getElementById('balance-records-history');
+            const activeWorkers = (runtimeWorkers || []).filter(w => w.status !== 'inactive');
+            currentEl.innerHTML = '';
+
+            historyEl.innerHTML = `<p class="text-xs text-slate-400 italic">Loading...</p>`;
+            try {
+                const res = await fetch(`${SUPABASE_URL}morning_advance_log?order=created_at.desc&limit=500`, { headers: HEADERS });
+                runtimeMorningAdvanceLog = res.ok ? await res.json() : [];
+
+                if (activeWorkers.length === 0) {
+                    historyEl.innerHTML = `<p class="text-xs text-slate-400 italic">No employees found.</p>`;
+                    return;
+                }
+
+                historyEl.innerHTML = activeWorkers.map(w => {
+                    const bal = parseFloat(w.morning_advance || 0);
+                    const entries = runtimeMorningAdvanceLog.filter(e => e.worker_email === w.email);
+
+                    // Group this employee's entries by calendar day
+                    const byDay = {};
+                    entries.forEach(entry => {
+                        const dayKey = entry.created_at.slice(0, 10);
+                        if (!byDay[dayKey]) byDay[dayKey] = [];
+                        byDay[dayKey].push(entry);
+                    });
+                    const dayKeys = Object.keys(byDay).sort((a, b) => b.localeCompare(a));
+
+                    const dayBlocks = dayKeys.map(dayKey => {
+                        const dayEntries = byDay[dayKey];
+                        const dayTotal = dayEntries.reduce((sum, e) => sum + parseFloat(e.amount), 0);
+                        const dayLabel = new Date(dayKey + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                        const rows = dayEntries.map(entry => {
+                            const timeLabel = new Date(entry.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                            return `
+                            <div class="flex items-center justify-between text-[10px] py-1 pl-2">
+                                <span class="text-slate-500">${timeLabel} &middot; by ${entry.given_by_name || entry.given_by_type}${entry.note ? ` &middot; ${entry.note}` : ''}</span>
+                                <span class="font-mono font-bold text-emerald-600 shrink-0">+ ₹${parseFloat(entry.amount).toLocaleString('en-IN')}</span>
+                            </div>`;
+                        }).join('');
+                        return `
+                        <div class="mt-1.5">
+                            <div class="flex items-center justify-between text-[9px] font-bold uppercase tracking-wide text-slate-400 border-b border-slate-100 pb-0.5">
+                                <span>${dayLabel}</span>
+                                <span>Day total: ₹${dayTotal.toLocaleString('en-IN')}</span>
+                            </div>
+                            ${rows}
+                        </div>`;
+                    }).join('');
+
+                    return `
+                    <div class="border border-slate-200 rounded-lg p-2.5 mb-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-xs text-slate-800">${w.name}</span>
+                            <span class="font-mono font-bold text-xs ${bal < 0 ? 'text-rose-600' : 'text-amber-700'}">₹${bal.toLocaleString('en-IN')}</span>
+                        </div>
+                        ${entries.length === 0 ? `<p class="text-[10px] text-slate-400 italic mt-1">No advances given yet.</p>` : dayBlocks}
+                    </div>`;
+                }).join('');
+            } catch (err) {
+                console.error("Balance records load error: ", err);
+                historyEl.innerHTML = `<p class="text-xs text-rose-500 italic">Failed to load records.</p>`;
+            }
         }
 
         function renderShiftsMonthlyBreakdown() {
