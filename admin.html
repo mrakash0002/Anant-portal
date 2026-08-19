@@ -234,6 +234,20 @@
                 </div>
             </div>
         </section>
+
+        <!-- SITE-WISE EMPLOYEE ANALYSIS (grouped by month, one block per site, per-employee totals only) -->
+        <section class="panel rounded-2xl shadow-sm p-6 space-y-4">
+            <div class="flex justify-between items-center flex-wrap gap-2">
+                <div>
+                    <h2 class="text-base font-bold tracking-tight text-slate-900">Site-Wise Employee Analysis</h2>
+                    <p class="text-xs text-slate-500">Shifts grouped by month, then by Site Location &mdash; one block per site, showing each employee's total shifts there.</p>
+                </div>
+                <input type="text" id="site-analysis-search" oninput="renderSiteWiseAnalysis()" placeholder="Search site name..." class="p-2 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-purple-400">
+            </div>
+            <div id="site-analysis-list" class="space-y-4">
+                <p class="text-xs text-slate-400 italic">Loading...</p>
+            </div>
+        </section>
         </div>
 
         <!-- MONTHLY RECONCILIATION & EXPENSE REPORT -->
@@ -393,7 +407,7 @@
                     <h4 class="text-[10px] font-black uppercase tracking-wider text-slate-600 mb-2">Client Details (for PDF) &mdash; optional</h4>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div class="sm:col-span-2">
-                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Client Address</label>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Client Address (Bill To)</label>
                             <textarea id="proj-client-address" rows="2" placeholder="e.g. No16/44, 1st Floor, Railway Station Road, Pallavaram, Chennai - 600043" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]"></textarea>
                         </div>
                         <div>
@@ -408,6 +422,24 @@
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">State Code</label>
                                 <input type="text" id="proj-client-state-code" placeholder="e.g. 33" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
+                            </div>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Deliver To Address (optional, if different from Bill To)</label>
+                            <textarea id="proj-deliver-to" rows="2" placeholder="Leave blank to reuse the Bill To address" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">PO No.</label>
+                            <input type="text" id="proj-po-no" placeholder="e.g. # PO/26-27/01892" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">PO Date</label>
+                                <input type="date" id="proj-po-date" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Vendor Code</label>
+                                <input type="text" id="proj-vendor-code" placeholder="e.g. 110882" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
                             </div>
                         </div>
                     </div>
@@ -425,7 +457,15 @@
                         <div class="sm:col-span-2">
                             <input type="text" id="proj-quantity" placeholder="Qty e.g. 233Mtr" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
                         </div>
-                        <div class="sm:col-span-2">
+                        <div class="sm:col-span-1">
+                            <select id="proj-unit" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-medium outline-none focus:border-[#16212E]">
+                                <option value="Nos">Nos</option>
+                                <option value="Mtr">Mtr</option>
+                                <option value="Sqft">Sqft</option>
+                                <option value="Lumpsum">Lumpsum</option>
+                            </select>
+                        </div>
+                        <div class="sm:col-span-1">
                             <input type="number" id="proj-rate" placeholder="Rate ₹" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
                         </div>
                         <div class="sm:col-span-1">
@@ -1022,6 +1062,7 @@
                 renderAllDispatchDropdowns();
                 renderShiftsStreamDisplay();
                 renderShiftsMonthlyBreakdown();
+                renderSiteWiseAnalysis();
                 if (balanceRecordsPanelOpen) loadBalanceRecords();
                 renderMonthlyReport();
                 renderAnalyticsCharts();
@@ -1495,6 +1536,7 @@
             const description = document.getElementById('proj-item-description').value.trim();
             const hsn_sac = document.getElementById('proj-hsn-sac').value.trim();
             const quantity = document.getElementById('proj-quantity').value.trim();
+            const unit = document.getElementById('proj-unit').value || 'Nos';
             const rateInput = document.getElementById('proj-rate').value;
             const rate = parseFloat(rateInput) || 0;
             if (!description) return alert("Please enter a description for the line item.");
@@ -1505,10 +1547,11 @@
             const isQtyNumeric = quantity !== '' && !isNaN(qtyNumeric) && /^[\d.]+$/.test(quantity);
             const amount = isQtyNumeric ? qtyNumeric * rate : (rate || 0);
 
-            pendingLineItems.push({ description, hsn_sac, quantity, rate, amount });
+            pendingLineItems.push({ description, hsn_sac, quantity, unit, rate, amount });
             document.getElementById('proj-item-description').value = '';
             document.getElementById('proj-hsn-sac').value = '';
             document.getElementById('proj-quantity').value = '';
+            document.getElementById('proj-unit').value = 'Nos';
             document.getElementById('proj-rate').value = '';
             renderLineItems();
             syncSubtotalFromLineItems();
@@ -1532,7 +1575,7 @@
             container.innerHTML = pendingLineItems.map((item, i) => `
                 <div class="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-[11px] gap-2">
                     <span class="font-semibold text-slate-700 truncate flex-1">${item.description}</span>
-                    <span class="text-slate-400 whitespace-nowrap">${item.hsn_sac || '--'} &middot; ${item.quantity || '--'} &times; ₹${item.rate.toLocaleString('en-IN')}</span>
+                    <span class="text-slate-400 whitespace-nowrap">${item.hsn_sac || '--'} &middot; ${item.quantity || '--'} ${item.unit || 'Nos'} &times; ₹${item.rate.toLocaleString('en-IN')}</span>
                     <span class="font-mono font-bold text-slate-800 whitespace-nowrap">₹${item.amount.toLocaleString('en-IN')}</span>
                     <button type="button" onclick="removeInvoiceLineItem(${i})" class="text-rose-500 hover:text-rose-700 font-bold px-1 cursor-pointer">✕</button>
                 </div>`).join('');
@@ -1690,8 +1733,10 @@
         function resetProjectInvoiceForm() {
             editingInvoiceId = null;
             ['proj-name', 'proj-client', 'proj-invoice-no', 'proj-subtotal', 'proj-manual-total', 'proj-material-cost', 'proj-other-cost',
-             'proj-client-address', 'proj-client-gstin', 'proj-client-state', 'proj-client-state-code', 'proj-item-description', 'proj-hsn-sac', 'proj-quantity', 'proj-rate'
+             'proj-client-address', 'proj-client-gstin', 'proj-client-state', 'proj-client-state-code', 'proj-item-description', 'proj-hsn-sac', 'proj-quantity', 'proj-rate',
+             'proj-deliver-to', 'proj-po-no', 'proj-po-date', 'proj-vendor-code'
             ].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('proj-unit').value = 'Nos';
             document.getElementById('proj-invoice-date').value = new Date().toISOString().slice(0, 10);
             document.getElementById('proj-gst-type').value = 'IGST';
             document.getElementById('proj-gst-rate').value = 18;
@@ -1727,9 +1772,14 @@
             document.getElementById('proj-client-gstin').value = inv.client_gstin || '';
             document.getElementById('proj-client-state').value = inv.client_state || '';
             document.getElementById('proj-client-state-code').value = inv.client_state_code || '';
+            document.getElementById('proj-deliver-to').value = inv.deliver_to_address || '';
+            document.getElementById('proj-po-no').value = inv.po_no || '';
+            document.getElementById('proj-po-date').value = inv.po_date || '';
+            document.getElementById('proj-vendor-code').value = inv.vendor_code || '';
             document.getElementById('proj-item-description').value = '';
             document.getElementById('proj-hsn-sac').value = '';
             document.getElementById('proj-quantity').value = '';
+            document.getElementById('proj-unit').value = 'Nos';
             document.getElementById('proj-rate').value = '';
             document.getElementById('proj-saved-client-select').value = '';
             document.getElementById('proj-invoice-file').value = '';
@@ -1746,6 +1796,7 @@
                     description: inv.item_description,
                     hsn_sac: inv.hsn_sac || '',
                     quantity: inv.quantity || '',
+                    unit: inv.unit || 'Nos',
                     rate: parseFloat(inv.rate) || 0,
                     amount: parseFloat(inv.subtotal) || 0
                 }];
@@ -1793,6 +1844,10 @@
                 client_gstin: document.getElementById('proj-client-gstin').value.trim().toUpperCase(),
                 client_state: document.getElementById('proj-client-state').value.trim(),
                 client_state_code: document.getElementById('proj-client-state-code').value.trim(),
+                deliver_to_address: document.getElementById('proj-deliver-to').value.trim(),
+                po_no: document.getElementById('proj-po-no').value.trim(),
+                po_date: document.getElementById('proj-po-date').value || null,
+                vendor_code: document.getElementById('proj-vendor-code').value.trim(),
                 line_items: pendingLineItems,
                 include_cost_in_overview: document.getElementById('proj-include-in-overview').checked
             };
@@ -1841,18 +1896,30 @@
                 if (source_invoice_url) payload.source_invoice_url = source_invoice_url;
 
                 if (editingInvoiceId) {
-                    await fetch(`${SUPABASE_URL}project_invoices?id=eq.${editingInvoiceId}`, {
+                    const patchRes = await fetch(`${SUPABASE_URL}project_invoices?id=eq.${editingInvoiceId}`, {
                         method: 'PATCH',
                         headers: HEADERS,
                         body: JSON.stringify(payload)
                     });
+                    if (!patchRes.ok) {
+                        const errBody = await patchRes.text();
+                        console.error("project_invoices PATCH failed:", patchRes.status, errBody);
+                        alert(`Failed to update invoice (error ${patchRes.status}). Details: ${errBody.slice(0, 300)}`);
+                        return;
+                    }
                 } else {
                     payload.payment_status = 'Pending';
-                    await fetch(`${SUPABASE_URL}project_invoices`, {
+                    const postRes = await fetch(`${SUPABASE_URL}project_invoices`, {
                         method: 'POST',
                         headers: { ...HEADERS, 'Prefer': 'return=representation' },
                         body: JSON.stringify(payload)
                     });
+                    if (!postRes.ok) {
+                        const errBody = await postRes.text();
+                        console.error("project_invoices POST failed:", postRes.status, errBody);
+                        alert(`Failed to save invoice (error ${postRes.status}). Details: ${errBody.slice(0, 300)}`);
+                        return;
+                    }
                 }
                 resetProjectInvoiceForm();
                 await fetchAllDataFromNode();
@@ -1957,63 +2024,104 @@
 
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            const MARGIN = 14, PAGE_W = 210, CONTENT_W = 182;
+            const MARGIN = 14, CONTENT_W = 182;
+            const GRID = { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] };
 
-            // Tally Prime style: dense black-bordered grid tables, no fill colors,
-            // compact typography, everything boxed.
             doc.setDrawColor(0, 0, 0);
             doc.setLineWidth(0.1);
 
-            // Outer header box: company details left, Tax Invoice label right
+            // Left column and right column are built as their own independently-stacked
+            // mini-tables (each block = one autoTable call), so a thin grid line
+            // naturally separates each logical block instead of one merged text blob.
+            const LEFT_X = MARGIN, LEFT_W = 108;
+            const RIGHT_X = MARGIN + LEFT_W, RIGHT_W = 74;
+            const HEADER_TOP = 10;
+
+            // --- LEFT COLUMN ---
+            let leftY = HEADER_TOP;
             doc.autoTable({
-                startY: 10,
+                startY: leftY,
                 theme: 'grid',
-                styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
-                body: [[
-                    { content: `ANANT ELECTRICAL\n#39, 3rd Cross Road, Near Railway Gate Kengeri,\nBengaluru (Bangalore) Urban, Karnataka, 560060\nPhone: 9972349924 / 9535751289\nE-mail: Anantelectricals5@gmail.com\nGSTIN/UIN: 29EYWPR1516N1ZD\nState Name: Karnataka, Code: 29`, styles: { fontStyle: 'bold', fontSize: 9 } },
-                    { content: `Tax Invoice`, styles: { fontStyle: 'bold', fontSize: 11, halign: 'center', valign: 'top' } }
-                ]],
-                columnStyles: { 0: { cellWidth: 130 }, 1: { cellWidth: 52 } },
-                margin: { left: MARGIN }
+                styles: { ...GRID, valign: 'top', fontStyle: 'bold', fontSize: 9 },
+                body: [[{ content: `ANANT ELECTRICAL\n#39, 3rd Cross Road, Near Railway Gate Kengeri,\nBengaluru (Bangalore) Urban, Karnataka, 560060\nPhone: 9972349924 / 9535751289\nE-mail: Anantelectricals5@gmail.com\nGSTIN/UIN: 29EYWPR1516N1ZD\nState Name: Karnataka, Code: 29` }]],
+                columnStyles: { 0: { cellWidth: LEFT_W } },
+                margin: { left: LEFT_X }
             });
+            leftY = doc.lastAutoTable.finalY;
 
-            let y = doc.lastAutoTable.finalY;
-
-            // Invoice No / Date / Place of Supply row
             doc.autoTable({
-                startY: y,
+                startY: leftY,
                 theme: 'grid',
-                styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
-                body: [[
-                    { content: `Invoice No.\n${inv.invoice_no || '--'}`, styles: { fontStyle: 'bold' } },
-                    { content: `Dated\n${inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB') : '--'}`, styles: { fontStyle: 'bold' } },
-                    { content: `Place of Supply\n${inv.client_state_code || ''}-${inv.client_state || '--'}`, styles: { fontStyle: 'bold' } }
-                ]],
-                columnStyles: { 0: { cellWidth: 61 }, 1: { cellWidth: 61 }, 2: { cellWidth: 60 } },
-                margin: { left: MARGIN }
+                styles: { ...GRID, valign: 'top', fontSize: 9 },
+                body: [[{ content: `Buyer (Bill to)\n${inv.client_name || '--'}\n${inv.client_address || ''}\nGSTIN/UIN: ${inv.client_gstin || '--'}\nState Name: ${inv.client_state || '--'}, Code: ${inv.client_state_code || '--'}` }]],
+                columnStyles: { 0: { cellWidth: LEFT_W } },
+                margin: { left: LEFT_X }
             });
+            leftY = doc.lastAutoTable.finalY;
 
-            y = doc.lastAutoTable.finalY;
+            if (inv.deliver_to_address) {
+                doc.autoTable({
+                    startY: leftY,
+                    theme: 'grid',
+                    styles: { ...GRID, valign: 'top', fontSize: 9 },
+                    body: [[{ content: `Deliver To\n${inv.deliver_to_address}` }]],
+                    columnStyles: { 0: { cellWidth: LEFT_W } },
+                    margin: { left: LEFT_X }
+                });
+                leftY = doc.lastAutoTable.finalY;
+            }
 
-            // Buyer (Bill to) box
+            // --- RIGHT COLUMN ---
+            let rightY = HEADER_TOP;
             doc.autoTable({
-                startY: y,
+                startY: rightY,
                 theme: 'grid',
-                styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
-                body: [[
-                    { content: `Buyer (Bill to)\n${inv.client_name || '--'}\n${inv.client_address || ''}\nGSTIN/UIN: ${inv.client_gstin || '--'}\nState Name: ${inv.client_state || '--'}, Code: ${inv.client_state_code || '--'}`, styles: { fontSize: 8 } }
-                ]],
-                columnStyles: { 0: { cellWidth: CONTENT_W } },
-                margin: { left: MARGIN }
+                styles: { ...GRID, valign: 'top', fontStyle: 'bold', fontSize: 9 },
+                body: [[{ content: `Tax Invoice` }]],
+                columnStyles: { 0: { cellWidth: RIGHT_W } },
+                margin: { left: RIGHT_X }
             });
+            rightY = doc.lastAutoTable.finalY;
 
-            y = doc.lastAutoTable.finalY;
+            doc.autoTable({
+                startY: rightY,
+                theme: 'grid',
+                styles: { ...GRID, valign: 'top', fontStyle: 'bold', fontSize: 9 },
+                body: [[{ content: `Invoice No.: ${inv.invoice_no || '--'}\nDated: ${inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB') : '--'}\nPlace of Supply: ${inv.client_state_code || ''}-${inv.client_state || '--'}` }]],
+                columnStyles: { 0: { cellWidth: RIGHT_W } },
+                margin: { left: RIGHT_X }
+            });
+            rightY = doc.lastAutoTable.finalY;
+
+            if (inv.po_no || inv.po_date || inv.vendor_code) {
+                doc.autoTable({
+                    startY: rightY,
+                    theme: 'grid',
+                    styles: { ...GRID, valign: 'top', fontStyle: 'bold', fontSize: 9 },
+                    body: [[{ content: `PO No.: ${inv.po_no || '--'}\nPO Date: ${inv.po_date ? new Date(inv.po_date).toLocaleDateString('en-GB') : '--'}\nVendor Code: ${inv.vendor_code || '--'}` }]],
+                    columnStyles: { 0: { cellWidth: RIGHT_W } },
+                    margin: { left: RIGHT_X }
+                });
+                rightY = doc.lastAutoTable.finalY;
+            }
+
+            // If one column ends up shorter, extend its border down to match the
+            // taller column so the two sides still look like one continuous box.
+            const headerBottom = Math.max(leftY, rightY);
+            if (headerBottom - leftY > 0.5) {
+                doc.rect(LEFT_X, leftY, LEFT_W, headerBottom - leftY);
+            }
+            if (headerBottom - rightY > 0.5) {
+                doc.rect(RIGHT_X, rightY, RIGHT_W, headerBottom - rightY);
+            }
+            let y = headerBottom;
+
             if (inv.project_name) {
                 doc.autoTable({
                     startY: y,
                     theme: 'grid',
-                    styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
-                    body: [[{ content: `Project / Buyer's Reference: ${inv.project_name}`, styles: { fontStyle: 'bold' } }]],
+                    styles: GRID,
+                    body: [[{ content: `Project Name: ${inv.project_name}`, styles: { fontStyle: 'bold' } }]],
                     columnStyles: { 0: { cellWidth: CONTENT_W } },
                     margin: { left: MARGIN }
                 });
@@ -2021,23 +2129,23 @@
             }
 
             // Item table - classic Tally columns
-            let itemRows;
+            let lineItemsForCalc;
             if (Array.isArray(inv.line_items) && inv.line_items.length > 0) {
-                itemRows = inv.line_items.map((item, i) => [
-                    String(i + 1), item.description || '', item.hsn_sac || '',
-                    item.quantity || '', item.rate ? `${item.rate}` : '', 'Nos',
-                    parseFloat(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })
-                ]);
+                lineItemsForCalc = inv.line_items;
             } else {
-                itemRows = [[
-                    '1', inv.item_description || inv.project_name, inv.hsn_sac || '',
-                    inv.quantity || '1', inv.rate ? `${inv.rate}` : '', 'Nos',
-                    parseFloat(inv.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })
-                ]];
+                lineItemsForCalc = [{
+                    description: inv.item_description || inv.project_name,
+                    hsn_sac: inv.hsn_sac || '',
+                    quantity: inv.quantity || '1',
+                    unit: inv.unit || 'Nos',
+                    rate: inv.rate || null,
+                    amount: parseFloat(inv.subtotal || 0)
+                }];
             }
-            itemRows.push([
-                { content: 'Total', colSpan: 6, styles: { fontStyle: 'bold', halign: 'right' } },
-                { content: `₹ ${parseFloat(inv.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }
+            const itemRows = lineItemsForCalc.map((item, i) => [
+                String(i + 1), item.description || '', item.hsn_sac || '',
+                item.quantity || '', item.rate ? `${item.rate}` : '', item.unit || 'Nos',
+                parseFloat(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })
             ]);
 
             doc.autoTable({
@@ -2046,57 +2154,141 @@
                 body: itemRows,
                 theme: 'grid',
                 headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', fontSize: 8, lineColor: [0, 0, 0], lineWidth: 0.1 },
-                styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
+                styles: GRID,
                 columnStyles: { 0: { cellWidth: 14, halign: 'center' }, 1: { cellWidth: 72 }, 2: { cellWidth: 20, halign: 'center' }, 3: { cellWidth: 22, halign: 'center' }, 4: { cellWidth: 18, halign: 'right' }, 5: { cellWidth: 12, halign: 'center' }, 6: { cellWidth: 24, halign: 'right' } },
                 margin: { left: MARGIN }
             });
-
             y = doc.lastAutoTable.finalY;
 
-            // GST breakup box
-            const gstRows = [];
+            // Sub Total / CGST / SGST(or IGST) / Grand Total summary block (Tally-style)
+            const subtotalVal = parseFloat(inv.subtotal || 0);
+            const taxVal = parseFloat(inv.tax_amount || 0);
+            const grandTotalVal = parseFloat(inv.grand_total || 0);
+            const gstRateVal = parseFloat(inv.gst_rate || 0);
+            const summaryRows = [
+                [
+                    { content: 'Sub Total', colSpan: 6, styles: { fontStyle: 'bold', halign: 'right' } },
+                    { content: subtotalVal.toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: {} }
+                ]
+            ];
             if (inv.gst_type === 'CGST_SGST') {
-                gstRows.push([`Add: CGST @ ${(inv.gst_rate / 2).toFixed(1)}%`, `₹ ${(parseFloat(inv.tax_amount || 0) / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`]);
-                gstRows.push([`Add: SGST @ ${(inv.gst_rate / 2).toFixed(1)}%`, `₹ ${(parseFloat(inv.tax_amount || 0) / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`]);
+                const half = taxVal / 2;
+                summaryRows.push([
+                    { content: `CGST @ ${(gstRateVal / 2).toFixed(1)}%`, colSpan: 6, styles: { halign: 'right' } },
+                    { content: half.toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: {} }
+                ]);
+                summaryRows.push([
+                    { content: `SGST @ ${(gstRateVal / 2).toFixed(1)}%`, colSpan: 6, styles: { halign: 'right' } },
+                    { content: half.toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: {} }
+                ]);
             } else if (inv.gst_type === 'IGST') {
-                gstRows.push([`Add: IGST @ ${inv.gst_rate}%`, `₹ ${parseFloat(inv.tax_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`]);
+                summaryRows.push([
+                    { content: `IGST @ ${gstRateVal}%`, colSpan: 6, styles: { halign: 'right' } },
+                    { content: taxVal.toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: {} }
+                ]);
             }
-            gstRows.push([{ content: 'Grand Total', styles: { fontStyle: 'bold' } }, { content: `₹ ${parseFloat(inv.grand_total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }]);
-
+            summaryRows.push([
+                { content: 'Total', colSpan: 6, styles: { fontStyle: 'bold', halign: 'right' } },
+                { content: `Rs. ${grandTotalVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }
+            ]);
             doc.autoTable({
                 startY: y,
+                body: summaryRows,
                 theme: 'grid',
-                styles: { fontSize: 8, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
-                body: gstRows,
-                columnStyles: { 0: { cellWidth: 148, halign: 'right' }, 1: { cellWidth: 34, halign: 'right' } },
+                styles: GRID,
+                columnStyles: { 0: { cellWidth: 14, halign: 'center' }, 1: { cellWidth: 72 }, 2: { cellWidth: 20, halign: 'center' }, 3: { cellWidth: 22, halign: 'center' }, 4: { cellWidth: 18, halign: 'right' }, 5: { cellWidth: 12, halign: 'center' }, 6: { cellWidth: 24, halign: 'right' } },
                 margin: { left: MARGIN }
             });
-
             y = doc.lastAutoTable.finalY;
 
-            // Amount in words
+            // Amount Chargeable in Words + E. & O.E
             const amountWords = numberToWordsIndian(parseFloat(inv.grand_total || 0));
             doc.autoTable({
                 startY: y,
                 theme: 'grid',
-                styles: { fontSize: 7.5, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0] },
-                body: [[{ content: `Amount Chargeable (in words)\nINR ${amountWords}`, styles: { fontStyle: 'bold' } }]],
-                columnStyles: { 0: { cellWidth: CONTENT_W } },
+                styles: { ...GRID, fontSize: 7.5 },
+                body: [[
+                    { content: `Amount Chargeable (in words)\nINR ${amountWords}`, styles: { fontStyle: 'bold', cellWidth: 148 } },
+                    { content: `E. & O.E`, styles: { halign: 'right', valign: 'bottom', cellWidth: 34 } }
+                ]],
+                columnStyles: { 0: { cellWidth: 148 }, 1: { cellWidth: 34 } },
                 margin: { left: MARGIN }
             });
-
             y = doc.lastAutoTable.finalY;
 
-            // Bank details + Declaration (left) / Signatory (right)
+            // HSN/SAC-wise tax breakup table
+            const hsnGroups = {};
+            const rateNum = parseFloat(inv.gst_rate || 0);
+            lineItemsForCalc.forEach(item => {
+                const key = item.hsn_sac || '--';
+                if (!hsnGroups[key]) hsnGroups[key] = 0;
+                hsnGroups[key] += parseFloat(item.amount || 0);
+            });
+            const hsnRows = Object.entries(hsnGroups).map(([hsn, taxable]) => {
+                if (inv.gst_type === 'CGST_SGST') {
+                    const half = taxable * (rateNum / 2) / 100;
+                    return [hsn, taxable.toLocaleString('en-IN', { minimumFractionDigits: 2 }), `${(rateNum / 2).toFixed(1)}%`, half.toLocaleString('en-IN', { minimumFractionDigits: 2 }), `${(rateNum / 2).toFixed(1)}%`, half.toLocaleString('en-IN', { minimumFractionDigits: 2 }), (half * 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })];
+                } else if (inv.gst_type === 'IGST') {
+                    const tax = taxable * rateNum / 100;
+                    return [hsn, taxable.toLocaleString('en-IN', { minimumFractionDigits: 2 }), `${rateNum}%`, tax.toLocaleString('en-IN', { minimumFractionDigits: 2 }), '--', '--', tax.toLocaleString('en-IN', { minimumFractionDigits: 2 })];
+                }
+                return [hsn, taxable.toLocaleString('en-IN', { minimumFractionDigits: 2 }), '--', '0.00', '--', '0.00', '0.00'];
+            });
+            const totalTaxable = Object.values(hsnGroups).reduce((a, b) => a + b, 0);
+            hsnRows.push([
+                { content: 'Total', styles: { fontStyle: 'bold' } },
+                { content: totalTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold' } },
+                '', { content: '', styles: { fontStyle: 'bold' } }, '', { content: '', styles: { fontStyle: 'bold' } },
+                { content: parseFloat(inv.tax_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }), styles: { fontStyle: 'bold' } }
+            ]);
+
+            doc.autoTable({
+                startY: y,
+                head: inv.gst_type === 'CGST_SGST'
+                    ? [['HSN/SAC', 'Taxable\nValue', 'CGST\nRate', 'CGST\nAmount', 'SGST/UTGST\nRate', 'SGST/UTGST\nAmount', 'Total\nTax Amount']]
+                    : [['HSN/SAC', 'Taxable\nValue', 'IGST\nRate', 'IGST\nAmount', '', '', 'Total\nTax Amount']],
+                body: hsnRows,
+                theme: 'grid',
+                headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', fontSize: 6.5, cellPadding: 1, lineColor: [0, 0, 0], lineWidth: 0.1, halign: 'center' },
+                styles: { ...GRID, fontSize: 7, cellPadding: 1, halign: 'right' },
+                columnStyles: { 0: { halign: 'left', cellWidth: 34 } },
+                margin: { left: MARGIN }
+            });
+            y = doc.lastAutoTable.finalY;
+
+            // Tax amount in words - merged into the breakup table's own border as a single compact row
+            const taxWords = numberToWordsIndian(parseFloat(inv.tax_amount || 0));
             doc.autoTable({
                 startY: y,
                 theme: 'grid',
-                styles: { fontSize: 7.5, cellPadding: 2, lineColor: [0, 0, 0], lineWidth: 0.1, textColor: [0, 0, 0], valign: 'top' },
+                styles: { ...GRID, fontSize: 6.5, cellPadding: 1 },
+                body: [[{ content: `Tax Amount (in words): INR ${taxWords}`, styles: { fontStyle: 'bold' } }]],
+                columnStyles: { 0: { cellWidth: CONTENT_W } },
+                margin: { left: MARGIN }
+            });
+            y = doc.lastAutoTable.finalY;
+
+            // Declaration + Bank Details (left) / Signatory (right)
+            doc.autoTable({
+                startY: y,
+                theme: 'grid',
+                styles: { ...GRID, fontSize: 7.5, valign: 'top' },
                 body: [[
-                    { content: `Company's Bank Details\nA/c Holder Name: ANANT ELECTRICAL\nBank Name: YES BANK\nA/c No.: 065361900010371\nBranch & IFSC: BANGALORE JAYANAGAR & YESB0000653\n\nDeclaration\nWe declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.` },
-                    { content: `for ANANT ELECTRICAL\n\n\n\n\nAuthorised Signatory`, styles: { halign: 'center' } }
+                    { content: `Declaration\nWe declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.\n\nCompany's Bank Details\nA/c Holder's Name: ANANT ELECTRICAL\nBank Name: YES BANK\nA/c No.: 065361900010371\nBranch & IFSC Code: BANGALORE JAYANAGAR & YESB0000653`, styles: { cellWidth: 122 } },
+                    { content: `for ANANT ELECTRICAL\n\n\n\n\nAuthorised Signatory`, styles: { halign: 'center', cellWidth: 60 } }
                 ]],
                 columnStyles: { 0: { cellWidth: 122 }, 1: { cellWidth: 60 } },
+                margin: { left: MARGIN }
+            });
+            y = doc.lastAutoTable.finalY;
+
+            // Customer's Seal and Signature strip
+            doc.autoTable({
+                startY: y,
+                theme: 'grid',
+                styles: { ...GRID, fontSize: 7.5, valign: 'top' },
+                body: [[{ content: `Customer's Seal and Signature`, styles: { cellWidth: CONTENT_W, minCellHeight: 14 } }]],
+                columnStyles: { 0: { cellWidth: CONTENT_W } },
                 margin: { left: MARGIN }
             });
 
@@ -2329,6 +2521,7 @@
                         ${Array.isArray(inv.labor_details) && inv.labor_details.length > 0 ? `<p class="text-[10px] text-slate-400 mt-0.5">Labor: ${inv.labor_details.map(l => `${l.name} (${l.days}d)`).join(', ')}</p>` : ''}
                         ${!isReceived && advanceReceived > 0 ? `<p class="text-[10px] text-blue-600 mt-1">Advance received: ₹${advanceReceived.toLocaleString('en-IN')} &middot; Balance due: ₹${balanceDue.toLocaleString('en-IN')}${inv.advance_notes ? ` &middot; ${inv.advance_notes}` : ''}</p>` : ''}
                         ${isReceived && inv.payment_received_date ? `<p class="text-[10px] text-emerald-600 mt-1">Received on ${new Date(inv.payment_received_date).toLocaleDateString('en-IN')}</p>` : ''}
+                        ${inv.updated_at ? `<p class="text-[9px] text-slate-300 mt-1">${inv.created_at && inv.updated_at !== inv.created_at ? 'Last edited' : 'Saved'}: ${new Date(inv.updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>` : ''}
                     </div>
                     <div class="text-right shrink-0">
                         <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Grand Total</p>
@@ -3431,6 +3624,79 @@
 
         let balanceRecordsPanelOpen = false;
         let runtimeMorningAdvanceLog = [];
+
+        // Groups every shift log first by month, then by Site Location text (trimmed,
+        // case-insensitive, so "KPN Horamavu" / "kpn horamavu " collapse into one block).
+        // Each employee line shows total shift count for that site in that month only
+        // (no per-shift date list) - just the total details needed to spot who worked where.
+        function renderSiteWiseAnalysis() {
+            const listEl = document.getElementById('site-analysis-list');
+            if (!listEl) return;
+            const searchEl = document.getElementById('site-analysis-search');
+            const query = (searchEl ? searchEl.value : '').trim().toLowerCase();
+
+            // month -> site -> employee -> { name, count, approved }
+            const monthGroups = {};
+            (runtimeShifts || []).forEach(s => {
+                const d = new Date(s.punch_in_time || s.created_at);
+                if (isNaN(d.getTime())) return;
+                const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                const rawSite = (s.site_location || '').trim();
+                const siteKey = rawSite ? rawSite.toLowerCase() : '(not specified)';
+
+                if (!monthGroups[monthKey]) monthGroups[monthKey] = {};
+                const sitesInMonth = monthGroups[monthKey];
+                if (!sitesInMonth[siteKey]) sitesInMonth[siteKey] = { displayName: rawSite || 'Not Specified', employees: {} };
+
+                const worker = runtimeWorkers.find(w => w.email === s.worker_email);
+                const empKey = s.worker_email;
+                if (!sitesInMonth[siteKey].employees[empKey]) sitesInMonth[siteKey].employees[empKey] = { name: worker ? worker.name : s.worker_email, count: 0, approved: 0 };
+                sitesInMonth[siteKey].employees[empKey].count++;
+                if (s.status === 'Approved') sitesInMonth[siteKey].employees[empKey].approved++;
+            });
+
+            const monthKeys = Object.keys(monthGroups).sort((a, b) => b.localeCompare(a));
+            if (monthKeys.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">No shift data yet.</p>`;
+                return;
+            }
+
+            const blocksHtml = monthKeys.map(monthKey => {
+                let siteKeys = Object.keys(monthGroups[monthKey]);
+                if (query) siteKeys = siteKeys.filter(k => k.includes(query));
+                if (siteKeys.length === 0) return '';
+                siteKeys.sort((a, b) => Object.keys(monthGroups[monthKey][b].employees).length - Object.keys(monthGroups[monthKey][a].employees).length);
+
+                const monthLabel = new Date(monthKey + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+                const sitesHtml = siteKeys.map(siteKey => {
+                    const site = monthGroups[monthKey][siteKey];
+                    const employees = Object.values(site.employees).sort((a, b) => b.count - a.count);
+                    const totalShifts = employees.reduce((sum, e) => sum + e.count, 0);
+                    return `
+                    <div class="border border-slate-200 rounded-xl overflow-hidden">
+                        <div class="bg-slate-50 px-3 py-2 flex items-center justify-between flex-wrap gap-1">
+                            <span class="text-xs font-black text-slate-800 uppercase tracking-wide">📍 ${site.displayName}</span>
+                            <span class="text-[9px] text-slate-500 font-semibold">${employees.length} employee${employees.length === 1 ? '' : 's'} &middot; ${totalShifts} shift${totalShifts === 1 ? '' : 's'} total</span>
+                        </div>
+                        <div class="divide-y divide-slate-100">
+                            ${employees.map(e => `
+                                <div class="flex items-center justify-between px-3 py-1.5 text-[11px]">
+                                    <span class="font-semibold text-slate-700">${e.name}</span>
+                                    <span class="text-slate-400 font-mono">${e.count} shift${e.count === 1 ? '' : 's'} total &middot; <span class="text-emerald-600">${e.approved} approved</span></span>
+                                </div>`).join('')}
+                        </div>
+                    </div>`;
+                }).join('');
+
+                return `
+                <div>
+                    <h3 class="text-xs font-black uppercase tracking-wider text-purple-900 mb-2">${monthLabel}</h3>
+                    <div class="space-y-2">${sitesHtml}</div>
+                </div>`;
+            }).filter(Boolean).join('');
+
+            listEl.innerHTML = blocksHtml || `<p class="text-xs text-slate-400 italic text-center py-4">No sites found.</p>`;
+        }
 
         function toggleBalanceRecordsPanel() {
             balanceRecordsPanelOpen = !balanceRecordsPanelOpen;
