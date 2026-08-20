@@ -2140,7 +2140,7 @@
                 startY: rightY,
                 theme: 'grid',
                 styles: { ...GRID, valign: 'top', fontStyle: 'bold', fontSize: 9 },
-                body: [[{ content: `Invoice No.: ${inv.invoice_no || '--'}\nDated: ${inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB') : '--'}\nPlace of Supply: ${inv.client_state_code || ''}-${inv.client_state || '--'}` }]],
+                body: [[{ content: `${inv.document_type === 'quotation' ? 'Quotation' : 'Invoice'} No.: ${inv.invoice_no || '--'}\nDated: ${inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB') : '--'}\nPlace of Supply: ${inv.client_state_code || ''}-${inv.client_state || '--'}` }]],
                 columnStyles: { 0: { cellWidth: RIGHT_W } },
                 margin: { left: RIGHT_X }
             });
@@ -2328,7 +2328,7 @@
                 theme: 'grid',
                 styles: { ...GRID, fontSize: 7.5, valign: 'top' },
                 body: [[
-                    { content: `Declaration\nWe declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.\n\nCompany's Bank Details\nA/c Holder's Name: ANANT ELECTRICAL\nBank Name: YES BANK\nA/c No.: 065361900010371\nBranch & IFSC Code: BANGALORE JAYANAGAR & YESB0000653`, styles: { cellWidth: 122 } },
+                    { content: inv.document_type === 'quotation' ? `Company's Bank Details\nA/c Holder's Name: ANANT ELECTRICAL\nBank Name: YES BANK\nA/c No.: 065361900010371\nBranch & IFSC Code: BANGALORE JAYANAGAR & YESB0000653` : `Declaration\nWe declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.\n\nCompany's Bank Details\nA/c Holder's Name: ANANT ELECTRICAL\nBank Name: YES BANK\nA/c No.: 065361900010371\nBranch & IFSC Code: BANGALORE JAYANAGAR & YESB0000653`, styles: { cellWidth: 122 } },
                     { content: `\n\n\n\n\n\nAuthorised Signatory`, styles: { halign: 'center', cellWidth: 60, minCellHeight: SEAL_H + 14 } }
                 ]],
                 columnStyles: { 0: { cellWidth: 122 }, 1: { cellWidth: 60 } },
