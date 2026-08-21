@@ -200,6 +200,33 @@
         @media (prefers-reduced-motion: reduce) {
             #login-mascot, #login-mascot .mascot-light { animation: none; }
         }
+
+        /* --- Post-login welcome sequence: 4 staged 3D scenes over ~10s --- */
+        .welcome-scene {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0;
+            animation: welcome-scene-timeline var(--dur) ease both;
+            animation-delay: var(--delay);
+        }
+        @keyframes welcome-scene-timeline {
+            0% { opacity: 0; transform: translateY(10px) scale(0.98); }
+            10% { opacity: 1; transform: translateY(0) scale(1); }
+            88% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-10px) scale(0.98); }
+        }
+        @keyframes welcome-power-flash {
+            0% { opacity: 0; } 40% { opacity: 1; } 100% { opacity: 0; }
+        }
+        @keyframes welcome-loading-fill {
+            0% { width: 0%; } 100% { width: 100%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .welcome-scene { animation-name: welcome-scene-fade-only; }
+            @keyframes welcome-scene-fade-only {
+                0% { opacity: 0; } 10% { opacity: 1; } 88% { opacity: 1; } 100% { opacity: 0; }
+            }
+        }
     </style>
 </head>
 <body class="text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center px-4 py-8">
@@ -296,21 +323,78 @@
         </div>
 
         <!-- Welcome Intro (shown briefly after successful login, before the dashboard) -->
-        <div id="welcome-intro" class="hidden fixed inset-0 z-50 flex items-center justify-center overflow-hidden" style="background: linear-gradient(180deg, #0a1220 0%, #14243a 55%, #0f1c2e 100%);">
+        <div id="welcome-intro" class="hidden fixed inset-0 z-50 overflow-hidden" style="background: linear-gradient(180deg, rgba(10,18,32,0.86) 0%, rgba(20,36,58,0.82) 55%, rgba(15,28,46,0.86) 100%);">
             <div class="absolute inset-0" style="background-image: radial-gradient(circle at 20% 15%, rgba(209,134,63,0.18), transparent 45%), radial-gradient(circle at 85% 80%, rgba(52,90,133,0.4), transparent 50%);"></div>
-            <div class="relative text-center px-6" style="perspective: 1200px;">
-                <div class="relative mx-auto mb-6 w-24 h-24">
-                    <div class="absolute inset-0 rounded-2xl bg-copper-500 blur-2xl animate-glow-pulse"></div>
-                    <div class="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-copper-400 to-copper-700 flex items-center justify-center shadow-2xl border border-copper-300/40 animate-emblem-flip-in animate-emblem-idle" style="transform-style: preserve-3d;">
-                        <span class="text-4xl font-black text-white">A</span>
+
+            <!-- Scene A: brand emblem -->
+            <div class="welcome-scene" style="--dur:2.5s; --delay:0s;">
+                <div class="text-center px-6" style="perspective: 1200px;">
+                    <div class="relative mx-auto mb-6 w-24 h-24">
+                        <div class="absolute inset-0 rounded-2xl bg-copper-500 blur-2xl animate-glow-pulse"></div>
+                        <div class="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-copper-400 to-copper-700 flex items-center justify-center shadow-2xl border border-copper-300/40 animate-emblem-flip-in animate-emblem-idle" style="transform-style: preserve-3d;">
+                            <span class="text-4xl font-black text-white">A</span>
+                        </div>
                     </div>
-                </div>
-                <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight opacity-0 animate-fade-rise" style="animation-delay: 0.55s;">Welcome to Anant Staff Portal</h1>
-                <p id="welcome-subtitle" class="text-copper-300 text-xs font-mono uppercase tracking-widest mt-2.5 opacity-0 animate-fade-rise" style="animation-delay: 0.8s;">Preparing your dashboard...</p>
-                <div class="mt-7 w-44 h-1 mx-auto rounded-full bg-slate-700/60 overflow-hidden opacity-0 animate-fade-rise" style="animation-delay: 1s;">
-                    <div class="h-full bg-copper-400 rounded-full animate-loading-bar"></div>
+                    <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight opacity-0 animate-fade-rise" style="animation-delay: 0.55s;">Welcome to Anant Staff Portal</h1>
+                    <p id="welcome-subtitle" class="text-copper-300 text-xs font-mono uppercase tracking-widest mt-2.5 opacity-0 animate-fade-rise" style="animation-delay: 0.8s;">Preparing your dashboard...</p>
                 </div>
             </div>
+
+            <!-- Scene B: what the portal does, three 3D flip-in badges -->
+            <div class="welcome-scene" style="--dur:2.3s; --delay:2.3s;">
+                <div class="text-center px-6">
+                    <p class="text-copper-300 text-[11px] font-mono uppercase tracking-widest mb-6">Everything in one place</p>
+                    <div class="flex items-center justify-center gap-5 sm:gap-7" style="perspective: 1200px;">
+                        <div class="flex flex-col items-center gap-2">
+                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-copper-400 to-copper-700 flex items-center justify-center shadow-2xl border border-copper-300/40 animate-emblem-flip-in" style="transform-style: preserve-3d; animation-delay: 2.35s;">
+                                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 3"/></svg>
+                            </div>
+                            <span class="text-white/80 text-[10px] font-bold uppercase tracking-wider">Shift Tracking</span>
+                        </div>
+                        <div class="flex flex-col items-center gap-2">
+                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-copper-400 to-copper-700 flex items-center justify-center shadow-2xl border border-copper-300/40 animate-emblem-flip-in" style="transform-style: preserve-3d; animation-delay: 2.5s;">
+                                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>
+                            </div>
+                            <span class="text-white/80 text-[10px] font-bold uppercase tracking-wider">Live Alerts</span>
+                        </div>
+                        <div class="flex flex-col items-center gap-2">
+                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-copper-400 to-copper-700 flex items-center justify-center shadow-2xl border border-copper-300/40 animate-emblem-flip-in" style="transform-style: preserve-3d; animation-delay: 2.65s;">
+                                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M9 8h1M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/></svg>
+                            </div>
+                            <span class="text-white/80 text-[10px] font-bold uppercase tracking-wider">Digital Payslips</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scene C: personal welcome -->
+            <div class="welcome-scene" style="--dur:2.6s; --delay:4.5s;">
+                <div class="text-center px-6" style="perspective: 1200px;">
+                    <div class="animate-emblem-flip-in" style="animation-delay: 4.55s; transform-style: preserve-3d;">
+                        <h1 id="welcome-back-name" class="text-3xl sm:text-4xl font-black text-white tracking-tight">Welcome back</h1>
+                    </div>
+                    <p class="text-copper-300 text-xs font-mono uppercase tracking-widest mt-3">Anant Electrical &middot; Staff Node Portal</p>
+                </div>
+            </div>
+
+            <!-- Scene D: power-up, then hand off to the dashboard -->
+            <div class="welcome-scene" style="--dur:3s; --delay:7s;">
+                <div class="text-center px-6">
+                    <div class="relative mx-auto mb-5 w-16 h-16">
+                        <div class="absolute inset-0 rounded-full bg-copper-500 blur-2xl animate-glow-pulse"></div>
+                        <div class="relative w-16 h-16 rounded-full bg-gradient-to-br from-copper-300 to-copper-600 flex items-center justify-center shadow-2xl">
+                            <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+                        </div>
+                    </div>
+                    <p class="text-white text-sm font-bold tracking-wide">Powering up your dashboard...</p>
+                    <div class="mt-5 w-52 h-1.5 mx-auto rounded-full bg-slate-700/60 overflow-hidden">
+                        <div class="h-full bg-copper-400 rounded-full" style="animation: welcome-loading-fill 2.6s ease-in-out 7.1s both;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- one-time bright pulse right before handoff, like current surging through -->
+            <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(circle, rgba(238,196,149,0.45), transparent 60%); opacity: 0; animation: welcome-power-flash 0.6s ease-out 9.4s both;"></div>
         </div>
 
         <!-- Bonus Notification Banner -->
@@ -1019,6 +1103,12 @@
 
             const clock = new THREE.Clock();
             const isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+            let boostUntil = 0;
+            // called from the post-login welcome screen so the network visibly "energizes"
+            // during that sequence - faster pulses, brighter nodes, for a set duration
+            window.nodeNetworkBoost = function (durationMs) {
+                boostUntil = performance.now() + (durationMs || 4000);
+            };
 
             function onPointerMove(e) {
                 mouseX = (e.clientX / width) - 0.5;
@@ -1030,8 +1120,12 @@
                 animId = requestAnimationFrame(animate);
                 const dt = Math.min(clock.getDelta(), 0.05);
                 const elapsed = clock.getElapsedTime();
+                const boosted = performance.now() < boostUntil;
+                const pulseSpeedMult = boosted ? 2.4 : 1;
+                nodeMat.opacity = boosted ? 0.95 : 0.75;
+                lineMat.opacity = boosted ? 0.4 : 0.22;
 
-                nodesPoints.rotation.y += dt * 0.02;
+                nodesPoints.rotation.y += dt * (boosted ? 0.05 : 0.02);
                 linesMesh.rotation.y = nodesPoints.rotation.y;
                 pulseGroup.rotation.y = nodesPoints.rotation.y;
                 nodesPoints.rotation.x = Math.sin(elapsed * 0.08) * 0.06;
@@ -1045,7 +1139,7 @@
 
                 pulses.forEach(p => {
                     if (p.delay > 0) { p.delay -= dt; p.mesh.material.opacity = 0; return; }
-                    p.t += dt * 0.6;
+                    p.t += dt * 0.6 * pulseSpeedMult;
                     if (p.t >= 1) { respawnPulse(p); return; }
                     const a = nodePositions[p.edge.a], b = nodePositions[p.edge.b];
                     p.mesh.position.lerpVectors(a, b, p.t);
@@ -1743,19 +1837,25 @@
             }
         }
 
+        // always plays the full 10s (4 staged 3D scenes, see .welcome-scene in <style>) -
+        // no skip, this runs every time regardless of how impatient someone is
+        const WELCOME_INTRO_DURATION_MS = 10000;
         function showWelcomeIntro(userName) {
             return new Promise(resolve => {
                 document.getElementById('auth-section').classList.add('hidden');
                 const welcome = document.getElementById('welcome-intro');
-                const subtitle = document.getElementById('welcome-subtitle');
-                subtitle.innerText = userName ? `Signing in as ${userName}...` : 'Preparing your dashboard...';
+                document.getElementById('welcome-subtitle').innerText = userName ? `Signing in as ${userName}...` : 'Preparing your dashboard...';
+                document.getElementById('welcome-back-name').innerText = userName ? `Welcome back, ${userName}` : 'Welcome back';
                 welcome.classList.remove('hidden');
+                if (window.nodeNetworkBoost) window.nodeNetworkBoost(WELCOME_INTRO_DURATION_MS);
+                unlockNotificationAudio(); // the login button click is itself the user gesture that unlocks audio
+                playWelcomeIntroSound();
 
                 setTimeout(() => {
                     welcome.classList.add('hidden');
                     document.getElementById('portal-dashboard').classList.remove('hidden');
                     resolve();
-                }, 2200);
+                }, WELCOME_INTRO_DURATION_MS);
             });
         }
 
@@ -1793,6 +1893,73 @@
         // Punch out - single descending confirmation tone (mirror of punch-in, so they're
         // recognizable as a pair without needing to look at the screen)
         function playPunchOutSound() { playToneSequence([[990, 0], [660, 0.1]]); }
+
+        // Sound design for the 10s welcome sequence, synced to the 4 visual scenes.
+        // Louder than the everyday UI blips above (peaks around 0.4-0.55 vs 0.2) since
+        // this only plays once per login, not something that repeats all shift. Returns
+        // a stop() so playback can be cut short if the person taps through early.
+        function playWelcomeIntroSound() {
+            if (!notificationAudioCtx) return null;
+            const ctx = notificationAudioCtx;
+            const now = ctx.currentTime;
+            const liveNodes = [];
+
+            function tone(freq, startOffset, dur, peakGain, type) {
+                try {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = type || 'sine';
+                    osc.frequency.value = freq;
+                    const st = now + startOffset;
+                    gain.gain.setValueAtTime(0.0001, st);
+                    gain.gain.exponentialRampToValueAtTime(peakGain, st + dur * 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, st + dur);
+                    osc.connect(gain).connect(ctx.destination);
+                    osc.start(st);
+                    osc.stop(st + dur + 0.05);
+                    liveNodes.push(osc);
+                } catch (e) { /* best-effort only */ }
+            }
+
+            try {
+                // Scene A (0s) - bright two-note arrival chime
+                tone(784, 0, 0.35, 0.5);
+                tone(1046, 0.14, 0.4, 0.5);
+
+                // Scene B (2.35-2.65s) - three quick badge blips, one per feature
+                tone(1318, 2.35, 0.14, 0.4);
+                tone(1318, 2.5, 0.14, 0.4);
+                tone(1318, 2.65, 0.16, 0.42);
+
+                // Scene C (4.55s) - warm welcome chord (major triad)
+                tone(523.25, 4.55, 0.9, 0.42);
+                tone(659.25, 4.6, 0.9, 0.38);
+                tone(783.99, 4.65, 0.9, 0.38);
+
+                // Scene D (7s) - rising power-up sweep under the loading bar
+                const sweepOsc = ctx.createOscillator();
+                const sweepGain = ctx.createGain();
+                sweepOsc.type = 'sawtooth';
+                const sweepStart = now + 7.0;
+                sweepOsc.frequency.setValueAtTime(110, sweepStart);
+                sweepOsc.frequency.exponentialRampToValueAtTime(1046, sweepStart + 2.2);
+                sweepGain.gain.setValueAtTime(0.0001, sweepStart);
+                sweepGain.gain.exponentialRampToValueAtTime(0.32, sweepStart + 1.1);
+                sweepGain.gain.exponentialRampToValueAtTime(0.0001, sweepStart + 2.3);
+                sweepOsc.connect(sweepGain).connect(ctx.destination);
+                sweepOsc.start(sweepStart);
+                sweepOsc.stop(sweepStart + 2.35);
+                liveNodes.push(sweepOsc);
+
+                // 9.4s - bright zap, synced with the power-flash visual right before handoff
+                tone(1568, 9.4, 0.18, 0.55, 'triangle');
+                tone(2093, 9.46, 0.22, 0.5, 'triangle');
+            } catch (e) { /* best-effort only */ }
+
+            return function stop() {
+                liveNodes.forEach(node => { try { node.stop(0); } catch (e) { /* already stopped */ } });
+            };
+        }
 
         // Spoken reminder ("Please start your shift" / "Please punch out the shift"),
         // used only for admin-sent alerts (see subscribeToShiftAlerts below) - there is
