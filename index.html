@@ -38,6 +38,7 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <!-- jsPDF & AutoTable for PDF Payslip Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -95,19 +96,187 @@
                 radial-gradient(circle at 15% 0%, rgba(209,134,63,0.10), transparent 40%),
                 radial-gradient(circle at 100% 20%, rgba(52,90,133,0.35), transparent 45%),
                 linear-gradient(180deg, #0a1220 0%, #14243a 55%, #0f1c2e 100%);
+            perspective: 1600px;
         }
         .readout {
             font-variant-numeric: tabular-nums;
             letter-spacing: 0.02em;
         }
+
+        /* --- Node network background (Three.js canvas sits behind all UI) --- */
+        #node-network-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 1.4s ease;
+        }
+        #node-network-canvas.is-ready { opacity: 1; }
+        main { position: relative; z-index: 1; }
+
+        /* --- Depth cards: subtle CSS 3D tilt + layered elevation --- */
+        .depth-card {
+            transform-style: preserve-3d;
+            transition: transform 0.25s cubic-bezier(.2,.8,.2,1), box-shadow 0.25s ease;
+            box-shadow:
+                0 1px 2px rgba(15,28,46,0.06),
+                0 10px 20px -8px rgba(15,28,46,0.14),
+                0 28px 56px -20px rgba(15,28,46,0.16);
+            will-change: transform;
+        }
+        .depth-card:hover {
+            box-shadow:
+                0 2px 4px rgba(15,28,46,0.08),
+                0 18px 32px -10px rgba(15,28,46,0.20),
+                0 40px 80px -24px rgba(15,28,46,0.20);
+        }
+        .depth-card > * { transform: translateZ(0); }
+        @media (hover: none), (pointer: coarse) {
+            .depth-card { transform: none !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .depth-card { transition: none; }
+            #node-network-canvas { display: none; }
+        }
+
+        /* --- Login card: real 3D slab thickness (not just a shadow) --- */
+        #auth-section { transform-style: preserve-3d; }
+        #auth-section::before,
+        #auth-section::after {
+            content: "";
+            position: absolute;
+            background: linear-gradient(135deg, #d7dde6, #99a7ba);
+            border-radius: 18px;
+            pointer-events: none;
+        }
+        #auth-section::before { /* bottom edge */
+            left: 3px; right: 3px; bottom: -13px; height: 14px;
+            transform: rotateX(-90deg);
+            transform-origin: top;
+        }
+        #auth-section::after { /* right edge */
+            top: 3px; bottom: 3px; right: -13px; width: 14px;
+            transform: rotateY(90deg);
+            transform-origin: left;
+        }
+        @media (hover: none), (pointer: coarse) {
+            #auth-section::before, #auth-section::after { display: none; }
+        }
+
+        /* --- Login mascot: an electrical-work robot who watches you sign in --- */
+        #login-mascot {
+            animation: mascot-idle-bob 3.6s ease-in-out infinite;
+            transform-style: preserve-3d;
+        }
+        @keyframes mascot-idle-bob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        #login-mascot .mascot-pupil {
+            transition: transform 0.15s ease, opacity 0.2s ease;
+        }
+        #login-mascot .mascot-eye-closed { opacity: 0; transition: opacity 0.2s ease; }
+        #login-mascot .mascot-eyes { transition: transform 0.08s ease; transform-box: fill-box; transform-origin: center; }
+        #login-mascot.is-blinking .mascot-eyes { transform: scaleY(0.12); }
+        #login-mascot .mascot-arm-left,
+        #login-mascot .mascot-arm-right {
+            transform-box: fill-box;
+            transform-origin: 0% 0%;
+            transition: transform 0.35s cubic-bezier(.34,1.56,.64,1);
+        }
+        #login-mascot .mascot-arm-left { transform: rotate(-20deg); }
+        #login-mascot .mascot-arm-right { transform: rotate(20deg); }
+        #login-mascot.is-shy .mascot-arm-left { transform: rotate(-160deg); }
+        #login-mascot.is-shy .mascot-arm-right { transform: rotate(160deg); }
+        #login-mascot.is-shy .mascot-pupil { opacity: 0; }
+        #login-mascot.is-shy .mascot-eye-closed { opacity: 1; }
+        #login-mascot .mascot-light { animation: mascot-light-pulse 2.4s ease-in-out infinite; }
+        @keyframes mascot-light-pulse {
+            0%, 100% { opacity: 0.55; } 50% { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #login-mascot, #login-mascot .mascot-light { animation: none; }
+        }
     </style>
 </head>
 <body class="text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center px-4 py-8">
 
+    <canvas id="node-network-canvas" aria-hidden="true"></canvas>
+
     <main class="flex-grow flex flex-col items-center justify-center w-full max-w-md lg:max-w-5xl relative">
         
         <!-- Auth Section -->
-        <div id="auth-section" class="w-full max-w-[420px] bg-white rounded-2xl shadow-2xl p-10 transition-all duration-300 text-center">
+        <div id="auth-section" class="relative w-full max-w-[420px] bg-white rounded-2xl shadow-2xl p-10 pt-16 transition-all duration-300 text-center">
+
+            <!-- Login Mascot: an electrical-work robot peeking over the card, watching
+                 the worker sign in. Eyes track typing in the email field, hands come up
+                 to cover its eyes while the password is being entered. Purely decorative. -->
+            <div id="login-mascot" class="absolute pointer-events-none select-none" style="left:50%; margin-left:-75px; width:150px; height:165px; top:-118px;" aria-hidden="true">
+                <svg viewBox="0 0 200 220" width="150" height="165" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="mascotCopper" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#eec495"/>
+                            <stop offset="55%" stop-color="#d1863f"/>
+                            <stop offset="100%" stop-color="#9a5a24"/>
+                        </linearGradient>
+                        <linearGradient id="mascotNavy" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#345a85"/>
+                            <stop offset="100%" stop-color="#152740"/>
+                        </linearGradient>
+                        <radialGradient id="mascotLightGlow" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#fbeee0"/>
+                            <stop offset="100%" stop-color="#d1863f"/>
+                        </radialGradient>
+                    </defs>
+
+                    <!-- torso (the part that overlaps into the card, like it's leaning on the edge) -->
+                    <rect x="60" y="132" width="80" height="76" rx="22" fill="url(#mascotNavy)"/>
+                    <circle class="mascot-light" cx="100" cy="160" r="15" fill="url(#mascotLightGlow)"/>
+                    <path d="M103,149 L93,163 L99,163 L96,175 L109,158 L101,158 Z" fill="#0f1c2e" opacity="0.85"/>
+
+                    <!-- arms: shoulder pivots at (62,140) and (138,140), swing up to cover eyes -->
+                    <g transform="translate(62,140)">
+                        <g class="mascot-arm-left">
+                            <line x1="0" y1="0" x2="0" y2="46" stroke="url(#mascotCopper)" stroke-width="20" stroke-linecap="round"/>
+                            <circle cx="0" cy="46" r="13" fill="#e0a262"/>
+                        </g>
+                    </g>
+                    <g transform="translate(138,140)">
+                        <g class="mascot-arm-right">
+                            <line x1="0" y1="0" x2="0" y2="46" stroke="url(#mascotCopper)" stroke-width="20" stroke-linecap="round"/>
+                            <circle cx="0" cy="46" r="13" fill="#e0a262"/>
+                        </g>
+                    </g>
+
+                    <!-- antenna -->
+                    <line x1="100" y1="14" x2="100" y2="35" stroke="url(#mascotCopper)" stroke-width="5" stroke-linecap="round"/>
+                    <circle class="mascot-light" cx="100" cy="10" r="6" fill="url(#mascotLightGlow)"/>
+
+                    <!-- hard hat -->
+                    <path d="M62,60 A38,36 0 0 1 138,60 L138,68 L62,68 Z" fill="url(#mascotCopper)"/>
+                    <rect x="58" y="63" width="84" height="7" rx="3.5" fill="#9a5a24"/>
+
+                    <!-- face plate -->
+                    <rect x="68" y="68" width="64" height="58" rx="18" fill="url(#mascotNavy)"/>
+
+                    <!-- eyes: sockets + pupils (tracked via JS) + closed-eye arcs (shown while covering) -->
+                    <g class="mascot-eyes">
+                        <circle cx="86" cy="96" r="10" fill="#fbeee0"/>
+                        <circle cx="114" cy="96" r="10" fill="#fbeee0"/>
+                        <circle class="mascot-pupil" id="mascot-pupil-left" cx="86" cy="96" r="5" fill="#0a1220"/>
+                        <circle class="mascot-pupil" id="mascot-pupil-right" cx="114" cy="96" r="5" fill="#0a1220"/>
+                        <path class="mascot-eye-closed" d="M80,96 q6,-7 12,0" stroke="#0a1220" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        <path class="mascot-eye-closed" d="M108,96 q6,-7 12,0" stroke="#0a1220" stroke-width="3" fill="none" stroke-linecap="round"/>
+                    </g>
+
+                    <!-- mouth grille -->
+                    <rect x="90" y="112" width="20" height="4" rx="2" fill="#0a1220" opacity="0.6"/>
+                </svg>
+            </div>
+
             <h1 class="text-3xl font-bold tracking-tight text-[#1e3a5f] mb-1">Anant Electrical</h1>
             <p class="text-sm text-gray-500 mb-8">Sign in using your email and password.</p>
             
@@ -120,7 +289,7 @@
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Portal Login Password</label>
                     <input type="password" id="auth-password" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:bg-white focus:border-[#1e3a5f] focus:ring-2 focus:ring-slate-100 outline-none transition" placeholder="••••••••">
                 </div>
-                <button onclick="attemptAuthenticationSubmit()" class="w-full bg-[#1e3a5f] hover:bg-[#14283f] text-white font-bold py-3.5 rounded-xl text-sm tracking-wider uppercase shadow-lg hover:shadow-xl transition cursor-pointer">
+                <button onclick="handleLogin()" class="w-full bg-[#1e3a5f] hover:bg-[#14283f] text-white font-bold py-3.5 rounded-xl text-sm tracking-wider uppercase shadow-lg hover:shadow-xl transition cursor-pointer">
                     Secure Dashboard Login
                 </button>
             </div>
@@ -419,7 +588,7 @@
                         <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">ID Card Photo</label>
                         <div class="flex items-center gap-2">
                             <input type="url" id="prof-photo-url" class="flex-1 p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]" placeholder="https:// or take selfie">
-                            <button type="button" onclick="initiateCameraWorkflow('idcard')" class="bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold px-3 py-2.5 rounded-xl text-[10px] uppercase tracking-wider transition whitespace-nowrap cursor-pointer">Take Selfie</button>
+                            <button type="button" onclick="openCamera('idcard')" class="bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold px-3 py-2.5 rounded-xl text-[10px] uppercase tracking-wider transition whitespace-nowrap cursor-pointer">Take Selfie</button>
                         </div>
                     </div>
                     
@@ -436,7 +605,7 @@
                 
                 <div id="punch-in-panel" class="space-y-3">
                     <p class="text-xs text-slate-500">You do not have an active shift running. Punch in to begin tracking your work shift hours.</p>
-                    <button onclick="initiateCameraWorkflow('in')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer">
+                    <button onclick="openCamera('in')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer">
                         Capture Selfie & Punch In
                     </button>
                 </div>
@@ -518,7 +687,7 @@
                                     <span id="badge-status-transport" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 uppercase tracking-wider">Missing Receipt</span>
                                 </div>
                                 <div id="action-block-transport" class="flex gap-2">
-                                    <button type="button" onclick="initiateCameraWorkflow('transport')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
+                                    <button type="button" onclick="openCamera('transport')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
                                     <input type="file" id="bill-file-transport" accept="image/*" multiple onchange="handleBillFileSelected('transport')" class="hidden">
                                     <button type="button" onclick="document.getElementById('bill-file-transport').click()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-3 rounded-lg text-[10px] uppercase transition">Upload Multiple</button>
                                 </div>
@@ -533,7 +702,7 @@
                                     <span id="badge-status-food" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 uppercase tracking-wider">Missing Receipt</span>
                                 </div>
                                 <div id="action-block-food" class="flex gap-2">
-                                    <button type="button" onclick="initiateCameraWorkflow('food')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
+                                    <button type="button" onclick="openCamera('food')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
                                     <input type="file" id="bill-file-food" accept="image/*" multiple onchange="handleBillFileSelected('food')" class="hidden">
                                     <button type="button" onclick="document.getElementById('bill-file-food').click()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-3 rounded-lg text-[10px] uppercase transition">Upload Multiple</button>
                                 </div>
@@ -548,7 +717,7 @@
                                     <span id="badge-status-material" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 uppercase tracking-wider">Missing Receipt</span>
                                 </div>
                                 <div id="action-block-material" class="flex gap-2">
-                                    <button type="button" onclick="initiateCameraWorkflow('material')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
+                                    <button type="button" onclick="openCamera('material')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
                                     <input type="file" id="bill-file-material" accept="image/*" multiple onchange="handleBillFileSelected('material')" class="hidden">
                                     <button type="button" onclick="document.getElementById('bill-file-material').click()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-3 rounded-lg text-[10px] uppercase transition">Upload Multiple</button>
                                 </div>
@@ -557,11 +726,11 @@
                                 </div>
                             </div>
 
-                            <p id="bills-verification-status" class="text-[10px] text-slate-500 italic px-1">Bills are submitted with your shift for admin review — no scan needed.</p>
+                            <p id="bills-verification-status" class="text-[10px] text-slate-500 italic px-1">Bills are submitted with your shift for admin review, no scan needed.</p>
                         </div>
                     </div>
 
-                    <button id="punch-out-button" onclick="initiateCameraWorkflow('out')" class="w-full bg-[#1e3a5f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer">
+                    <button id="punch-out-button" onclick="openCamera('out')" class="w-full bg-[#1e3a5f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer">
                         Capture Selfie & Punch Out
                     </button>
                 </div>
@@ -572,7 +741,7 @@
             <div class="mb-6 break-inside-avoid space-y-2">
                 <div class="flex justify-between items-center px-1">
                     <p class="text-[10px] uppercase font-bold tracking-wider text-slate-300 font-mono">Verified Ledger Streams</p>
-                    <select id="dashboard-month-filter" onchange="sessionStorage.setItem('manualMonthSet', 'true'); syncDashboardPortalState()" class="bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-100 font-mono focus:outline-none">
+                    <select id="dashboard-month-filter" onchange="sessionStorage.setItem('manualMonthSet', 'true'); refreshDashboard()" class="bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-100 font-mono focus:outline-none">
                         <option value="ALL">All Records</option>
                         <option value="0">January</option>
                         <option value="1">February</option>
@@ -751,11 +920,258 @@
     <script>
         Chart.register(ChartDataLabels);
 
+        // --- AMBIENT NODE-NETWORK BACKGROUND (Three.js) ---
+        // A slow-drifting network of connected nodes behind the whole app, with the
+        // occasional bright pulse traveling along a wire (nod to "Staff Node Portal" +
+        // an electrical contractor's actual product: wires carrying current).
+        // Kept deliberately understated - this is a work tool people check while standing
+        // on-site, not a marketing page - so density/opacity stay low and it never
+        // intercepts clicks (pointer-events: none) or eats battery in the background tab.
+        (function initNodeNetworkBackground() {
+            const canvas = document.getElementById('node-network-canvas');
+            if (!canvas || typeof THREE === 'undefined') return;
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+            let renderer, scene, camera, nodesPoints, linesMesh, pulseGroup;
+            let width = window.innerWidth, height = window.innerHeight;
+            let animId = null;
+            let mouseX = 0, mouseY = 0;
+            const NODE_COUNT = window.innerWidth < 640 ? 26 : 42;
+            const NODE_SPREAD = { x: 34, y: 20, z: 14 };
+            const LINK_DISTANCE = 9.5;
+            const MAX_LINKS_PER_NODE = 3;
+
+            try {
+                renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+                renderer.setSize(width, height);
+            } catch (e) { return; } // no WebGL, quietly skip - CSS gradient background still stands on its own
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
+            camera.position.z = 22;
+
+            // node positions, scattered through a shallow 3D volume so parallax reads
+            const nodePositions = [];
+            for (let i = 0; i < NODE_COUNT; i++) {
+                nodePositions.push(new THREE.Vector3(
+                    (Math.random() - 0.5) * NODE_SPREAD.x,
+                    (Math.random() - 0.5) * NODE_SPREAD.y,
+                    (Math.random() - 0.5) * NODE_SPREAD.z
+                ));
+            }
+
+            // nodes as glowing points (single draw call, cheap on mobile)
+            const nodeGeo = new THREE.BufferGeometry().setFromPoints(nodePositions);
+            const nodeMat = new THREE.PointsMaterial({
+                color: 0xd1863f, size: 0.22, transparent: true, opacity: 0.75,
+                sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            nodesPoints = new THREE.Points(nodeGeo, nodeMat);
+            scene.add(nodesPoints);
+
+            // edges: connect each node to its nearest few neighbours within LINK_DISTANCE
+            const edgeList = [];
+            const linePositions = [];
+            for (let i = 0; i < nodePositions.length; i++) {
+                const dists = [];
+                for (let j = 0; j < nodePositions.length; j++) {
+                    if (i === j) continue;
+                    const d = nodePositions[i].distanceTo(nodePositions[j]);
+                    if (d < LINK_DISTANCE) dists.push([j, d]);
+                }
+                dists.sort((a, b) => a[1] - b[1]);
+                dists.slice(0, MAX_LINKS_PER_NODE).forEach(([j]) => {
+                    const key = i < j ? `${i}-${j}` : `${j}-${i}`;
+                    if (edgeList.some(e => e.key === key)) return;
+                    edgeList.push({ key, a: i, b: j });
+                    linePositions.push(
+                        nodePositions[i].x, nodePositions[i].y, nodePositions[i].z,
+                        nodePositions[j].x, nodePositions[j].y, nodePositions[j].z
+                    );
+                });
+            }
+            const lineGeo = new THREE.BufferGeometry();
+            lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+            const lineMat = new THREE.LineBasicMaterial({ color: 0x345a85, transparent: true, opacity: 0.22 });
+            linesMesh = new THREE.LineSegments(lineGeo, lineMat);
+            scene.add(linesMesh);
+
+            // occasional bright pulse traveling along a random wire - current flowing
+            const PULSE_COUNT = 5;
+            pulseGroup = new THREE.Group();
+            const pulseGeo = new THREE.SphereGeometry(0.16, 8, 8);
+            const pulses = [];
+            for (let i = 0; i < PULSE_COUNT; i++) {
+                const mat = new THREE.MeshBasicMaterial({ color: 0xeec495, transparent: true, opacity: 0 });
+                const mesh = new THREE.Mesh(pulseGeo, mat);
+                pulseGroup.add(mesh);
+                pulses.push({ mesh, edge: null, t: 1, delay: Math.random() * 6 });
+            }
+            scene.add(pulseGroup);
+
+            function respawnPulse(p) {
+                p.edge = edgeList[Math.floor(Math.random() * edgeList.length)];
+                p.t = 0;
+                p.delay = 2 + Math.random() * 5;
+            }
+            pulses.forEach(respawnPulse);
+
+            const clock = new THREE.Clock();
+            const isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+
+            function onPointerMove(e) {
+                mouseX = (e.clientX / width) - 0.5;
+                mouseY = (e.clientY / height) - 0.5;
+            }
+            if (!isTouch) window.addEventListener('mousemove', onPointerMove, { passive: true });
+
+            function animate() {
+                animId = requestAnimationFrame(animate);
+                const dt = Math.min(clock.getDelta(), 0.05);
+                const elapsed = clock.getElapsedTime();
+
+                nodesPoints.rotation.y += dt * 0.02;
+                linesMesh.rotation.y = nodesPoints.rotation.y;
+                pulseGroup.rotation.y = nodesPoints.rotation.y;
+                nodesPoints.rotation.x = Math.sin(elapsed * 0.08) * 0.06;
+                linesMesh.rotation.x = nodesPoints.rotation.x;
+                pulseGroup.rotation.x = nodesPoints.rotation.x;
+
+                // gentle camera parallax toward the cursor, desktop only
+                camera.position.x += (mouseX * 3 - camera.position.x) * 0.02;
+                camera.position.y += (-mouseY * 2 - camera.position.y) * 0.02;
+                camera.lookAt(0, 0, 0);
+
+                pulses.forEach(p => {
+                    if (p.delay > 0) { p.delay -= dt; p.mesh.material.opacity = 0; return; }
+                    p.t += dt * 0.6;
+                    if (p.t >= 1) { respawnPulse(p); return; }
+                    const a = nodePositions[p.edge.a], b = nodePositions[p.edge.b];
+                    p.mesh.position.lerpVectors(a, b, p.t);
+                    p.mesh.material.opacity = Math.sin(p.t * Math.PI) * 0.9;
+                });
+
+                renderer.render(scene, camera);
+            }
+
+            function onResize() {
+                width = window.innerWidth; height = window.innerHeight;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            }
+            window.addEventListener('resize', onResize);
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    if (animId) cancelAnimationFrame(animId);
+                    animId = null;
+                } else if (!animId) {
+                    animate();
+                }
+            });
+
+            animate();
+            requestAnimationFrame(() => canvas.classList.add('is-ready'));
+        })();
+
+        // --- DEPTH-CARD 3D TILT ENGINE ---
+        // Applies a subtle mouse-tracked tilt + layered shadow to the app's main panels,
+        // the login card, and modal sheets. Runs once at load and again after each dashboard
+        // re-render, since several panels are (re)painted via innerHTML at runtime.
+        const DEPTH_CARD_SELECTOR = [
+            '#auth-section',
+            '#portal-dashboard > .break-inside-avoid',
+            '#camera-modal > div',
+            '#correction-modal > div',
+            '#id-card-view > div'
+        ].join(', ');
+
+        function attachTiltEffect(el) {
+            if (el.dataset.tiltBound) return;
+            el.dataset.tiltBound = '1';
+            el.classList.add('depth-card');
+            const MAX_TILT = 4.5; // degrees - enough to read as depth, not a gimmick
+            let rafId = null;
+
+            function handleMove(e) {
+                const rect = el.getBoundingClientRect();
+                const px = (e.clientX - rect.left) / rect.width - 0.5;
+                const py = (e.clientY - rect.top) / rect.height - 0.5;
+                if (rafId) cancelAnimationFrame(rafId);
+                rafId = requestAnimationFrame(() => {
+                    el.style.transform = `rotateX(${(-py * MAX_TILT).toFixed(2)}deg) rotateY(${(px * MAX_TILT).toFixed(2)}deg)`;
+                });
+            }
+            function reset() {
+                if (rafId) cancelAnimationFrame(rafId);
+                el.style.transform = '';
+            }
+            el.addEventListener('mousemove', handleMove);
+            el.addEventListener('mouseleave', reset);
+        }
+
+        function scanAndApplyDepthCards() {
+            document.querySelectorAll(DEPTH_CARD_SELECTOR).forEach(attachTiltEffect);
+        }
+
+        document.addEventListener('DOMContentLoaded', scanAndApplyDepthCards);
+        if (document.readyState !== 'loading') scanAndApplyDepthCards();
+        // dashboard panels are static shells present at load, but the ID card and modals
+        // get their inner content swapped in later - a light periodic sweep catches those
+        // without having to hook every render function individually
+        setInterval(scanAndApplyDepthCards, 1500);
+
+        // --- LOGIN MASCOT BEHAVIOR ---
+        // Eyes drift a little while the email field is being typed in, hands come up to
+        // cover the eyes for the password field, idle blink the rest of the time.
+        (function initLoginMascot() {
+            const mascot = document.getElementById('login-mascot');
+            const pupilLeft = document.getElementById('mascot-pupil-left');
+            const pupilRight = document.getElementById('mascot-pupil-right');
+            const emailField = document.getElementById('auth-email');
+            const passwordField = document.getElementById('auth-password');
+            if (!mascot || !emailField || !passwordField) return;
+
+            const MAX_PUPIL_SHIFT = 3.5;
+            function setGaze(offsetPx) {
+                const t = `translateX(${offsetPx.toFixed(1)}px)`;
+                if (pupilLeft) pupilLeft.style.transform = t;
+                if (pupilRight) pupilRight.style.transform = t;
+            }
+
+            emailField.addEventListener('focus', () => mascot.classList.add('is-reading'));
+            emailField.addEventListener('blur', () => { mascot.classList.remove('is-reading'); setGaze(0); });
+            emailField.addEventListener('input', () => {
+                // eyes drift side to side as if following the text being typed
+                const cycle = (emailField.value.length % 10) / 10;
+                setGaze((cycle - 0.5) * 2 * MAX_PUPIL_SHIFT);
+            });
+
+            passwordField.addEventListener('focus', () => mascot.classList.add('is-shy'));
+            passwordField.addEventListener('blur', () => mascot.classList.remove('is-shy'));
+
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (!reduceMotion) {
+                (function scheduleBlink() {
+                    const delay = 2600 + Math.random() * 2200;
+                    setTimeout(() => {
+                        if (!mascot.classList.contains('is-shy')) {
+                            mascot.classList.add('is-blinking');
+                            setTimeout(() => mascot.classList.remove('is-blinking'), 150);
+                        }
+                        scheduleBlink();
+                    }, delay);
+                })();
+            }
+        })();
+
         const SUPABASE_URL = "https://xeffbclwniepwbpsvorh.supabase.co/rest/v1/";
         const SUPABASE_KEY = "sb_publishable_JfBR83l0-TTsig_geq1nUw_hwUeSvaH";
         const HEADERS = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=representation" };
 
-        let currentActiveUser = null;
+        let currentUser = null;
         let activeShiftLogs = [];
         let workerMonthlyBalances = [];
         let workerAdvanceLog = [];
@@ -775,16 +1191,16 @@
             if (priors.length > 0 && priors[0].carry_forward) return parseFloat(priors[0][field] || 0);
             return 0;
         }
-        let runningActiveShift = null;
+        let activeShift = null;
         let mediaStream = null;
-        let temporaryCapturedBase64 = null;
+        let tempSelfieBase64 = null;
         let lockTimerInterval = null;
         let currentActiveTab = 'shifts'; 
         let currentCameraMode = null; 
         let currentCameraFacingMode = "user";
 
         let capturedBillImages = { transport: [], food: [], material: [] };
-        let pendingOptimisticPunchOutShiftId = null;
+        let optimisticPunchOutId = null;
 
         let runtimePieChartInstance = null;
         let runtimeBarChartInstance = null;
@@ -836,7 +1252,7 @@
                         try {
                             let selfieUrl = null;
                             if (item.imageBase64) {
-                                const fileName = `${item.type}_${currentActiveUser?.id || 'usr'}_${Date.now()}.jpg`;
+                                const fileName = `${item.type}_${currentUser?.id || 'usr'}_${Date.now()}.jpg`;
                                 selfieUrl = await uploadSelfieToSupabase(item.imageBase64, fileName);
                             }
 
@@ -850,7 +1266,7 @@
                                     for (const type of ['transport', 'food', 'material']) {
                                         let idx = 0;
                                         for (const img of (item.billImages[type] || [])) {
-                                            const billFileName = `${type}_${currentActiveUser?.id || 'usr'}_${Date.now()}_${idx}.jpg`;
+                                            const billFileName = `${type}_${currentUser?.id || 'usr'}_${Date.now()}_${idx}.jpg`;
                                             billUrls[type].push(await uploadSelfieToSupabase(img, billFileName, 'bill-photos'));
                                             idx++;
                                         }
@@ -863,7 +1279,7 @@
                                 delete item.payload.remaining_balance;
 
                                 await fetch(`${SUPABASE_URL}shift_logs?id=eq.${shiftId}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(item.payload) });
-                                await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ morning_advance: remBal }) });
+                                await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentUser.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ morning_advance: remBal }) });
                             }
 
                             const deleteTx = db.transaction("offline_queue", "readwrite");
@@ -875,7 +1291,7 @@
 
                     updateNetworkBadge(true, "Online");
                     alert("Offline shifts synchronized with cloud server!");
-                    await syncDashboardPortalState();
+                    await refreshDashboard();
                 };
             } catch(e) { console.error("Sync error:", e); }
         }
@@ -940,7 +1356,7 @@
             for (const type of ['transport', 'food', 'material']) {
                 let idx = 0;
                 for (const img of source[type]) {
-                    const fileName = `${type}_${currentActiveUser?.id || 'usr'}_${Date.now()}_${idx}.jpg`;
+                    const fileName = `${type}_${currentUser?.id || 'usr'}_${Date.now()}_${idx}.jpg`;
                     const url = await uploadSelfieToSupabase(img, fileName, 'bill-photos');
                     urls[type].push(url);
                     idx++;
@@ -992,20 +1408,20 @@
                 btn.classList.replace('bg-slate-100', 'bg-rose-100');
                 btn.classList.replace('text-slate-700', 'text-rose-800');
                 
-                document.getElementById('prof-name').value = currentActiveUser.name || '';
-                document.getElementById('prof-empno').value = currentActiveUser.emp_no || '';
-                document.getElementById('prof-dob').value = currentActiveUser.dob || '';
-                document.getElementById('prof-blood').value = currentActiveUser.blood_group || '';
-                document.getElementById('prof-phone').value = currentActiveUser.phone || '';
-                document.getElementById('prof-whatsapp').value = currentActiveUser.whatsapp || '';
-                document.getElementById('prof-gmail').value = currentActiveUser.gmail_id || currentActiveUser.email || '';
-                document.getElementById('prof-uan').value = currentActiveUser.uan || '';
-                document.getElementById('prof-address').value = currentActiveUser.address || '';
-                document.getElementById('prof-bank-holder').value = currentActiveUser.bank_account_holder || '';
-                document.getElementById('prof-bank-name').value = currentActiveUser.bank_name || '';
-                document.getElementById('prof-bank-account').value = currentActiveUser.bank_account_number || '';
-                document.getElementById('prof-bank-ifsc').value = currentActiveUser.bank_ifsc || '';
-                document.getElementById('prof-photo-url').value = currentActiveUser.photo_url || '';
+                document.getElementById('prof-name').value = currentUser.name || '';
+                document.getElementById('prof-empno').value = currentUser.emp_no || '';
+                document.getElementById('prof-dob').value = currentUser.dob || '';
+                document.getElementById('prof-blood').value = currentUser.blood_group || '';
+                document.getElementById('prof-phone').value = currentUser.phone || '';
+                document.getElementById('prof-whatsapp').value = currentUser.whatsapp || '';
+                document.getElementById('prof-gmail').value = currentUser.gmail_id || currentUser.email || '';
+                document.getElementById('prof-uan').value = currentUser.uan || '';
+                document.getElementById('prof-address').value = currentUser.address || '';
+                document.getElementById('prof-bank-holder').value = currentUser.bank_account_holder || '';
+                document.getElementById('prof-bank-name').value = currentUser.bank_name || '';
+                document.getElementById('prof-bank-account').value = currentUser.bank_account_number || '';
+                document.getElementById('prof-bank-ifsc').value = currentUser.bank_ifsc || '';
+                document.getElementById('prof-photo-url').value = currentUser.photo_url || '';
             } else {
                 viewSection.classList.remove('hidden');
                 editSection.classList.add('hidden');
@@ -1016,21 +1432,21 @@
         }
 
         function renderIDCard() {
-            if(!currentActiveUser) return;
+            if(!currentUser) return;
             
-            document.getElementById('id-card-name').innerText = currentActiveUser.name || 'Not Provided';
-            document.getElementById('id-card-role').innerText = currentActiveUser.role || 'Field Associate';
-            document.getElementById('id-card-empno').innerText = currentActiveUser.emp_no || 'AE----';
-            document.getElementById('id-card-blood').innerText = currentActiveUser.blood_group || '--';
-            document.getElementById('id-card-dob').innerText = currentActiveUser.dob || '--/--/----';
-            document.getElementById('id-card-phone').innerText = currentActiveUser.phone || '--';
-            document.getElementById('id-card-whatsapp').innerText = currentActiveUser.whatsapp || '--';
-            document.getElementById('id-card-gmail').innerText = currentActiveUser.gmail_id || currentActiveUser.email || '--';
-            document.getElementById('id-card-uan').innerText = currentActiveUser.uan || '--';
-            document.getElementById('id-card-address').innerText = currentActiveUser.address || '--';
+            document.getElementById('id-card-name').innerText = currentUser.name || 'Not Provided';
+            document.getElementById('id-card-role').innerText = currentUser.role || 'Field Associate';
+            document.getElementById('id-card-empno').innerText = currentUser.emp_no || 'AE----';
+            document.getElementById('id-card-blood').innerText = currentUser.blood_group || '--';
+            document.getElementById('id-card-dob').innerText = currentUser.dob || '--/--/----';
+            document.getElementById('id-card-phone').innerText = currentUser.phone || '--';
+            document.getElementById('id-card-whatsapp').innerText = currentUser.whatsapp || '--';
+            document.getElementById('id-card-gmail').innerText = currentUser.gmail_id || currentUser.email || '--';
+            document.getElementById('id-card-uan').innerText = currentUser.uan || '--';
+            document.getElementById('id-card-address').innerText = currentUser.address || '--';
 
-            if(currentActiveUser.photo_url) {
-                document.getElementById('id-card-photo').src = currentActiveUser.photo_url;
+            if(currentUser.photo_url) {
+                document.getElementById('id-card-photo').src = currentUser.photo_url;
             }
         }
 
@@ -1056,7 +1472,7 @@
                 const btn = document.querySelector('#profile-edit-form button');
                 btn.innerText = "Saving...";
                 
-                const response = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentActiveUser.email)}`, {
+                const response = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentUser.email)}`, {
                     method: 'PATCH',
                     headers: HEADERS,
                     body: JSON.stringify(updatedData)
@@ -1066,13 +1482,13 @@
                     throw new Error("Failed to update profile data");
                 }
 
-                currentActiveUser = { ...currentActiveUser, ...updatedData };
+                currentUser = { ...currentUser, ...updatedData };
                 
                 alert("Profile successfully updated!");
                 renderIDCard();
                 toggleEditProfile();
                 
-                document.getElementById('display-worker-name').innerText = currentActiveUser.name || "Worker";
+                document.getElementById('display-worker-name').innerText = currentUser.name || "Worker";
                 
             } catch (error) {
                 alert("Error saving profile: " + error.message);
@@ -1083,7 +1499,7 @@
 
         // --- MONTHLY PAYSLIP PDF GENERATOR ---
         async function downloadMonthlyPayslipPDF() {
-            if (!currentActiveUser) return alert("User session not found.");
+            if (!currentUser) return alert("User session not found.");
 
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -1101,7 +1517,7 @@
 
             const approvedShifts = filteredLogs.filter(log => log.status === 'Approved');
             const approvedDaysCount = approvedShifts.length;
-            const fixedSalaryRate = parseFloat(currentActiveUser.fixed_salary || 0);
+            const fixedSalaryRate = parseFloat(currentUser.fixed_salary || 0);
             
             let grossEarned = approvedDaysCount * fixedSalaryRate;
             let totalTransport = 0, totalFood = 0, totalMaterial = 0, totalMiddayAdvance = 0;
@@ -1121,7 +1537,7 @@
             const payslipCurrentRealMonth = getCurrentMonthString();
             const payslipTargetMonth = selectedMonthVal === 'ALL' ? payslipCurrentRealMonth : `${currentYear}-${String(parseInt(selectedMonthVal) + 1).padStart(2, '0')}`;
             const salaryAdvanceOutstanding = payslipTargetMonth === payslipCurrentRealMonth
-                ? parseFloat(currentActiveUser.salary_advance_taken || 0)
+                ? parseFloat(currentUser.salary_advance_taken || 0)
                 : resolveMonthlyBalanceValue(workerMonthlyBalances, payslipTargetMonth, 'salary_advance_taken');
             const payslipBonusAmount = resolveMonthlyBalanceValue(workerMonthlyBalances, payslipTargetMonth, 'bonus_amount');
             const netPayout = grossEarned + totalReimbursements + payslipBonusAmount - totalMiddayAdvance;
@@ -1168,9 +1584,9 @@
             doc.autoTable({
                 startY: 45, theme: 'plain', styles: { fontSize: 9, cellPadding: 2 },
                 body: [
-                    [{ content: `Employee Name: ${currentActiveUser.name || 'Worker'}`, styles: { fontStyle: 'bold' } }, { content: `Role: ${currentActiveUser.role || 'Field Associate'}`, styles: { fontStyle: 'bold' } }],
-                    [`Email: ${currentActiveUser.email}`, `Daily Base Rate: Rs. ${fixedSalaryRate.toLocaleString('en-IN')}`],
-                    [`Statement Generated: ${new Date().toLocaleDateString('en-IN')}`, `Employee No: ${currentActiveUser.emp_no || '--'}`]
+                    [{ content: `Employee Name: ${currentUser.name || 'Worker'}`, styles: { fontStyle: 'bold' } }, { content: `Role: ${currentUser.role || 'Field Associate'}`, styles: { fontStyle: 'bold' } }],
+                    [`Email: ${currentUser.email}`, `Daily Base Rate: Rs. ${fixedSalaryRate.toLocaleString('en-IN')}`],
+                    [`Statement Generated: ${new Date().toLocaleDateString('en-IN')}`, `Employee No: ${currentUser.emp_no || '--'}`]
                 ]
             });
 
@@ -1253,7 +1669,7 @@
             doc.text("This is a computer-generated document. No manual signature is required.", 14, pageHeight - 12);
             doc.text("Anant Electrical Staff Management Node", 196, pageHeight - 12, { align: "right" });
 
-            doc.save(`Payslip_${currentActiveUser.name.replace(/\s+/g, '_')}_${selectedMonthName}_${currentYear}.pdf`);
+            doc.save(`Payslip_${currentUser.name.replace(/\s+/g, '_')}_${selectedMonthName}_${currentYear}.pdf`);
         }
 
         // --- AUTH & SHIFT WORKFLOW LOGIC ---
@@ -1270,7 +1686,7 @@
             if (sessionExpiryTimer) { clearTimeout(sessionExpiryTimer); sessionExpiryTimer = null; }
             if (lockTimerInterval) { clearInterval(lockTimerInterval); lockTimerInterval = null; }
             localStorage.removeItem('anant_active_session');
-            currentActiveUser = null;
+            currentUser = null;
 
             document.getElementById('portal-dashboard').classList.add('hidden');
             document.getElementById('welcome-intro').classList.add('hidden');
@@ -1281,9 +1697,8 @@
             if (showAlert) alert("Your session has expired. Please log in again.");
         }
 
-        // Sessions expire after 1 hour (SESSION_DURATION_MS) - the worker is logged out
-        // automatically and must sign in again. Note: this also means real-time shift
-        // alerts stop reaching them until they log back in.
+        // sessions expire after 1hr (SESSION_DURATION_MS), forces re-login.
+        // side effect: no realtime shift alerts until they log back in
         function scheduleSessionExpiry(sessionStartTs) {
             if (sessionExpiryTimer) clearTimeout(sessionExpiryTimer);
             const remainingMs = SESSION_DURATION_MS - (Date.now() - sessionStartTs);
@@ -1313,23 +1728,22 @@
                 if (!res.ok) throw new Error(`Status ${res.status}`);
                 const data = await res.json();
                 if (data && data.length > 0) {
-                    currentActiveUser = data[0];
+                    currentUser = data[0];
                     document.getElementById('auth-section').classList.add('hidden');
                     document.getElementById('portal-dashboard').classList.remove('hidden');
-                    await syncDashboardPortalState(true);
+                    await refreshDashboard(true);
                     syncOfflineQueue();
                     scheduleSessionExpiry(saved.ts);
                 } else {
                     localStorage.removeItem('anant_active_session');
                 }
             } catch(err) {
-                // Network unavailable on load — leave the login screen up rather than
-                // silently discarding a session the person may still be entitled to.
+                // offline on load, don't nuke a session that might still be valid
                 console.error("Session restore failed:", err);
             }
         }
 
-        function playWelcomeIntroThenShowDashboard(userName) {
+        function showWelcomeIntro(userName) {
             return new Promise(resolve => {
                 document.getElementById('auth-section').classList.add('hidden');
                 const welcome = document.getElementById('welcome-intro');
@@ -1346,9 +1760,8 @@
         }
 
         // --- NOTIFICATION SOUNDS ---
-        // Mobile browsers block audio until a user gesture has occurred on the page, so we
-        // create/resume the AudioContext on the first tap (login button) and simply reuse
-        // it later for any of these sounds.
+        // mobile blocks audio until there's been a user gesture on the page,
+        // so we spin up the AudioContext on first tap and reuse it after that
         let notificationAudioCtx = null;
         function unlockNotificationAudio() {
             if (notificationAudioCtx) { if (notificationAudioCtx.state === 'suspended') notificationAudioCtx.resume(); return; }
@@ -1397,10 +1810,8 @@
         }
 
         let shiftAlertsChannel = null;
-        // Real-time push: as soon as Akash sends an alert from admin.html, it lands as a
-        // new row in staff_alerts for this worker's email, and this fires immediately -
-        // no polling, no delay. Only works while this tab/app is open in the browser;
-        // see the note given to the user about what this can't do when the app is fully closed.
+        // realtime push - fires the moment Akash sends an alert from admin.html, no polling.
+        // only works while this tab is open, obviously
         function requestBrowserNotificationPermission() {
             try {
                 if ('Notification' in window && Notification.permission === 'default') {
@@ -1420,7 +1831,7 @@
             } catch(e) { /* best-effort only */ }
         }
 
-        function displayIncomingShiftAlert(message) {
+        function showShiftAlert(message) {
             playNotificationSound();
             speakReminder(message);
             showBrowserNotification(message);
@@ -1434,23 +1845,22 @@
             banner.classList.remove('hidden');
         }
 
-        // Backup path in case the realtime filter ever misses an event for any reason -
-        // polls for any staff_alerts rows newer than the last one seen, for this worker's
-        // email specifically. Runs alongside the realtime subscription, not instead of it.
-        async function pollForNewStaffAlerts() {
-            if (!currentActiveUser) return;
+        // fallback in case realtime drops an event - polls for anything newer
+        // than the last alert we saw. Runs alongside the subscription, not instead of it
+        async function pollStaffAlerts() {
+            if (!currentUser) return;
             try {
-                const lastSeenId = parseInt(localStorage.getItem(`anant_last_alert_id_${currentActiveUser.email}`) || '0', 10);
-                const res = await fetch(`${SUPABASE_URL}staff_alerts?worker_email=eq.${encodeURIComponent(currentActiveUser.email)}&order=id.desc&limit=5`, { method: 'GET', headers: HEADERS });
+                const lastSeenId = parseInt(localStorage.getItem(`anant_last_alert_id_${currentUser.email}`) || '0', 10);
+                const res = await fetch(`${SUPABASE_URL}staff_alerts?worker_email=eq.${encodeURIComponent(currentUser.email)}&order=id.desc&limit=5`, { method: 'GET', headers: HEADERS });
                 if (!res.ok) return;
                 const rows = await res.json();
                 if (!Array.isArray(rows) || rows.length === 0) return;
 
                 const newRows = rows.filter(r => r.id > lastSeenId).sort((a, b) => a.id - b.id);
                 if (lastSeenId > 0) { // don't replay old alerts on the very first check
-                    newRows.forEach(r => displayIncomingShiftAlert(r.message));
+                    newRows.forEach(r => showShiftAlert(r.message));
                 }
-                localStorage.setItem(`anant_last_alert_id_${currentActiveUser.email}`, String(rows[0].id));
+                localStorage.setItem(`anant_last_alert_id_${currentUser.email}`, String(rows[0].id));
             } catch(e) { console.error('Alert polling failed:', e); }
         }
 
@@ -1462,7 +1872,7 @@
                 statusEl.className = `text-[9px] font-mono px-1 ${colorClass}`;
             };
 
-            if (!currentActiveUser) { setStatus('Alerts: waiting for login', 'text-slate-500'); return; }
+            if (!currentUser) { setStatus('Alerts: waiting for login', 'text-slate-500'); return; }
             if (!window.supabase || typeof window.supabase.createClient !== 'function') {
                 setStatus('Alerts: library failed to load (check internet/adblock)', 'text-rose-400');
                 return;
@@ -1474,16 +1884,16 @@
                 const projectUrl = SUPABASE_URL.replace('/rest/v1/', '');
                 const client = window.supabase.createClient(projectUrl, SUPABASE_KEY);
                 shiftAlertsChannel = client
-                    .channel('staff_alerts_' + currentActiveUser.email)
+                    .channel('staff_alerts_' + currentUser.email)
                     .on('postgres_changes', {
                         event: 'INSERT', schema: 'public', table: 'staff_alerts',
-                        filter: `worker_email=eq.${currentActiveUser.email}`
+                        filter: `worker_email=eq.${currentUser.email}`
                     }, (payload) => {
                         const message = payload.new && payload.new.message ? payload.new.message : 'You have a new alert from admin.';
-                        displayIncomingShiftAlert(message);
+                        showShiftAlert(message);
                     })
                     .subscribe((status, err) => {
-                        if (status === 'SUBSCRIBED') setStatus(`Alerts: connected ✓ (listening: ${currentActiveUser.email})`, 'text-emerald-400');
+                        if (status === 'SUBSCRIBED') setStatus(`Alerts: connected ✓ (listening: ${currentUser.email})`, 'text-emerald-400');
                         else if (status === 'CHANNEL_ERROR') setStatus(`Alerts: connection error${err ? ' - ' + err.message : ''}`, 'text-rose-400');
                         else if (status === 'TIMED_OUT') setStatus('Alerts: connection timed out', 'text-rose-400');
                         else if (status === 'CLOSED') setStatus('Alerts: connection closed', 'text-slate-500');
@@ -1495,7 +1905,7 @@
             }
         }
 
-        async function attemptAuthenticationSubmit() {
+        async function handleLogin() {
             unlockNotificationAudio();
             requestBrowserNotificationPermission();
             const emailInput = document.getElementById('auth-email').value.trim().toLowerCase();
@@ -1504,8 +1914,7 @@
             if(!emailInput || !passwordInput) return alert("Please enter both email and password.");
 
             try {
-                // Password check happens server-side via RPC — the password itself
-                // (right or wrong) is never sent back to the browser.
+                // password check happens server-side via RPC, never comes back to the browser
                 const res = await fetch(`${SUPABASE_URL}rpc/verify_worker_login`, {
                     method: "POST",
                     headers: HEADERS,
@@ -1515,11 +1924,11 @@
                 const worker = await res.json();
 
                 if(worker) {
-                    currentActiveUser = worker;
+                    currentUser = worker;
                     saveActiveSession(worker.email);
                     scheduleSessionExpiry(Date.now());
-                    await playWelcomeIntroThenShowDashboard(currentActiveUser.name);
-                    await syncDashboardPortalState(true);
+                    await showWelcomeIntro(currentUser.name);
+                    await refreshDashboard(true);
                     syncOfflineQueue();
                 } else {
                     alert("Authentication Failure: Email or password is incorrect.");
@@ -1529,7 +1938,7 @@
             }
         }
 
-        function runPunchOutLockSystem(startTimeISO) {
+        function startLockTimer(startTimeISO) {
             if(lockTimerInterval) clearInterval(lockTimerInterval);
             const punchOutBtn = document.getElementById('punch-out-button');
             const lockUntilTime = new Date(startTimeISO).getTime() + (4 * 60 * 60 * 1000);
@@ -1541,7 +1950,7 @@
                     punchOutBtn.className = "w-full bg-gray-400 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest cursor-not-allowed";
                     const hours = Math.floor(remainingTime / (1000 * 60 * 60));
                     const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
-                    punchOutBtn.innerText = `Locked (Min Shift 4 Hrs) — ${hours}h ${minutes}m left`;
+                    punchOutBtn.innerText = `Locked (Min Shift 4 Hrs) - ${hours}h ${minutes}m left`;
                 } else {
                     punchOutBtn.disabled = false;
                     punchOutBtn.className = "w-full bg-[#1e3a5f] hover:bg-[#14283f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest cursor-pointer shadow-md transition";
@@ -1562,7 +1971,7 @@
         // --- BONUS NOTIFICATION BANNER ---
         function renderBonusNotificationBanner() {
             const banner = document.getElementById('bonus-notification-banner');
-            if (!banner || !currentActiveUser) return;
+            if (!banner || !currentUser) return;
 
             const bonusEntries = (workerMonthlyBalances || [])
                 .filter(r => parseFloat(r.bonus_amount || 0) > 0)
@@ -1571,7 +1980,7 @@
             const latestBonus = bonusEntries[0];
             if (!latestBonus) { banner.classList.add('hidden'); banner.classList.remove('flex'); return; }
 
-            const dismissKey = `bonus_dismissed_${currentActiveUser.email}_${latestBonus.month}_${latestBonus.bonus_amount}`;
+            const dismissKey = `bonus_dismissed_${currentUser.email}_${latestBonus.month}_${latestBonus.bonus_amount}`;
             if (localStorage.getItem(dismissKey)) { banner.classList.add('hidden'); banner.classList.remove('flex'); return; }
 
             const [bYear, bMonthNum] = latestBonus.month.split('-').map(Number);
@@ -1772,7 +2181,7 @@
             try {
                 let punch_in_image_url = correctionExistingCheckinUrl;
                 if (correctionCheckinFile) {
-                    const fileName = `checkin_${currentActiveUser?.id || 'usr'}_${Date.now()}.jpg`;
+                    const fileName = `checkin_${currentUser?.id || 'usr'}_${Date.now()}.jpg`;
                     punch_in_image_url = await uploadSelfieToSupabase(correctionCheckinFile, fileName, 'shift-selfies');
                 }
 
@@ -1780,7 +2189,7 @@
                 for (const type of ['transport', 'food', 'material']) {
                     let idx = 0;
                     for (const base64 of correctionPendingBills[type]) {
-                        const fileName = `${type}_${currentActiveUser?.id || 'usr'}_${Date.now()}_${idx}.jpg`;
+                        const fileName = `${type}_${currentUser?.id || 'usr'}_${Date.now()}_${idx}.jpg`;
                         const url = await uploadSelfieToSupabase(base64, fileName, 'bill-photos');
                         billUrls[type].push(url);
                         idx++;
@@ -1801,13 +2210,13 @@
                     const res = await fetch(`${SUPABASE_URL}shift_logs?id=eq.${correctionLogId}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(payload) });
                     if (!res.ok) throw new Error("Failed to resubmit");
                     closeCorrectionModal();
-                    await syncDashboardPortalState(true);
+                    await refreshDashboard(true);
                     alert("Resubmitted for review.");
                 } else {
                     const dateVal = document.getElementById('correction-date').value || new Date().toISOString().slice(0, 10);
                     if (!site_location) { alert("Please enter a site location."); return; }
                     const payload = {
-                        worker_email: currentActiveUser.email,
+                        worker_email: currentUser.email,
                         punch_in_time: new Date(dateVal + 'T12:00:00').toISOString(),
                         punch_out_time: new Date(dateVal + 'T12:00:00').toISOString(),
                         status: 'Pending',
@@ -1818,7 +2227,7 @@
                     const res = await fetch(`${SUPABASE_URL}shift_logs`, { method: 'POST', headers: HEADERS, body: JSON.stringify(payload) });
                     if (!res.ok) throw new Error("Failed to add entry");
                     closeCorrectionModal();
-                    await syncDashboardPortalState(true);
+                    await refreshDashboard(true);
                     alert("Added and sent for review.");
                 }
             } catch (err) {
@@ -1839,9 +2248,8 @@
             const dateRangeActive = !!(dateFromVal || dateToVal);
             const filteredShiftLogs = activeShiftLogs.filter(log => {
                 const logDate = new Date(log.punch_in_time || log.created_at);
-                // A date range, once set, takes priority over the month dropdown -
-                // they're no longer ANDed together, which used to silently hide
-                // results whenever the range crossed outside the selected month.
+                // date range wins over the month dropdown once it's set (used to AND them
+                // together, which silently hid results whenever the range crossed months)
                 if (dateRangeActive) {
                     if (dateFromVal && logDate < new Date(dateFromVal + 'T00:00:00')) return false;
                     if (dateToVal && logDate > new Date(dateToVal + 'T23:59:59')) return false;
@@ -1851,23 +2259,21 @@
                 return true;
             });
 
-            // Single source of truth for the wallet balance shown everywhere on this page -
-            // current month uses the live real-time value, any other month resolves from
-            // the monthly snapshot history (with carry-forward). Both the Mid-Day Adv list
-            // and the summary totals below use this same value so they can never mismatch.
+            // wallet balance shown everywhere on this page comes from here - current
+            // month = live value, other months = resolved from snapshot history w/ carry-forward
             const currentRealMonth = getCurrentMonthString();
             const targetMonthStr = selectedMonthFilter === 'ALL' ? currentRealMonth : `${new Date().getFullYear()}-${String(parseInt(selectedMonthFilter) + 1).padStart(2, '0')}`;
             const resolvedWalletBalance = targetMonthStr === currentRealMonth
-                ? (currentActiveUser.morning_advance ? parseFloat(currentActiveUser.morning_advance) : 0)
+                ? (currentUser.morning_advance ? parseFloat(currentUser.morning_advance) : 0)
                 : resolveMonthlyBalanceValue(workerMonthlyBalances, targetMonthStr, 'morning_advance');
             const resolvedSalaryAdvance = targetMonthStr === currentRealMonth
-                ? (currentActiveUser.salary_advance_taken ? parseFloat(currentActiveUser.salary_advance_taken) : 0)
+                ? (currentUser.salary_advance_taken ? parseFloat(currentUser.salary_advance_taken) : 0)
                 : resolveMonthlyBalanceValue(workerMonthlyBalances, targetMonthStr, 'salary_advance_taken');
 
             const statusMsg = document.getElementById('date-filter-status');
             if (dateRangeActive) {
                 statusMsg.classList.remove('hidden');
-                statusMsg.innerText = `Showing date range (month filter ignored) — ${filteredShiftLogs.length} record(s) found.`;
+                statusMsg.innerText = `Showing date range (month filter ignored) - ${filteredShiftLogs.length} record(s) found.`;
             } else {
                 statusMsg.classList.add('hidden');
             }
@@ -1922,9 +2328,9 @@
                 const morningWalletAmt = resolvedWalletBalance;
                 const isNegative = morningWalletAmt < 0;
 
-                const morningNote = currentActiveUser.morning_advance_note;
-                const morningUpdated = currentActiveUser.morning_advance_updated_at
-                    ? new Date(currentActiveUser.morning_advance_updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+                const morningNote = currentUser.morning_advance_note;
+                const morningUpdated = currentUser.morning_advance_updated_at
+                    ? new Date(currentUser.morning_advance_updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
                     : null;
                 let balanceDiv = document.createElement('div');
                 balanceDiv.className = isNegative
@@ -1959,11 +2365,11 @@
                     });
                 }
             } else if (currentActiveTab === 'salary') {
-                const salaryAdvance = parseFloat(currentActiveUser.salary_advance_taken || 0);
+                const salaryAdvance = parseFloat(currentUser.salary_advance_taken || 0);
                 if (salaryAdvance > 0) {
-                    const salaryNote = currentActiveUser.salary_advance_note;
-                    let verifiedTimestamp = currentActiveUser.salary_advance_updated_at
-                        ? new Date(currentActiveUser.salary_advance_updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+                    const salaryNote = currentUser.salary_advance_note;
+                    let verifiedTimestamp = currentUser.salary_advance_updated_at
+                        ? new Date(currentUser.salary_advance_updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
                         : 'Not recorded';
 
                     stream.innerHTML = `
@@ -1975,7 +2381,7 @@
                             <p class="text-[10px] text-gray-500 leading-relaxed">${salaryNote || 'This ledger tracks long-term lump sum structural advances provided directly via central accounts.'}</p>
                             <div class="pt-2 border-t border-slate-100 flex justify-between text-[9px] text-slate-400 font-mono uppercase">
                                 <span>Verified: ${verifiedTimestamp}</span>
-                                <span>Ref: AE-STF-${currentActiveUser.id || 'REG'}</span>
+                                <span>Ref: AE-STF-${currentUser.id || 'REG'}</span>
                             </div>
                         </div>`;
                 } else { stream.innerHTML = `<p class="text-xs text-slate-300 italic text-center py-4">No long-term outstanding salary advance balances found.</p>`; }
@@ -1991,7 +2397,7 @@
                     const logDate = new Date(log.punch_in_time || log.created_at);
                     return logDate.getFullYear() === payYear && (logDate.getMonth() + 1) === payMonthNum;
                 });
-                const rate = parseFloat(currentActiveUser.fixed_salary || 0);
+                const rate = parseFloat(currentUser.fixed_salary || 0);
                 const earningsAmount = approvedForPayMonth.length * rate;
                 const salaryAdvanceForPayMonth = resolveMonthlyBalanceValue(workerMonthlyBalances, paymentMonthStr, 'salary_advance_taken');
                 const bonusForPayMonth = resolveMonthlyBalanceValue(workerMonthlyBalances, paymentMonthStr, 'bonus_amount');
@@ -2018,64 +2424,64 @@
             }
         }
 
-        async function syncDashboardPortalState(isBackgroundCheck) {
+        async function refreshDashboard(isBackgroundCheck) {
             const monthFilter = document.getElementById('dashboard-month-filter');
             if (!sessionStorage.getItem('manualMonthSet')) {
                 monthFilter.value = new Date().getMonth().toString();
             }
 
-            if(!currentActiveUser) return;
+            if(!currentUser) return;
             subscribeToShiftAlerts();
-            pollForNewStaffAlerts();
+            pollStaffAlerts();
 
             try {
-                const userRes = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: "GET", headers: HEADERS });
+                const userRes = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentUser.email)}`, { method: "GET", headers: HEADERS });
                 const userData = await userRes.json();
-                if(userData && userData.length > 0) currentActiveUser = userData[0];
+                if(userData && userData.length > 0) currentUser = userData[0];
 
-                const res = await fetch(`${SUPABASE_URL}shift_logs?worker_email=eq.${encodeURIComponent(currentActiveUser.email)}&order=created_at.desc`, { method: "GET", headers: HEADERS });
+                const res = await fetch(`${SUPABASE_URL}shift_logs?worker_email=eq.${encodeURIComponent(currentUser.email)}&order=created_at.desc`, { method: "GET", headers: HEADERS });
                 activeShiftLogs = await res.json();
 
-                const monthlyBalRes = await fetch(`${SUPABASE_URL}monthly_balances?worker_email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: "GET", headers: HEADERS });
+                const monthlyBalRes = await fetch(`${SUPABASE_URL}monthly_balances?worker_email=eq.${encodeURIComponent(currentUser.email)}`, { method: "GET", headers: HEADERS });
                 workerMonthlyBalances = monthlyBalRes.ok ? await monthlyBalRes.json() : [];
 
-                const advanceLogRes = await fetch(`${SUPABASE_URL}morning_advance_log?worker_email=eq.${encodeURIComponent(currentActiveUser.email)}&order=created_at.desc&limit=100`, { method: "GET", headers: HEADERS });
+                const advanceLogRes = await fetch(`${SUPABASE_URL}morning_advance_log?worker_email=eq.${encodeURIComponent(currentUser.email)}&order=created_at.desc&limit=100`, { method: "GET", headers: HEADERS });
                 workerAdvanceLog = advanceLogRes.ok ? await advanceLogRes.json() : [];
             } catch(e) { console.error("Error updating user details:", e); }
 
             renderBonusNotificationBanner();
 
-            runningActiveShift = activeShiftLogs.find(log => log.status === 'Active');
-            if (runningActiveShift && pendingOptimisticPunchOutShiftId && String(runningActiveShift.id) === String(pendingOptimisticPunchOutShiftId)) {
-                runningActiveShift = null;
+            activeShift = activeShiftLogs.find(log => log.status === 'Active');
+            if (activeShift && optimisticPunchOutId && String(activeShift.id) === String(optimisticPunchOutId)) {
+                activeShift = null;
             }
 
-            if (runningActiveShift) {
+            if (activeShift) {
                 document.getElementById('punch-in-panel').classList.add('hidden');
                 document.getElementById('punch-out-panel').classList.remove('hidden');
-                let startTimeISO = runningActiveShift.punch_in_time || runningActiveShift.created_at;
+                let startTimeISO = activeShift.punch_in_time || activeShift.created_at;
                 let startTime = new Date(startTimeISO);
                 
                 document.getElementById('punch-in-time-display').innerText = `Started: ${startTime.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} at ${startTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
                 
-                let storedSelfies = JSON.parse(localStorage.getItem(`selfies_${runningActiveShift.id}`)) || {};
-                let activeImg = runningActiveShift.punch_in_image_url || storedSelfies.in;
+                let storedSelfies = JSON.parse(localStorage.getItem(`selfies_${activeShift.id}`)) || {};
+                let activeImg = activeShift.punch_in_image_url || storedSelfies.in;
 
                 if(activeImg) {
                     document.getElementById('active-selfie-box').classList.remove('hidden');
                     document.getElementById('active-selfie-image').src = activeImg;
                 } else { document.getElementById('active-selfie-box').classList.add('hidden'); }
-                runPunchOutLockSystem(startTimeISO);
+                startLockTimer(startTimeISO);
             } else {
                 document.getElementById('punch-in-panel').classList.remove('hidden');
                 document.getElementById('punch-out-panel').classList.add('hidden');
                 if(lockTimerInterval) clearInterval(lockTimerInterval);
             }
 
-            document.getElementById('display-worker-name').innerText = currentActiveUser.name || "Worker";
-            document.getElementById('display-worker-email').innerText = currentActiveUser.email;
-            document.getElementById('display-role-badge').innerText = currentActiveUser.role || "Field Associate";
-            document.getElementById('display-fixed-salary').innerText = `₹${parseFloat(currentActiveUser.fixed_salary || 0).toLocaleString('en-IN')}`;
+            document.getElementById('display-worker-name').innerText = currentUser.name || "Worker";
+            document.getElementById('display-worker-email').innerText = currentUser.email;
+            document.getElementById('display-role-badge').innerText = currentUser.role || "Field Associate";
+            document.getElementById('display-fixed-salary').innerText = `₹${parseFloat(currentUser.fixed_salary || 0).toLocaleString('en-IN')}`;
 
             const selectedMonthFilter = document.getElementById('dashboard-month-filter').value;
             const filteredShiftLogs = activeShiftLogs.filter(log => {
@@ -2083,24 +2489,22 @@
                 return new Date(log.punch_in_time || log.created_at).getMonth() === parseInt(selectedMonthFilter);
             });
 
-            // Same resolution used in renderActiveStreamTab() - duplicated here because
-            // this function computes the top summary cards independently. Current month
-            // uses the live real-time value; any other month resolves from the monthly
-            // snapshot history (with carry-forward).
+            // same resolution logic as renderActiveStreamTab(), duplicated because this
+            // computes the summary cards independently
             const currentRealMonth = getCurrentMonthString();
             const targetMonthStr = selectedMonthFilter === 'ALL' ? currentRealMonth : `${new Date().getFullYear()}-${String(parseInt(selectedMonthFilter) + 1).padStart(2, '0')}`;
             const resolvedWalletBalance = targetMonthStr === currentRealMonth
-                ? (currentActiveUser.morning_advance ? parseFloat(currentActiveUser.morning_advance) : 0)
+                ? (currentUser.morning_advance ? parseFloat(currentUser.morning_advance) : 0)
                 : resolveMonthlyBalanceValue(workerMonthlyBalances, targetMonthStr, 'morning_advance');
             const resolvedSalaryAdvance = targetMonthStr === currentRealMonth
-                ? (currentActiveUser.salary_advance_taken ? parseFloat(currentActiveUser.salary_advance_taken) : 0)
+                ? (currentUser.salary_advance_taken ? parseFloat(currentUser.salary_advance_taken) : 0)
                 : resolveMonthlyBalanceValue(workerMonthlyBalances, targetMonthStr, 'salary_advance_taken');
 
             let monthlyApprovedCount = filteredShiftLogs.filter(log => log.status === 'Approved').length;
-            let monthlyNetSalary = monthlyApprovedCount * parseFloat(currentActiveUser.fixed_salary || 0);
+            let monthlyNetSalary = monthlyApprovedCount * parseFloat(currentUser.fixed_salary || 0);
 
             let allTimeApprovedCount = activeShiftLogs.filter(log => log.status === 'Approved').length;
-            let allTimeGrossEarned = allTimeApprovedCount * parseFloat(currentActiveUser.fixed_salary || 0);
+            let allTimeGrossEarned = allTimeApprovedCount * parseFloat(currentUser.fixed_salary || 0);
 
             document.getElementById('display-approved-days').innerText = `${monthlyApprovedCount} Days`;
             document.getElementById('display-gross-salary').innerText = `₹${allTimeGrossEarned.toLocaleString('en-IN')}`;
@@ -2122,9 +2526,8 @@
                 }
             });
 
-            // "Total Mid-Day Advances" now always includes the real current wallet
-            // balance (even when it's zero or negative), since it's now always shown
-            // in the itemized Mid-Day Adv list too - nothing gets silently hidden.
+            // "Total Mid-Day Advances" always includes the current wallet balance now,
+            // even if it's zero/negative - matches what's shown in the itemized list
             const totalMidDayAdvances = middayAdvance + resolvedWalletBalance;
             document.getElementById('display-total-spent').innerText = `₹${siteSpent.toLocaleString('en-IN')}`;
             document.getElementById('display-midday-advance').innerText = `₹${totalMidDayAdvances.toLocaleString('en-IN')}`;
@@ -2154,15 +2557,14 @@
             renderActiveStreamTab();
             updateRequiredBillsUI();
             renderIDCard();
-            checkForRecentStatusUpdates();
+            checkStatusUpdates();
         }
 
-        // Compares each shift's current status/expense_status against what was last seen
-        // (stored locally per worker) and surfaces anything newly Approved/Rejected as a
-        // dismissible in-app banner. Purely local - no push/SMS/WhatsApp involved.
-        function checkForRecentStatusUpdates() {
-            if (!currentActiveUser) return;
-            const storageKey = `anant_seen_statuses_${currentActiveUser.email}`;
+        // diffs each shift's status against what we last saw locally, surfaces anything
+        // newly Approved/Rejected as a dismissible banner. Local only, no push/SMS
+        function checkStatusUpdates() {
+            if (!currentUser) return;
+            const storageKey = `anant_seen_statuses_${currentUser.email}`;
             let seenMap = {};
             try { seenMap = JSON.parse(localStorage.getItem(storageKey)) || {}; } catch(e) { seenMap = {}; }
 
@@ -2188,10 +2590,9 @@
 
             localStorage.setItem(storageKey, JSON.stringify(newMap));
 
-            // Important: a call that finds no NEW changes must never hide/clear the banner -
-            // syncDashboardPortalState() can run more than once in quick succession on the
-            // same page load (e.g. session restore followed by an offline-queue sync), and an
-            // earlier call may have just populated the banner with something genuinely new.
+            // don't clear the banner just because THIS call found nothing new -
+            // refreshDashboard() can fire more than once per page load and an earlier
+            // call may have just populated it
             if (updates.length === 0) return;
 
             playNotificationSound();
@@ -2248,9 +2649,9 @@
         }
 
         function handleBillPhotoCaptured(type) {
-            capturedBillImages[type].push(temporaryCapturedBase64);
+            capturedBillImages[type].push(tempSelfieBase64);
             renderBillPreviews(type);
-            temporaryCapturedBase64 = null;
+            tempSelfieBase64 = null;
         }
 
         function renderBillPreviews(type) {
@@ -2289,8 +2690,7 @@
             capturedBillImages = { transport: [], food: [], material: [] };
         }
 
-        // Returns true only if every expense category with an amount > 0 has at least one
-        // attached bill photo / screenshot. Called before punch-out is allowed to proceed.
+        // true only if every expense > 0 has a bill photo attached. gates punch-out
         function allRequiredBillsAttached() {
             const tasks = [
                 { type: 'transport', amt: parseFloat(document.getElementById('exp-transport').value) || 0, title: 'Transport' },
@@ -2306,7 +2706,7 @@
             return true;
         }
 
-        async function initiateCameraWorkflow(mode) {
+        async function openCamera(mode) {
             currentCameraMode = mode;
             const laser = document.getElementById('camera-laser');
             const switchBtn = document.getElementById('btn-switch-camera');
@@ -2341,18 +2741,18 @@
                 capturePhotoSnapshotData();
                 closeCameraModal();
                 
-                if(currentCameraMode === 'in') executePunchInWorkflow();
-                else if(currentCameraMode === 'out') executePunchOutWorkflow();
+                if(currentCameraMode === 'in') punchIn();
+                else if(currentCameraMode === 'out') punchOut();
                 else if(currentCameraMode === 'idcard') {
                     try {
-                        const fileName = `idcard_${currentActiveUser?.id || 'usr'}_${Date.now()}.jpg`;
-                        const selfieUrl = await uploadSelfieToSupabase(temporaryCapturedBase64, fileName);
+                        const fileName = `idcard_${currentUser?.id || 'usr'}_${Date.now()}.jpg`;
+                        const selfieUrl = await uploadSelfieToSupabase(tempSelfieBase64, fileName);
                         document.getElementById('prof-photo-url').value = selfieUrl;
                         alert("ID card selfie captured and uploaded successfully!");
                     } catch(err) {
                         alert("Failed to upload ID card photo: " + err.message);
                     }
-                    temporaryCapturedBase64 = null;
+                    tempSelfieBase64 = null;
                 }
                 else handleBillPhotoCaptured(currentCameraMode);
             };
@@ -2378,8 +2778,7 @@
                 }
             }
 
-            // Mirror the preview/capture only for the front (selfie) camera - a rear
-            // camera shot mirrored looks wrong.
+            // only mirror for the front camera, mirrored rear shots look wrong
             if (desiredFacingMode === "user") {
                 video.classList.add('-scale-x-100');
                 facingLabel.innerText = 'Front Camera';
@@ -2405,7 +2804,7 @@
                 ctx.scale(-1, 1);
             }
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            temporaryCapturedBase64 = canvas.toDataURL('image/jpeg', 0.65);
+            tempSelfieBase64 = canvas.toDataURL('image/jpeg', 0.65);
         }
 
         function closeCameraModal() {
@@ -2413,20 +2812,20 @@
             if(mediaStream) { mediaStream.getTracks().forEach(track => track.stop()); mediaStream = null; }
         }
 
-        async function executePunchInWorkflow() {
+        async function punchIn() {
             document.getElementById('punch-in-panel').classList.add('hidden');
             document.getElementById('punch-out-panel').classList.remove('hidden');
             document.getElementById('punch-in-time-display').innerText = "Started: Right Now (Saving...)";
             playPunchInSound();
             
-            if(temporaryCapturedBase64) {
+            if(tempSelfieBase64) {
                 document.getElementById('active-selfie-box').classList.remove('hidden');
-                document.getElementById('active-selfie-image').src = temporaryCapturedBase64;
+                document.getElementById('active-selfie-image').src = tempSelfieBase64;
             }
 
             const gpsCoords = await fetchCurrentGPSLocation();
             const payload = { 
-                worker_email: currentActiveUser.email, 
+                worker_email: currentUser.email, 
                 status: "Active", 
                 punch_in_time: new Date().toISOString(), 
                 site_location: gpsCoords, 
@@ -2436,29 +2835,29 @@
             };
 
             if (!navigator.onLine) {
-                await savePunchToOfflineQueue('in', payload, temporaryCapturedBase64);
+                await savePunchToOfflineQueue('in', payload, tempSelfieBase64);
                 updateNetworkBadge(false);
             } else {
                 try {
                     let selfieUrl = null;
-                    if (temporaryCapturedBase64) {
-                        const fileName = `in_${currentActiveUser.id || 'usr'}_${Date.now()}.jpg`;
-                        selfieUrl = await uploadSelfieToSupabase(temporaryCapturedBase64, fileName);
+                    if (tempSelfieBase64) {
+                        const fileName = `in_${currentUser.id || 'usr'}_${Date.now()}.jpg`;
+                        selfieUrl = await uploadSelfieToSupabase(tempSelfieBase64, fileName);
                     }
                     payload.punch_in_image_url = selfieUrl;
 
                     await fetch(`${SUPABASE_URL}shift_logs`, { method: 'POST', headers: HEADERS, body: JSON.stringify(payload) });
                 } catch(err) { 
-                    await savePunchToOfflineQueue('in', payload, temporaryCapturedBase64);
+                    await savePunchToOfflineQueue('in', payload, tempSelfieBase64);
                 }
             }
 
-            temporaryCapturedBase64 = null;
-            syncDashboardPortalState();
+            tempSelfieBase64 = null;
+            refreshDashboard();
         }
 
-        async function executePunchOutWorkflow() {
-            if (!runningActiveShift) return;
+        async function punchOut() {
+            if (!activeShift) return;
 
             const punchOutBtn = document.getElementById('punch-out-button');
             punchOutBtn.innerText = "Ending Shift...";
@@ -2472,25 +2871,24 @@
             const payment_advance_taken = parseFloat(document.getElementById('exp-advance').value) || 0; 
             const material_notes = document.getElementById('exp-material-desc').value.trim();
             const totalShiftExpenses = transport_expense + food_expense + material_expense;
-            const currentWallet = parseFloat(currentActiveUser.morning_advance || 0);
+            const currentWallet = parseFloat(currentUser.morning_advance || 0);
             // Only the cash advance actually handed to the worker updates the wallet immediately.
             // Claimed expenses (transport/food/material) are deducted only once the admin approves
             // that expense claim - see updateShiftStatusResolution() in admin.html.
-            const remainingCarryforwardBalance = currentWallet + payment_advance_taken;
+            const newWalletBalance = currentWallet + payment_advance_taken;
 
-            const shiftId = runningActiveShift.id;
-            const selfieBase64 = temporaryCapturedBase64;
+            const shiftId = activeShift.id;
+            const selfieBase64 = tempSelfieBase64;
             const billImagesSnapshot = JSON.parse(JSON.stringify(capturedBillImages));
             const wasOnline = navigator.onLine;
 
-            // The shift ends on screen right here - GPS lookup, photo uploads, and the
-            // actual server sync all continue below in the background so the worker
-            // isn't stuck waiting on a slow mobile connection to see the shift end.
-            temporaryCapturedBase64 = null;
+            // shift ends on screen right here - GPS/photo upload/server sync happen
+            // below in the background so a slow connection doesn't block the UI
+            tempSelfieBase64 = null;
             resetBillsVerificationState();
-            currentActiveUser.morning_advance = remainingCarryforwardBalance;
-            runningActiveShift = null;
-            pendingOptimisticPunchOutShiftId = shiftId;
+            currentUser.morning_advance = newWalletBalance;
+            activeShift = null;
+            optimisticPunchOutId = shiftId;
 
             const localLogIdx = activeShiftLogs.findIndex(l => String(l.id) === String(shiftId));
             if (localLogIdx > -1) {
@@ -2508,22 +2906,21 @@
             punchOutBtn.innerText = "Punch Out";
             punchOutBtn.disabled = false;
             playPunchOutSound();
-            syncDashboardPortalState();
+            refreshDashboard();
 
             (async () => {
                 const buildPayload = (site_location) => ({
                     shift_id: shiftId,
                     site_location, progress_notes, transport_expense, food_expense, material_expense, material_notes,
-                    payment_advance_taken, remaining_balance: remainingCarryforwardBalance, status: "Pending",
+                    payment_advance_taken, remaining_balance: newWalletBalance, status: "Pending",
                     expense_status: totalShiftExpenses > 0 ? "Pending" : "N/A",
                     punch_out_time: new Date().toISOString(), punch_out_image_url: null, bill_photo_urls: null
                 });
 
                 const finishUp = () => {
-                    // Only clear the guard (and pull fresh authoritative data) once the
-                    // background sync has actually concluded, one way or another.
-                    if (pendingOptimisticPunchOutShiftId === shiftId) pendingOptimisticPunchOutShiftId = null;
-                    syncDashboardPortalState();
+                    // only clear the guard once background sync actually finishes
+                    if (optimisticPunchOutId === shiftId) optimisticPunchOutId = null;
+                    refreshDashboard();
                 };
 
                 if (!wasOnline) {
@@ -2542,7 +2939,7 @@
 
                     let selfieUrl = null;
                     if (selfieBase64) {
-                        const fileName = `out_${currentActiveUser.id || 'usr'}_${Date.now()}.jpg`;
+                        const fileName = `out_${currentUser.id || 'usr'}_${Date.now()}.jpg`;
                         selfieUrl = await uploadSelfieToSupabase(selfieBase64, fileName);
                     }
                     shiftPayload.punch_out_image_url = selfieUrl;
@@ -2553,7 +2950,7 @@
                     delete shiftPayload.remaining_balance;
 
                     await fetch(`${SUPABASE_URL}shift_logs?id=eq.${patchShiftId}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify(shiftPayload) });
-                    await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentActiveUser.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ morning_advance: remainingCarryforwardBalance }) });
+                    await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentUser.email)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ morning_advance: newWalletBalance }) });
                     finishUp();
 
                 } catch(err) {
@@ -2569,12 +2966,10 @@
         document.addEventListener('click', requestBrowserNotificationPermission, { once: true });
         document.addEventListener('touchstart', requestBrowserNotificationPermission, { once: true });
 
-        // Keep status/notification data reasonably fresh without requiring the worker to
-        // fully close and reopen the app: re-sync periodically while the tab is open, and
-        // whenever the tab/app regains focus (e.g. switching back from another app).
-        setInterval(() => { if (currentActiveUser) { syncDashboardPortalState(true); pollForNewStaffAlerts(); } }, 120000); // every 2 minutes
+        // re-sync periodically + on tab focus so data stays fresh without a full reopen
+        setInterval(() => { if (currentUser) { refreshDashboard(true); pollStaffAlerts(); } }, 120000); // every 2 minutes
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && currentActiveUser) { syncDashboardPortalState(true); pollForNewStaffAlerts(); }
+            if (document.visibilityState === 'visible' && currentUser) { refreshDashboard(true); pollStaffAlerts(); }
         });
 
     </script>
