@@ -1285,6 +1285,27 @@
             if (priors.length > 0 && priors[0].carry_forward) return parseFloat(priors[0][field] || 0);
             return 0;
         }
+        // Mid-day balance shown to the worker must be ONLY: (a) amounts the admin/PM has
+        // handed out (morning_advance_log entries) plus (b) mid-day cash advances the
+        // worker received on-site (payment_advance_taken on shift_logs). It must never be
+        // reduced by anything else (e.g. approved expense deductions applied server-side
+        // to workers_registry.morning_advance) - this is a pure additive total, not the
+        // raw wallet column.
+        // monthFilter: 'ALL' for all-time, or a month index (0-11, matching
+        // dashboard-month-filter's value) to scope the total to just that month.
+        function computeMiddayWalletBalance(monthFilter) {
+            const inMonth = (dateStr) => {
+                if (monthFilter === undefined || monthFilter === 'ALL') return true;
+                return new Date(dateStr).getMonth() === parseInt(monthFilter);
+            };
+            const totalAdminGiven = workerAdvanceLog
+                .filter(e => inMonth(e.created_at))
+                .reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+            const totalAdvanceReceived = activeShiftLogs
+                .filter(log => log.status !== 'Active' && inMonth(log.punch_in_time || log.created_at))
+                .reduce((sum, log) => sum + parseFloat(log.payment_advance_taken || 0), 0);
+            return totalAdminGiven + totalAdvanceReceived;
+        }
         let activeShift = null;
         let mediaStream = null;
         let tempSelfieBase64 = null;
@@ -2409,7 +2430,8 @@
         function renderActiveStreamTab() {
             const stream = document.getElementById('personal-logs-stream');
             stream.innerHTML = '';
-            const selectedMonthFilter = document.getElementById('dashboard-month-filter').value;
+            const monthFilterSelectEl = document.getElementById('dashboard-month-filter');
+            const selectedMonthFilter = monthFilterSelectEl.value;
             const dateFromVal = document.getElementById('history-date-from')?.value;
             const dateToVal = document.getElementById('history-date-to')?.value;
             const dateRangeActive = !!(dateFromVal || dateToVal);
@@ -2492,7 +2514,9 @@
                 } else { stream.innerHTML = `<p class="text-xs text-slate-300 italic text-center py-4">No shift logs found for this selection.</p>`; }
             } else if (currentActiveTab === 'midday') {
                 const recordsWithAdvances = filteredShiftLogs.filter(log => parseFloat(log.payment_advance_taken || 0) > 0 && log.status !== 'Active');
-                const morningWalletAmt = resolvedWalletBalance;
+                // Pure total: admin-given + mid-day advances received only, scoped to the
+                // selected month, never reduced by anything else - see computeMiddayWalletBalance().
+                const morningWalletAmt = computeMiddayWalletBalance(selectedMonthFilter);
                 const isNegative = morningWalletAmt < 0;
 
                 const morningNote = currentUser.morning_advance_note;
@@ -2505,7 +2529,7 @@
                     : "bg-amber-50 p-3.5 rounded-xl border border-amber-200 shadow-sm text-xs space-y-1";
                 balanceDiv.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <p class="font-bold ${isNegative ? 'text-rose-900' : 'text-amber-900'}">${isNegative ? 'Balance Owed' : 'Current Wallet Balance'}</p>
+                        <p class="font-bold ${isNegative ? 'text-rose-900' : 'text-amber-900'}">${isNegative ? 'Balance Owed' : (selectedMonthFilter === 'ALL' ? 'Current Wallet Balance' : monthFilterSelectEl.options[monthFilterSelectEl.selectedIndex].text + ' Wallet Balance')}</p>
                         <strong class="${isNegative ? 'text-rose-600' : 'text-amber-600'} font-mono font-black text-sm">₹${morningWalletAmt.toLocaleString('en-IN')}</strong>
                     </div>
                     <p class="text-[10px] text-slate-500">${morningNote || 'Admin/PM allocated fund balance'}</p>
@@ -2683,19 +2707,20 @@
             document.getElementById('display-salary-advance').innerText = `₹${resolvedWalletBalance.toLocaleString('en-IN')}`;
             document.getElementById('display-salary-advance-taken').innerText = `₹${resolvedSalaryAdvance.toLocaleString('en-IN')}`;
 
-            let siteSpent = 0, middayAdvance = 0;
+            let siteSpent = 0;
             filteredShiftLogs.forEach(log => {
                 if (log.status === 'Approved' || log.status === 'Pending' || log.status === 'Rejected') {
                     if (log.expense_status === 'Approved') {
                         siteSpent += (parseFloat(log.transport_expense || 0) + parseFloat(log.food_expense || 0) + parseFloat(log.material_expense || 0));
                     }
-                    middayAdvance += parseFloat(log.payment_advance_taken || 0);
                 }
             });
 
-            // "Total Mid-Day Advances" always includes the current wallet balance now,
-            // even if it's zero/negative - matches what's shown in the itemized list
-            const totalMidDayAdvances = middayAdvance + resolvedWalletBalance;
+            // "Total Mid-Day Advances" = admin-given + mid-day advances received ONLY,
+            // scoped to the selected month (same pure total as the Mid-Day tab's Current
+            // Wallet Balance card). Never reduced by expense approvals or anything else,
+            // and never double-counted.
+            const totalMidDayAdvances = computeMiddayWalletBalance(selectedMonthFilter);
             document.getElementById('display-total-spent').innerText = `₹${siteSpent.toLocaleString('en-IN')}`;
             document.getElementById('display-midday-advance').innerText = `₹${totalMidDayAdvances.toLocaleString('en-IN')}`;
             
