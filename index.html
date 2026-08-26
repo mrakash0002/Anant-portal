@@ -1269,6 +1269,7 @@
         let activeShiftLogs = [];
         let workerMonthlyBalances = [];
         let workerAdvanceLog = [];
+        let workerSalaryRaiseLog = [];
 
         function getCurrentMonthString() {
             const d = new Date();
@@ -1293,6 +1294,38 @@
         // raw wallet column.
         // monthFilter: 'ALL' for all-time, or a month index (0-11, matching
         // dashboard-month-filter's value) to scope the total to just that month.
+        // Resolves what the daily rate actually was during a given month, using the
+        // raise history. A raise is effective from the month it was given onward, so
+        // this walks backward from today's rate, undoing any raises that happened in
+        // months AFTER the target month.
+        function resolveRateForMonth(currentRate, raiseLogEntries, targetMonthStr) {
+            let rate = currentRate;
+            (raiseLogEntries || []).forEach(entry => {
+                const entryMonth = (entry.created_at || '').slice(0, 7);
+                if (entryMonth > targetMonthStr) {
+                    rate -= parseFloat(entry.increase_amount || 0);
+                }
+            });
+            return rate;
+        }
+
+        // Sums gross pay for a set of approved shift logs, resolving each shift's own
+        // month to the rate that was actually in effect then - never today's rate for
+        // past months.
+        function computeGrossSalaryFromShifts(approvedShiftLogs, currentRate, raiseLogEntries) {
+            const countByMonth = {};
+            (approvedShiftLogs || []).forEach(log => {
+                const d = new Date(log.punch_in_time || log.created_at);
+                const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                countByMonth[monthKey] = (countByMonth[monthKey] || 0) + 1;
+            });
+            let total = 0;
+            Object.keys(countByMonth).forEach(monthKey => {
+                total += countByMonth[monthKey] * resolveRateForMonth(currentRate, raiseLogEntries, monthKey);
+            });
+            return total;
+        }
+
         function computeMiddayWalletBalance(monthFilter) {
             const inMonth = (dateStr) => {
                 if (monthFilter === undefined || monthFilter === 'ALL') return true;
@@ -1633,8 +1666,10 @@
             const approvedShifts = filteredLogs.filter(log => log.status === 'Approved');
             const approvedDaysCount = approvedShifts.length;
             const fixedSalaryRate = parseFloat(currentUser.fixed_salary || 0);
-            
-            let grossEarned = approvedDaysCount * fixedSalaryRate;
+
+            // Use each shift's own month's rate (from raise history), not today's rate -
+            // a past month's payslip must reflect what the rate was back then.
+            let grossEarned = computeGrossSalaryFromShifts(approvedShifts, fixedSalaryRate, workerSalaryRaiseLog);
             let totalTransport = 0, totalFood = 0, totalMaterial = 0, totalMiddayAdvance = 0;
 
             filteredLogs.forEach(log => {
@@ -1663,28 +1698,46 @@
                 ? new Date(paymentSnapshotForPayslip.payment_date).toLocaleDateString('en-IN')
                 : '';
 
-            doc.setFillColor(74, 20, 140);
-            doc.rect(0, 0, 210, 38, 'F');
+            // Brand palette (matches the app: navy #1e3a5f header, copper accent, emerald for paid/positive)
+            const NAVY = [30, 58, 95];
+            const NAVY_DARK = [20, 40, 63];
+            const COPPER = [184, 112, 46];
+            const COPPER_LIGHT = [251, 238, 224];
+            const EMERALD = [16, 185, 129];
+            const EMERALD_BG = [236, 253, 245];
+            const EMERALD_DARK = [6, 78, 59];
+            const SLATE_TEXT = [30, 41, 59];
+            const SLATE_MUTED = [100, 116, 139];
+
+            doc.setFillColor(...NAVY);
+            doc.rect(0, 0, 210, 36, 'F');
+            // thin copper accent strip under the header - ties to the app's brand accent
+            doc.setFillColor(...COPPER);
+            doc.rect(0, 36, 210, 1.5, 'F');
+
             doc.setTextColor(255, 255, 255);
             doc.setFont("helvetica", "bold");
             doc.setFontSize(20);
-            doc.text("ANANT ELECTRICAL", 14, 18);
-            doc.setFontSize(10);
+            doc.text("ANANT ELECTRICAL", 14, 17);
+            doc.setFontSize(9.5);
             doc.setFont("helvetica", "normal");
-            doc.text("Official Field Operations Payslip & Ledger Statement", 14, 26);
-            doc.text(`Period: ${selectedMonthName} ${currentYear}`, 196, 26, { align: "right" });
+            doc.setTextColor(220, 230, 240);
+            doc.text("Official Field Operations Payslip & Ledger Statement", 14, 25);
+            doc.setTextColor(255, 255, 255);
+            doc.setFont("helvetica", "bold");
+            doc.text(`Period: ${selectedMonthName} ${currentYear}`, 196, 25, { align: "right" });
 
             // Green "PAID" seal - only stamped when this month's payment_status is Paid
             if (isPayslipPaid) {
-                const stampX = 178, stampY = 15;
+                const stampX = 178, stampY = 14;
                 doc.setFillColor(255, 255, 255);
-                doc.setDrawColor(16, 185, 129);
+                doc.setDrawColor(...EMERALD);
                 doc.setLineWidth(1);
                 doc.circle(stampX, stampY, 9.5, 'FD');
-                doc.setDrawColor(16, 185, 129);
+                doc.setDrawColor(...EMERALD);
                 doc.setLineWidth(0.4);
                 doc.circle(stampX, stampY, 7.8, 'S');
-                doc.setTextColor(16, 185, 129);
+                doc.setTextColor(...EMERALD);
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(9);
                 doc.text("PAID", stampX, stampY + 1.5, { align: "center", angle: -10 });
@@ -1695,18 +1748,24 @@
                 }
             }
 
-            doc.setTextColor(30, 41, 59);
-            doc.autoTable({
-                startY: 45, theme: 'plain', styles: { fontSize: 9, cellPadding: 2 },
-                body: [
-                    [{ content: `Employee Name: ${currentUser.name || 'Worker'}`, styles: { fontStyle: 'bold' } }, { content: `Role: ${currentUser.role || 'Field Associate'}`, styles: { fontStyle: 'bold' } }],
-                    [`Email: ${currentUser.email}`, `Daily Base Rate: Rs. ${fixedSalaryRate.toLocaleString('en-IN')}`],
-                    [`Statement Generated: ${new Date().toLocaleDateString('en-IN')}`, `Employee No: ${currentUser.emp_no || '--'}`]
-                ]
-            });
+            // Employee info as a bordered letterhead box instead of a plain table
+            doc.setFillColor(248, 250, 252);
+            doc.setDrawColor(...NAVY);
+            doc.setLineWidth(0.4);
+            doc.roundedRect(14, 43, 182, 22, 2, 2, 'FD');
+            doc.setTextColor(...SLATE_TEXT);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9);
+            doc.text(`Employee Name: ${currentUser.name || 'Worker'}`, 19, 50);
+            doc.text(`Role: ${currentUser.role || 'Field Associate'}`, 110, 50);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Email: ${currentUser.email}`, 19, 56);
+            doc.text(`Daily Base Rate: Rs. ${fixedSalaryRate.toLocaleString('en-IN')}`, 110, 56);
+            doc.text(`Statement Generated: ${new Date().toLocaleDateString('en-IN')}`, 19, 62);
+            doc.text(`Employee No: ${currentUser.emp_no || '--'}`, 110, 62);
 
             doc.autoTable({
-                startY: doc.lastAutoTable.finalY + 6,
+                startY: 71,
                 head: [['Description / Earning Item', 'Units / Days', 'Amount (INR)']],
                 body: [
                     ['Earned Shift Days (Approved)', `${approvedDaysCount} Days`, `Rs. ${grossEarned.toLocaleString('en-IN')}`],
@@ -1716,8 +1775,8 @@
                     ...(payslipBonusAmount > 0 ? [['Performance Bonus', 'Monthly', `Rs. ${payslipBonusAmount.toLocaleString('en-IN')}`]] : []),
                     [{ content: 'Total Earnings & Reimbursements', styles: { fontStyle: 'bold' } }, '', { content: `Rs. ${(grossEarned + totalReimbursements + payslipBonusAmount).toLocaleString('en-IN')}`, styles: { fontStyle: 'bold' } }]
                 ],
-                headStyles: { fillColor: [74, 20, 140], textColor: [255, 255, 255], fontStyle: 'bold' },
-                alternateRowStyles: { fillColor: [248, 245, 255] }
+                headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: [240, 244, 249] }
             });
 
             doc.autoTable({
@@ -1727,24 +1786,25 @@
                     ['Mid-Day Cash Advances Received', 'Rolling Field Wallet / Site Manager', `- Rs. ${totalMiddayAdvance.toLocaleString('en-IN')}`],
                     ['Structural Salary Advance Outstanding', 'Company Ledger', `Rs. ${salaryAdvanceOutstanding.toLocaleString('en-IN')}`],
                 ],
-                headStyles: { fillColor: [190, 18, 60], textColor: [255, 255, 255], fontStyle: 'bold' },
-                alternateRowStyles: { fillColor: [255, 241, 242] }
+                headStyles: { fillColor: [140, 76, 34], textColor: [255, 255, 255], fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: COPPER_LIGHT }
             });
 
             const finalY = doc.lastAutoTable.finalY + 10;
-            doc.setFillColor(236, 253, 245);
-            doc.setDrawColor(16, 185, 129);
+            doc.setFillColor(...EMERALD_BG);
+            doc.setDrawColor(...EMERALD);
+            doc.setLineWidth(0.6);
             doc.roundedRect(14, finalY, 182, 22, 3, 3, 'FD');
             doc.setFont("helvetica", "bold");
             doc.setFontSize(11);
-            doc.setTextColor(6, 78, 59);
+            doc.setTextColor(...EMERALD_DARK);
             doc.text("NET PAYABLE AMOUNT:", 20, finalY + 14);
             doc.setFontSize(14);
             doc.text(`Rs. ${netPayout.toLocaleString('en-IN')}`, 190, finalY + 14, { align: "right" });
             doc.setFontSize(7.5);
             doc.setFont("helvetica", "bold");
             if (isPayslipPaid) {
-                doc.setTextColor(16, 185, 129);
+                doc.setTextColor(...EMERALD);
                 doc.text(`Payment Status: PAID${payslipPaidDateLabel ? ` on ${payslipPaidDateLabel}` : ''}${paymentSnapshotForPayslip.payment_reference ? ` | Ref: ${paymentSnapshotForPayslip.payment_reference}` : ''}`, 20, finalY + 19);
             } else {
                 doc.setTextColor(180, 130, 20);
@@ -1753,8 +1813,11 @@
 
             doc.setFontSize(10);
             doc.setFont("helvetica", "bold");
-            doc.setTextColor(74, 20, 140);
+            doc.setTextColor(...NAVY);
             doc.text("Attendance & Expense Log Activity Summary", 14, finalY + 32);
+            doc.setDrawColor(...COPPER);
+            doc.setLineWidth(0.5);
+            doc.line(14, finalY + 34, 90, finalY + 34);
 
             const shiftRows = filteredLogs.map((s, idx) => {
                 const rowExpenseTotal = parseFloat(s.transport_expense || 0) + parseFloat(s.food_expense || 0) + parseFloat(s.material_expense || 0);
@@ -1770,16 +1833,20 @@
             });
 
             doc.autoTable({
-                startY: finalY + 36,
+                startY: finalY + 38,
                 head: [['#', 'Date', 'Site Location / Remark', 'Shift Status', 'Expenses', 'Expense Status']],
                 body: shiftRows.length > 0 ? shiftRows : [['-', 'No shift records found for this period', '-', '-', '-', '-']],
                 styles: { fontSize: 8 },
-                headStyles: { fillColor: [100, 116, 139] }
+                headStyles: { fillColor: NAVY_DARK },
+                alternateRowStyles: { fillColor: [240, 244, 249] }
             });
 
             const pageHeight = doc.internal.pageSize.height;
+            doc.setDrawColor(...COPPER);
+            doc.setLineWidth(0.3);
+            doc.line(14, pageHeight - 17, 196, pageHeight - 17);
             doc.setFontSize(8);
-            doc.setTextColor(148, 163, 184);
+            doc.setTextColor(...SLATE_MUTED);
             doc.setFont("helvetica", "italic");
             doc.text("This is a computer-generated document. No manual signature is required.", 14, pageHeight - 12);
             doc.text("Anant Electrical Staff Management Node", 196, pageHeight - 12, { align: "right" });
@@ -2588,7 +2655,7 @@
                     const logDate = new Date(log.punch_in_time || log.created_at);
                     return logDate.getFullYear() === payYear && (logDate.getMonth() + 1) === payMonthNum;
                 });
-                const rate = parseFloat(currentUser.fixed_salary || 0);
+                const rate = resolveRateForMonth(parseFloat(currentUser.fixed_salary || 0), workerSalaryRaiseLog, paymentMonthStr);
                 const earningsAmount = approvedForPayMonth.length * rate;
                 const salaryAdvanceForPayMonth = resolveMonthlyBalanceValue(workerMonthlyBalances, paymentMonthStr, 'salary_advance_taken');
                 const bonusForPayMonth = resolveMonthlyBalanceValue(workerMonthlyBalances, paymentMonthStr, 'bonus_amount');
@@ -2638,6 +2705,9 @@
 
                 const advanceLogRes = await fetch(`${SUPABASE_URL}morning_advance_log?worker_email=eq.${encodeURIComponent(currentUser.email)}&order=created_at.desc&limit=100`, { method: "GET", headers: HEADERS });
                 workerAdvanceLog = advanceLogRes.ok ? await advanceLogRes.json() : [];
+
+                const raiseLogRes = await fetch(`${SUPABASE_URL}salary_raise_log?worker_email=eq.${encodeURIComponent(currentUser.email)}&order=created_at.desc&limit=100`, { method: "GET", headers: HEADERS });
+                workerSalaryRaiseLog = raiseLogRes.ok ? await raiseLogRes.json() : [];
             } catch(e) { console.error("Error updating user details:", e); }
 
             renderBonusNotificationBanner();
@@ -2672,7 +2742,6 @@
             document.getElementById('display-worker-name').innerText = currentUser.name || "Worker";
             document.getElementById('display-worker-email').innerText = currentUser.email;
             document.getElementById('display-role-badge').innerText = currentUser.role || "Field Associate";
-            document.getElementById('display-fixed-salary').innerText = `₹${parseFloat(currentUser.fixed_salary || 0).toLocaleString('en-IN')}`;
 
             const selectedMonthFilter = document.getElementById('dashboard-month-filter').value;
             const filteredShiftLogs = activeShiftLogs.filter(log => {
@@ -2684,6 +2753,15 @@
             // computes the summary cards independently
             const currentRealMonth = getCurrentMonthString();
             const targetMonthStr = selectedMonthFilter === 'ALL' ? currentRealMonth : `${new Date().getFullYear()}-${String(parseInt(selectedMonthFilter) + 1).padStart(2, '0')}`;
+
+            // "Daily Base Rate" must reflect what the rate actually was for the selected
+            // month (from raise history), not always today's rate - otherwise every past
+            // month looks like it paid at today's rate even when it didn't.
+            const displayedDailyRate = selectedMonthFilter === 'ALL'
+                ? parseFloat(currentUser.fixed_salary || 0)
+                : resolveRateForMonth(parseFloat(currentUser.fixed_salary || 0), workerSalaryRaiseLog, targetMonthStr);
+            document.getElementById('display-fixed-salary').innerText = `₹${displayedDailyRate.toLocaleString('en-IN')}`;
+
             const resolvedWalletBalance = targetMonthStr === currentRealMonth
                 ? (currentUser.morning_advance ? parseFloat(currentUser.morning_advance) : 0)
                 : resolveMonthlyBalanceValue(workerMonthlyBalances, targetMonthStr, 'morning_advance');
@@ -2692,10 +2770,16 @@
                 : resolveMonthlyBalanceValue(workerMonthlyBalances, targetMonthStr, 'salary_advance_taken');
 
             let monthlyApprovedCount = filteredShiftLogs.filter(log => log.status === 'Approved').length;
-            let monthlyNetSalary = monthlyApprovedCount * parseFloat(currentUser.fixed_salary || 0);
+            const monthlyApprovedShiftsList = filteredShiftLogs.filter(log => log.status === 'Approved');
+            // Use the rate that was actually in effect for the selected month (from raise
+            // history), not today's rate - so a past raise never rewrites past months.
+            let monthlyNetSalary = selectedMonthFilter === 'ALL'
+                ? computeGrossSalaryFromShifts(monthlyApprovedShiftsList, parseFloat(currentUser.fixed_salary || 0), workerSalaryRaiseLog)
+                : monthlyApprovedCount * resolveRateForMonth(parseFloat(currentUser.fixed_salary || 0), workerSalaryRaiseLog, targetMonthStr);
 
             let allTimeApprovedCount = activeShiftLogs.filter(log => log.status === 'Approved').length;
-            let allTimeGrossEarned = allTimeApprovedCount * parseFloat(currentUser.fixed_salary || 0);
+            const allTimeApprovedShiftsList = activeShiftLogs.filter(log => log.status === 'Approved');
+            let allTimeGrossEarned = computeGrossSalaryFromShifts(allTimeApprovedShiftsList, parseFloat(currentUser.fixed_salary || 0), workerSalaryRaiseLog);
 
             document.getElementById('display-approved-days').innerText = `${monthlyApprovedCount} Days`;
             document.getElementById('display-gross-salary').innerText = `₹${allTimeGrossEarned.toLocaleString('en-IN')}`;
