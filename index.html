@@ -1670,7 +1670,7 @@
             // Use each shift's own month's rate (from raise history), not today's rate -
             // a past month's payslip must reflect what the rate was back then.
             let grossEarned = computeGrossSalaryFromShifts(approvedShifts, fixedSalaryRate, workerSalaryRaiseLog);
-            let totalTransport = 0, totalFood = 0, totalMaterial = 0, totalMiddayAdvance = 0;
+            let totalTransport = 0, totalFood = 0, totalMaterial = 0;
 
             filteredLogs.forEach(log => {
                 if (log.status === 'Approved' || log.status === 'Pending' || log.status === 'Rejected') {
@@ -1679,16 +1679,25 @@
                         totalFood += parseFloat(log.food_expense || 0);
                         totalMaterial += parseFloat(log.material_expense || 0);
                     }
-                    totalMiddayAdvance += parseFloat(log.payment_advance_taken || 0);
                 }
             });
+
+            // Same figure as the dashboard's "Total Mid-Day Advances" (computeMiddayWalletBalance):
+            // admin-given cash (morning_advance_log) + mid-day advances taken on-site
+            // (payment_advance_taken on shift_logs). Previously this only summed the
+            // shift-log half, so the payslip understated deductions whenever the admin had
+            // handed the worker cash directly instead of it being logged against a shift -
+            // net payout looked higher here than the dashboard's own numbers implied.
+            const totalMiddayAdvance = computeMiddayWalletBalance(selectedMonthVal);
 
             const totalReimbursements = totalTransport + totalFood + totalMaterial;
             const payslipCurrentRealMonth = getCurrentMonthString();
             const payslipTargetMonth = selectedMonthVal === 'ALL' ? payslipCurrentRealMonth : `${currentYear}-${String(parseInt(selectedMonthVal) + 1).padStart(2, '0')}`;
-            const salaryAdvanceOutstanding = payslipTargetMonth === payslipCurrentRealMonth
-                ? parseFloat(currentUser.salary_advance_taken || 0)
-                : resolveMonthlyBalanceValue(workerMonthlyBalances, payslipTargetMonth, 'salary_advance_taken');
+            // Same fix as the dashboard: resolve via monthly_balances for every month,
+            // including the current one, rather than reading the raw live column - so a
+            // fresh month with no snapshot yet shows Rs. 0 here too, instead of whatever
+            // structural advance total happens to still be sitting in the live column.
+            const salaryAdvanceOutstanding = resolveMonthlyBalanceValue(workerMonthlyBalances, payslipTargetMonth, 'salary_advance_taken');
             const payslipBonusAmount = resolveMonthlyBalanceValue(workerMonthlyBalances, payslipTargetMonth, 'bonus_amount');
             const netPayout = grossEarned + totalReimbursements + payslipBonusAmount - totalMiddayAdvance;
 
@@ -2515,17 +2524,6 @@
                 return true;
             });
 
-            // wallet balance shown everywhere on this page comes from here - current
-            // month = live value, other months = resolved from snapshot history w/ carry-forward
-            const currentRealMonth = getCurrentMonthString();
-            const targetMonthStr = selectedMonthFilter === 'ALL' ? currentRealMonth : `${new Date().getFullYear()}-${String(parseInt(selectedMonthFilter) + 1).padStart(2, '0')}`;
-            const resolvedWalletBalance = targetMonthStr === currentRealMonth
-                ? (currentUser.morning_advance ? parseFloat(currentUser.morning_advance) : 0)
-                : resolveMonthlyBalanceValue(workerMonthlyBalances, targetMonthStr, 'morning_advance');
-            const resolvedSalaryAdvance = targetMonthStr === currentRealMonth
-                ? (currentUser.salary_advance_taken ? parseFloat(currentUser.salary_advance_taken) : 0)
-                : resolveMonthlyBalanceValue(workerMonthlyBalances, targetMonthStr, 'salary_advance_taken');
-
             const statusMsg = document.getElementById('date-filter-status');
             if (dateRangeActive) {
                 statusMsg.classList.remove('hidden');
@@ -2750,7 +2748,10 @@
             });
 
             // same resolution logic as renderActiveStreamTab(), duplicated because this
-            // computes the summary cards independently
+            // computes the summary cards independently. Every month, including the current
+            // one, is resolved from monthly_balances snapshot history w/ carry-forward - a
+            // fresh month with no row yet (and no carry_forward flag on the prior month)
+            // reads as ₹0 until admin records that month's opening adjustment.
             const currentRealMonth = getCurrentMonthString();
             const targetMonthStr = selectedMonthFilter === 'ALL' ? currentRealMonth : `${new Date().getFullYear()}-${String(parseInt(selectedMonthFilter) + 1).padStart(2, '0')}`;
 
@@ -2762,12 +2763,7 @@
                 : resolveRateForMonth(parseFloat(currentUser.fixed_salary || 0), workerSalaryRaiseLog, targetMonthStr);
             document.getElementById('display-fixed-salary').innerText = `₹${displayedDailyRate.toLocaleString('en-IN')}`;
 
-            const resolvedWalletBalance = targetMonthStr === currentRealMonth
-                ? (currentUser.morning_advance ? parseFloat(currentUser.morning_advance) : 0)
-                : resolveMonthlyBalanceValue(workerMonthlyBalances, targetMonthStr, 'morning_advance');
-            const resolvedSalaryAdvance = targetMonthStr === currentRealMonth
-                ? (currentUser.salary_advance_taken ? parseFloat(currentUser.salary_advance_taken) : 0)
-                : resolveMonthlyBalanceValue(workerMonthlyBalances, targetMonthStr, 'salary_advance_taken');
+            const resolvedSalaryAdvance = resolveMonthlyBalanceValue(workerMonthlyBalances, targetMonthStr, 'salary_advance_taken');
 
             let monthlyApprovedCount = filteredShiftLogs.filter(log => log.status === 'Approved').length;
             const monthlyApprovedShiftsList = filteredShiftLogs.filter(log => log.status === 'Approved');
@@ -2788,9 +2784,6 @@
             const selectedMonthText = monthFilter.options[monthFilter.selectedIndex].text;
             document.getElementById('display-net-payable-label').innerText = selectedMonthFilter === 'ALL' ? "TOTAL LIFETIME EARNED:" : `${selectedMonthText.toUpperCase()} NET PAYOUT:`;
 
-            document.getElementById('display-salary-advance').innerText = `₹${resolvedWalletBalance.toLocaleString('en-IN')}`;
-            document.getElementById('display-salary-advance-taken').innerText = `₹${resolvedSalaryAdvance.toLocaleString('en-IN')}`;
-
             let siteSpent = 0;
             filteredShiftLogs.forEach(log => {
                 if (log.status === 'Approved' || log.status === 'Pending' || log.status === 'Rejected') {
@@ -2805,6 +2798,16 @@
             // Wallet Balance card). Never reduced by expense approvals or anything else,
             // and never double-counted.
             const totalMidDayAdvances = computeMiddayWalletBalance(selectedMonthFilter);
+
+            // "Morning Wallet Balance" is now always this live reconciliation - advances
+            // handed out minus approved expenses - so it's guaranteed to match the two
+            // stat lines directly below it. It no longer reads the admin-set
+            // monthly_balances snapshot; a negative value means the company still owes
+            // the worker (approved spend outran what was advanced).
+            const resolvedWalletBalance = totalMidDayAdvances - siteSpent;
+
+            document.getElementById('display-salary-advance').innerText = `₹${resolvedWalletBalance.toLocaleString('en-IN')}`;
+            document.getElementById('display-salary-advance-taken').innerText = `₹${resolvedSalaryAdvance.toLocaleString('en-IN')}`;
             document.getElementById('display-total-spent').innerText = `₹${siteSpent.toLocaleString('en-IN')}`;
             document.getElementById('display-midday-advance').innerText = `₹${totalMidDayAdvances.toLocaleString('en-IN')}`;
             
