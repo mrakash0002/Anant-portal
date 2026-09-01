@@ -1331,8 +1331,20 @@
                 if (monthFilter === undefined || monthFilter === 'ALL') return true;
                 return new Date(dateStr).getMonth() === parseInt(monthFilter);
             };
+            // Admin-given entries (workerAdvanceLog / morning_advance_log) must be grouped
+            // by for_month - the month the admin actually selected when dispatching it -
+            // not by created_at (the moment it was clicked/saved). Without this, an
+            // advance the admin back-dates to July but enters in September was counting
+            // toward September instead of July. Older entries saved before for_month
+            // existed fall back to created_at's month.
+            const currentYear = new Date().getFullYear();
+            const targetMonthStr = (monthFilter === undefined || monthFilter === 'ALL') ? null : `${currentYear}-${String(parseInt(monthFilter) + 1).padStart(2, '0')}`;
             const totalAdminGiven = workerAdvanceLog
-                .filter(e => inMonth(e.created_at))
+                .filter(e => {
+                    if (!targetMonthStr) return true;
+                    const entryMonth = e.for_month || (e.created_at || '').slice(0, 7);
+                    return entryMonth === targetMonthStr;
+                })
                 .reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
             const totalAdvanceReceived = activeShiftLogs
                 .filter(log => log.status !== 'Active' && inMonth(log.punch_in_time || log.created_at))
@@ -2602,8 +2614,20 @@
                 `;
                 stream.appendChild(balanceDiv);
 
-                if (workerAdvanceLog.length > 0 || recordsWithAdvances.length > 0) {
-                    workerAdvanceLog.forEach(entry => {
+                // Scope the listed entries to the selected month too - by for_month (the
+                // month the admin actually dispatched it for), not created_at. Previously
+                // this list ignored the month filter entirely and always showed every
+                // admin-given entry ever, even though the total above was filtered.
+                const currentYearForList = new Date().getFullYear();
+                const listTargetMonthStr = (selectedMonthFilter === 'ALL') ? null : `${currentYearForList}-${String(parseInt(selectedMonthFilter) + 1).padStart(2, '0')}`;
+                const filteredAdvanceLog = workerAdvanceLog.filter(entry => {
+                    if (!listTargetMonthStr) return true;
+                    const entryMonth = entry.for_month || (entry.created_at || '').slice(0, 7);
+                    return entryMonth === listTargetMonthStr;
+                });
+
+                if (filteredAdvanceLog.length > 0 || recordsWithAdvances.length > 0) {
+                    filteredAdvanceLog.forEach(entry => {
                         const dt = new Date(entry.created_at);
                         const dateText = dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
                         const timeText = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
