@@ -499,6 +499,28 @@
                 </div>
                 
                 <div class="space-y-6">
+                    <div class="bg-slate-50/60 p-3.5 rounded-xl border border-slate-100">
+                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-2.5 font-mono block">Daily Expense Breakdown</span>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="bg-white p-2.5 rounded-lg border border-slate-200 text-center">
+                                <span class="text-[9px] text-gray-400 uppercase font-mono block">Transport</span>
+                                <strong id="display-breakdown-transport" class="text-sm font-black font-mono text-slate-700">₹0</strong>
+                            </div>
+                            <div class="bg-white p-2.5 rounded-lg border border-slate-200 text-center">
+                                <span class="text-[9px] text-amber-700 uppercase font-mono block">Food</span>
+                                <strong id="display-breakdown-food" class="text-sm font-black font-mono text-slate-700">₹0</strong>
+                            </div>
+                            <div class="bg-white p-2.5 rounded-lg border border-slate-200 text-center">
+                                <span class="text-[9px] text-blue-700 uppercase font-mono block">Material</span>
+                                <strong id="display-breakdown-material" class="text-sm font-black font-mono text-slate-700">₹0</strong>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center bg-slate-800 text-white p-3 rounded-lg mt-2.5">
+                            <span class="text-[10px] font-black uppercase tracking-wider">Total Expense</span>
+                            <strong id="display-breakdown-total" class="text-base font-black font-mono text-emerald-400">₹0</strong>
+                        </div>
+                    </div>
+
                     <div class="bg-slate-50/60 p-3 rounded-xl border border-slate-100 flex flex-col items-center">
                         <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-2 font-mono">Earnings Breakdown</span>
                         <div class="w-full max-w-[210px] aspect-square">
@@ -2854,13 +2876,24 @@
             document.getElementById('display-net-payable-label').innerText = selectedMonthFilter === 'ALL' ? "TOTAL LIFETIME EARNED:" : `${selectedMonthText.toUpperCase()} NET PAYOUT:`;
 
             let siteSpent = 0;
+            let breakdownTransport = 0, breakdownFood = 0, breakdownMaterial = 0;
             filteredShiftLogs.forEach(log => {
-                if (log.status === 'Approved' || log.status === 'Pending' || log.status === 'Rejected') {
+                if (log.status === 'Approved' || log.status === 'Pending' || log.status === 'Rejected' || log.status === 'N/A') {
                     if (log.expense_status === 'Approved') {
-                        siteSpent += (parseFloat(log.transport_expense || 0) + parseFloat(log.food_expense || 0) + parseFloat(log.material_expense || 0));
+                        const t = parseFloat(log.transport_expense || 0);
+                        const f = parseFloat(log.food_expense || 0);
+                        const m = parseFloat(log.material_expense || 0);
+                        breakdownTransport += t;
+                        breakdownFood += f;
+                        breakdownMaterial += m;
+                        siteSpent += (t + f + m);
                     }
                 }
             });
+            document.getElementById('display-breakdown-transport').innerText = `₹${breakdownTransport.toLocaleString('en-IN')}`;
+            document.getElementById('display-breakdown-food').innerText = `₹${breakdownFood.toLocaleString('en-IN')}`;
+            document.getElementById('display-breakdown-material').innerText = `₹${breakdownMaterial.toLocaleString('en-IN')}`;
+            document.getElementById('display-breakdown-total').innerText = `₹${siteSpent.toLocaleString('en-IN')}`;
 
             // "Total Mid-Day Advances" = admin-given + mid-day advances received ONLY,
             // scoped to the selected month (same pure total as the Mid-Day tab's Current
