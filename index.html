@@ -912,81 +912,95 @@
             </div>
             <div id="correction-modal-notes" class="hidden bg-orange-50 border border-orange-200 rounded-lg p-2.5 text-[11px] text-orange-800 space-y-1"></div>
 
+            <div id="correction-entry-type-row" class="hidden">
+                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Entry Type</label>
+                <div class="grid grid-cols-3 gap-1.5 bg-gray-100 p-1 rounded-lg">
+                    <button type="button" onclick="setAddEntryType('shift')" id="entry-type-btn-shift" class="py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wide transition cursor-pointer">Shift Only</button>
+                    <button type="button" onclick="setAddEntryType('expense')" id="entry-type-btn-expense" class="py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wide transition cursor-pointer">Expense Only</button>
+                    <button type="button" onclick="setAddEntryType('both')" id="entry-type-btn-both" class="py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wide transition cursor-pointer">Both</button>
+                </div>
+            </div>
+
             <div id="correction-date-row" class="hidden">
                 <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Date</label>
                 <input type="date" id="correction-date" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1e3a5f]">
             </div>
-            <div>
-                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Site Location</label>
-                <input type="text" id="correction-site" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1e3a5f]">
-            </div>
-            <div>
-                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Work Summary</label>
-                <textarea id="correction-notes" rows="2" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1e3a5f]"></textarea>
-            </div>
-            <div class="grid grid-cols-3 gap-2">
-                <div>
-                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Transport ₹</label>
-                    <input type="number" id="correction-transport" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#1e3a5f]">
-                </div>
-                <div>
-                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Food ₹</label>
-                    <input type="number" id="correction-food" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#1e3a5f]">
-                </div>
-                <div>
-                    <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Material ₹</label>
-                    <input type="number" id="correction-material" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#1e3a5f]">
-                </div>
-            </div>
-            <div>
-                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Material Items (optional)</label>
-                <input type="text" id="correction-material-notes" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1e3a5f]">
-            </div>
 
-            <div class="pt-2 border-t border-slate-100">
-                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Check-In Photo</label>
-                <div class="flex items-center gap-2">
-                    <img id="correction-checkin-preview" class="hidden w-14 h-14 rounded-lg object-cover border border-slate-200">
-                    <span id="correction-checkin-empty" class="text-[10px] text-slate-400 italic">No photo yet</span>
-                    <label class="ml-auto bg-slate-100 hover:bg-slate-200 text-slate-600 text-[9px] font-semibold px-2.5 py-1.5 rounded-md uppercase cursor-pointer">
-                        Replace
-                        <input type="file" accept="image/*" capture="environment" id="correction-checkin-file" class="hidden" onchange="previewCorrectionPhoto('checkin')">
-                    </label>
+            <div id="correction-shift-fields" class="space-y-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Site Location</label>
+                    <input type="text" id="correction-site" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1e3a5f]">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Work Summary</label>
+                    <textarea id="correction-notes" rows="2" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1e3a5f]"></textarea>
+                </div>
+                <div class="pt-2 border-t border-slate-100">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Check-In Photo</label>
+                    <div class="flex items-center gap-2">
+                        <img id="correction-checkin-preview" class="hidden w-14 h-14 rounded-lg object-cover border border-slate-200">
+                        <span id="correction-checkin-empty" class="text-[10px] text-slate-400 italic">No photo yet</span>
+                        <label class="ml-auto bg-slate-100 hover:bg-slate-200 text-slate-600 text-[9px] font-semibold px-2.5 py-1.5 rounded-md uppercase cursor-pointer">
+                            Replace
+                            <input type="file" accept="image/*" capture="environment" id="correction-checkin-file" class="hidden" onchange="previewCorrectionPhoto('checkin')">
+                        </label>
+                    </div>
                 </div>
             </div>
 
-            <div class="space-y-2">
-                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Bill Photos</label>
-            </div>
-            <div id="correction-bills-transport" class="bg-slate-50 rounded-lg p-2 space-y-1.5">
-                <div class="flex items-center justify-between">
-                    <span class="text-[9px] font-bold text-slate-500 uppercase">Transport</span>
-                    <label class="bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer">
-                        + Add
-                        <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('transport', this)">
-                    </label>
+            <div id="correction-expense-fields" class="space-y-3">
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Transport ₹</label>
+                        <input type="number" id="correction-transport" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#1e3a5f]">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Food ₹</label>
+                        <input type="number" id="correction-food" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#1e3a5f]">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Material ₹</label>
+                        <input type="number" id="correction-material" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#1e3a5f]">
+                    </div>
                 </div>
-                <div id="correction-bills-transport-list" class="flex gap-1.5 flex-wrap"></div>
-            </div>
-            <div id="correction-bills-food" class="bg-slate-50 rounded-lg p-2 space-y-1.5">
-                <div class="flex items-center justify-between">
-                    <span class="text-[9px] font-bold text-slate-500 uppercase">Food</span>
-                    <label class="bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer">
-                        + Add
-                        <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('food', this)">
-                    </label>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Material Items (optional)</label>
+                    <input type="text" id="correction-material-notes" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#1e3a5f]">
                 </div>
-                <div id="correction-bills-food-list" class="flex gap-1.5 flex-wrap"></div>
-            </div>
-            <div id="correction-bills-material" class="bg-slate-50 rounded-lg p-2 space-y-1.5">
-                <div class="flex items-center justify-between">
-                    <span class="text-[9px] font-bold text-slate-500 uppercase">Material</span>
-                    <label class="bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer">
-                        + Add
-                        <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('material', this)">
-                    </label>
+
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Bill Photos</label>
                 </div>
-                <div id="correction-bills-material-list" class="flex gap-1.5 flex-wrap"></div>
+                <div id="correction-bills-transport" class="bg-slate-50 rounded-lg p-2 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">Transport</span>
+                        <label class="bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer">
+                            + Add
+                            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('transport', this)">
+                        </label>
+                    </div>
+                    <div id="correction-bills-transport-list" class="flex gap-1.5 flex-wrap"></div>
+                </div>
+                <div id="correction-bills-food" class="bg-slate-50 rounded-lg p-2 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">Food</span>
+                        <label class="bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer">
+                            + Add
+                            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('food', this)">
+                        </label>
+                    </div>
+                    <div id="correction-bills-food-list" class="flex gap-1.5 flex-wrap"></div>
+                </div>
+                <div id="correction-bills-material" class="bg-slate-50 rounded-lg p-2 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">Material</span>
+                        <label class="bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer">
+                            + Add
+                            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('material', this)">
+                        </label>
+                    </div>
+                    <div id="correction-bills-material-list" class="flex gap-1.5 flex-wrap"></div>
+                </div>
             </div>
 
             <button id="correction-submit-btn" onclick="submitCorrection()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer">Resubmit for Review</button>
@@ -2305,6 +2319,7 @@
 
         // --- CORRECTION / RESUBMIT + MANUAL ADD ---
         let correctionMode = 'edit'; // 'edit' | 'add'
+        let addEntryType = 'both'; // 'shift' | 'expense' | 'both' - only used when correctionMode === 'add'
         let correctionLogId = null;
         let correctionCheckinFile = null; // base64 data URL, pending upload
         let correctionExistingCheckinUrl = null;
@@ -2329,6 +2344,19 @@
             ['transport', 'food', 'material'].forEach(renderCorrectionBillList);
         }
 
+        function setAddEntryType(type) {
+            addEntryType = type;
+            ['shift', 'expense', 'both'].forEach(t => {
+                const btn = document.getElementById(`entry-type-btn-${t}`);
+                if (!btn) return;
+                btn.className = t === type
+                    ? "py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wide transition cursor-pointer bg-[#1e3a5f] text-white shadow-sm"
+                    : "py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wide transition cursor-pointer text-gray-500 hover:text-gray-700";
+            });
+            document.getElementById('correction-shift-fields').classList.toggle('hidden', type === 'expense');
+            document.getElementById('correction-expense-fields').classList.toggle('hidden', type === 'shift');
+        }
+
         function openCorrectionModal(logId) {
             correctionMode = 'edit';
             resetCorrectionModalState();
@@ -2339,6 +2367,9 @@
             document.getElementById('correction-modal-title').innerText = 'Fix & Resubmit';
             document.getElementById('correction-submit-btn').innerText = 'Resubmit for Review';
             document.getElementById('correction-date-row').classList.add('hidden');
+            document.getElementById('correction-entry-type-row').classList.add('hidden');
+            document.getElementById('correction-shift-fields').classList.remove('hidden');
+            document.getElementById('correction-expense-fields').classList.remove('hidden');
 
             const notesEl = document.getElementById('correction-modal-notes');
             let notesHtml = '';
@@ -2379,7 +2410,9 @@
             document.getElementById('correction-modal-title').innerText = 'Add Shift / Expense Entry';
             document.getElementById('correction-submit-btn').innerText = 'Submit for Review';
             document.getElementById('correction-date-row').classList.remove('hidden');
+            document.getElementById('correction-entry-type-row').classList.remove('hidden');
             document.getElementById('correction-modal-notes').classList.add('hidden');
+            setAddEntryType('both');
             document.getElementById('correction-modal').classList.remove('hidden');
         }
 
@@ -2490,15 +2523,27 @@
                     alert("Resubmitted for review.");
                 } else {
                     const dateVal = document.getElementById('correction-date').value || new Date().toISOString().slice(0, 10);
-                    if (!site_location) { alert("Please enter a site location."); return; }
+                    const entryType = addEntryType || 'both';
+
+                    if (entryType !== 'expense' && !site_location) { alert("Please enter a site location."); return; }
+                    const finalTransport = entryType === 'shift' ? 0 : transport_expense;
+                    const finalFood = entryType === 'shift' ? 0 : food_expense;
+                    const finalMaterial = entryType === 'shift' ? 0 : material_expense;
+                    if (entryType === 'expense' && (finalTransport + finalFood + finalMaterial) <= 0) { alert("Please enter at least one expense amount."); return; }
+                    const finalHasBills = entryType === 'shift' ? false : hasBills;
+
                     const payload = {
                         worker_email: currentUser.email,
                         punch_in_time: new Date(dateVal + 'T12:00:00').toISOString(),
                         punch_out_time: new Date(dateVal + 'T12:00:00').toISOString(),
-                        status: 'Pending',
-                        site_location, progress_notes, transport_expense, food_expense, material_expense, material_notes,
-                        punch_in_image_url, bill_photo_urls: hasBills ? JSON.stringify(billUrls) : null,
-                        expense_status: (transport_expense + food_expense + material_expense) > 0 ? 'Pending' : null
+                        status: entryType === 'expense' ? 'N/A' : 'Pending',
+                        site_location: entryType === 'expense' ? '' : site_location,
+                        progress_notes: entryType === 'expense' ? '' : progress_notes,
+                        transport_expense: finalTransport, food_expense: finalFood, material_expense: finalMaterial,
+                        material_notes: entryType === 'shift' ? '' : material_notes,
+                        punch_in_image_url: entryType === 'expense' ? null : punch_in_image_url,
+                        bill_photo_urls: finalHasBills ? JSON.stringify(billUrls) : null,
+                        expense_status: entryType === 'shift' ? null : ((finalTransport + finalFood + finalMaterial) > 0 ? 'Pending' : null)
                     };
                     const res = await fetch(`${SUPABASE_URL}shift_logs`, { method: 'POST', headers: HEADERS, body: JSON.stringify(payload) });
                     if (!res.ok) throw new Error("Failed to add entry");
@@ -2549,7 +2594,7 @@
                 if(nonActiveLogs.length > 0) {
                     nonActiveLogs.forEach(log => {
                         let dateText = new Date(log.punch_in_time || log.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-                        let statusColor = log.status === 'Approved' ? "bg-emerald-100 text-emerald-800 border-emerald-200" : (log.status === 'Rejected' ? "bg-rose-100 text-rose-800 border-rose-200" : (log.status === 'Needs Correction' ? "bg-orange-100 text-orange-800 border-orange-200" : "bg-amber-100 text-amber-800 border-amber-200"));
+                        let statusColor = log.status === 'Approved' ? "bg-emerald-100 text-emerald-800 border-emerald-200" : (log.status === 'Rejected' ? "bg-rose-100 text-rose-800 border-rose-200" : (log.status === 'Needs Correction' ? "bg-orange-100 text-orange-800 border-orange-200" : (log.status === 'N/A' ? "bg-slate-100 text-slate-500 border-slate-200" : "bg-amber-100 text-amber-800 border-amber-200")));
 
                         const totalSpent = parseFloat(log.transport_expense || 0) + parseFloat(log.food_expense || 0) + parseFloat(log.material_expense || 0);
                         const hasExpenseClaim = totalSpent > 0;
@@ -2573,9 +2618,9 @@
                         div.className = needsCorrection ? "bg-orange-50/50 p-3.5 rounded-xl border border-orange-200 shadow-sm text-xs" : "bg-white p-3.5 rounded-xl border border-slate-100/60 shadow-sm text-xs";
                         div.innerHTML = `
                             <div class="flex justify-between items-center w-full">
-                                <div><p class="font-bold text-slate-800">${log.site_location || 'Field Location Site'}</p><p class="text-[10px] text-slate-400">${dateText} • Spent: ₹${totalSpent}</p></div>
+                                <div><p class="font-bold text-slate-800">${log.site_location || (log.status === 'N/A' ? 'Expense Entry' : 'Field Location Site')}</p><p class="text-[10px] text-slate-400">${dateText} • Spent: ₹${totalSpent}</p></div>
                                 <div class="flex flex-col items-end gap-1">
-                                    <span class="px-2 py-0.5 rounded text-[9px] border font-bold uppercase tracking-wider ${statusColor}">Shift: ${log.status}</span>
+                                    ${log.status !== 'N/A' ? `<span class="px-2 py-0.5 rounded text-[9px] border font-bold uppercase tracking-wider ${statusColor}">Shift: ${log.status}</span>` : `<span class="px-2 py-0.5 rounded text-[9px] border font-bold uppercase tracking-wider ${statusColor}">Expense Only</span>`}
                                     ${hasExpenseClaim ? `<span class="px-2 py-0.5 rounded text-[9px] border font-bold uppercase tracking-wider ${expenseColor}">Expense: ${expenseStatus}</span>` : ''}
                                 </div>
                             </div>
