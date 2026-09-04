@@ -70,6 +70,44 @@
         <p id="pm-advance-error" class="hidden text-[11px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg p-2.5"></p>
     </section>
 
+    <!-- GIVE SALARY ADVANCE -->
+    <section class="panel rounded-2xl p-5 space-y-3 border-l-4" style="border-left-color:#9B5A56;">
+        <div>
+            <h2 class="text-sm font-bold text-slate-800">Give Salary Advance</h2>
+            <p class="text-[10px] text-slate-400 mt-0.5">This is deducted from the employee's salary for the month you pick below &mdash; separate from mid-day advances.</p>
+        </div>
+        <select id="pm-salary-advance-worker" class="w-full p-2.5 bg-slate-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#9B5A56]">
+            <option value="">Select employee...</option>
+        </select>
+        <input type="number" id="pm-salary-advance-amount" placeholder="Amount (₹)" class="w-full p-2.5 bg-slate-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#9B5A56]">
+        <div class="flex gap-2">
+            <div class="flex-1">
+                <label class="block text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Date Given</label>
+                <input type="date" id="pm-salary-advance-date" class="w-full p-2.5 bg-slate-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#9B5A56]">
+            </div>
+            <div class="flex-1">
+                <label class="block text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Applies To Month</label>
+                <input type="month" id="pm-salary-advance-month" class="w-full p-2.5 bg-slate-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#9B5A56]">
+            </div>
+        </div>
+        <input type="text" id="pm-salary-advance-note" placeholder="Note (optional)" class="w-full p-2.5 bg-slate-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#9B5A56]">
+        <button onclick="submitPmSalaryAdvance()" class="w-full text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer" style="background:#9B5A56;" onmouseover="this.style.background='#7D4744'" onmouseout="this.style.background='#9B5A56'">Give Salary Advance</button>
+        <p id="pm-salary-advance-error" class="hidden text-[11px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg p-2.5"></p>
+
+        <div class="pt-2 border-t border-slate-100">
+            <div class="flex items-center justify-between mb-1">
+                <h3 class="text-[11px] font-bold text-slate-700">Salary Advance History</h3>
+                <div class="flex items-center gap-1.5">
+                    <input type="month" id="pm-salary-advance-history-month-filter" onchange="loadPmSalaryAdvanceHistory()" class="p-1.5 bg-slate-50 border border-gray-200 rounded-lg text-[10px] font-semibold outline-none">
+                    <button onclick="clearPmSalaryAdvanceHistoryMonthFilter()" id="pm-salary-advance-history-all-time-btn" class="px-2 py-1.5 bg-[#16212E] text-white text-[9px] font-semibold rounded-lg uppercase tracking-wide cursor-pointer whitespace-nowrap">All Time</button>
+                </div>
+            </div>
+            <div id="pm-salary-advance-history" class="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                <p class="text-xs text-slate-400 italic">Loading...</p>
+            </div>
+        </div>
+    </section>
+
     <!-- EMPLOYEE MID-DAY BALANCES -->
     <section class="panel rounded-2xl p-5">
         <div class="flex items-center justify-between mb-1">
@@ -141,6 +179,40 @@
     let pmWorkers = [];
     let pmShifts = [];
     let pmShiftFilter = 'Pending';
+    let pmMonthlyBalances = [];
+    let pmSalaryAdvanceLog = [];
+
+    function getCurrentMonthString() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    // Mirrors admin.html's balance resolution: exact snapshot for the month if it
+    // exists, else the nearest earlier snapshot if it was marked carry-forward,
+    // else 0. Keeps PM-given salary advances consistent with admin's payroll math.
+    function resolveMonthlyBalanceValue(rows, workerEmail, targetMonth, field) {
+        const workerRows = (rows || []).filter(r => r.worker_email === workerEmail);
+        const exact = workerRows.find(r => r.month === targetMonth);
+        if (exact) return parseFloat(exact[field] || 0);
+        const priors = workerRows.filter(r => r.month < targetMonth).sort((a, b) => b.month.localeCompare(a.month));
+        if (priors.length > 0 && priors[0].carry_forward) return parseFloat(priors[0][field] || 0);
+        return 0;
+    }
+
+    async function upsertMonthlyBalanceSnapshot(email, month, field, newValue, carryForward) {
+        await fetch(`${SUPABASE_URL}monthly_balances?on_conflict=worker_email,month`, {
+            method: 'POST',
+            headers: { ...HEADERS, 'Prefer': 'return=representation,resolution=merge-duplicates' },
+            body: JSON.stringify({ worker_email: email, month, [field]: newValue, carry_forward: carryForward, updated_at: new Date().toISOString() })
+        });
+    }
+
+    async function loadPmMonthlyBalances() {
+        try {
+            const res = await fetch(`${SUPABASE_URL}monthly_balances?order=month.desc`, { headers: HEADERS });
+            pmMonthlyBalances = res.ok ? await res.json() : [];
+        } catch (err) { console.error(err); pmMonthlyBalances = []; }
+    }
 
     async function attemptPmLogin() {
         const email = document.getElementById('pm-auth-email').value.trim().toLowerCase();
@@ -191,9 +263,13 @@
     async function bootPmDashboard() {
         document.getElementById('pm-name-tag').innerText = currentPm.name;
         document.getElementById('pm-wallet-balance').innerText = `₹${parseFloat(currentPm.wallet_balance).toLocaleString('en-IN')}`;
+        document.getElementById('pm-salary-advance-date').value = new Date().toISOString().slice(0, 10);
+        document.getElementById('pm-salary-advance-month').value = getCurrentMonthString();
         await loadPmWorkers();
         await loadPmShifts();
         await loadPmWalletHistory();
+        await loadPmMonthlyBalances();
+        await loadPmSalaryAdvanceHistory();
         filterPmShifts('Pending');
     }
 
@@ -206,6 +282,12 @@
             const select = document.getElementById('pm-advance-worker');
             select.innerHTML = '<option value="">Select employee...</option>' +
                 pmWorkers.filter(w => w.status !== 'inactive').map(w => `<option value="${w.email}">${w.name} (Balance: ₹${parseFloat(w.morning_advance || 0).toLocaleString('en-IN')})</option>`).join('');
+
+            const salarySelect = document.getElementById('pm-salary-advance-worker');
+            if (salarySelect) {
+                salarySelect.innerHTML = '<option value="">Select employee...</option>' +
+                    pmWorkers.filter(w => w.status !== 'inactive').map(w => `<option value="${w.email}">${w.name} (Advance taken: ₹${parseFloat(w.salary_advance_taken || 0).toLocaleString('en-IN')})</option>`).join('');
+            }
             renderPmEmployeeBalances();
         } catch (err) {
             console.error(err);
@@ -304,6 +386,127 @@
             console.error(err);
             errEl.innerText = "Network error. Please try again.";
             errEl.classList.remove('hidden');
+        }
+    }
+
+    async function submitPmSalaryAdvance() {
+        const email = document.getElementById('pm-salary-advance-worker').value;
+        const amount = parseFloat(document.getElementById('pm-salary-advance-amount').value) || 0;
+        const dateVal = document.getElementById('pm-salary-advance-date').value || new Date().toISOString().slice(0, 10);
+        const targetMonth = document.getElementById('pm-salary-advance-month').value || getCurrentMonthString();
+        const note = document.getElementById('pm-salary-advance-note').value.trim();
+        const errEl = document.getElementById('pm-salary-advance-error');
+        errEl.classList.add('hidden');
+
+        if (!email) return alert("Please select an employee.");
+        if (amount <= 0) return alert("Please enter a valid amount.");
+
+        const targetWorker = pmWorkers.find(w => w.email === email);
+        if (!targetWorker) return;
+
+        // Keep the date the PM picked but stamp it with the current time-of-day,
+        // so entries still sort sensibly next to same-day records.
+        const now = new Date();
+        const createdAt = new Date(`${dateVal}T00:00:00`);
+        createdAt.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+
+        const isCurrentMonth = targetMonth === getCurrentMonthString();
+        const priorMonthlyValue = resolveMonthlyBalanceValue(pmMonthlyBalances, email, targetMonth, 'salary_advance_taken');
+        const newMonthlyValue = priorMonthlyValue + amount;
+
+        try {
+            await upsertMonthlyBalanceSnapshot(email, targetMonth, 'salary_advance_taken', newMonthlyValue, true);
+
+            if (isCurrentMonth) {
+                const currentAdvanceTaken = parseFloat(targetWorker.salary_advance_taken || 0);
+                const newAdvanceTaken = currentAdvanceTaken + amount;
+                const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(email)}`, {
+                    method: 'PATCH', headers: HEADERS,
+                    body: JSON.stringify({ salary_advance_taken: newAdvanceTaken, salary_advance_note: note || null, salary_advance_updated_at: new Date().toISOString() })
+                });
+                if (!res.ok) throw new Error("Failed to update worker balance");
+            }
+
+            const logRes = await fetch(`${SUPABASE_URL}salary_advance_log`, {
+                method: 'POST', headers: HEADERS,
+                body: JSON.stringify({
+                    worker_email: email, amount, given_by_type: 'PM', given_by_name: `${currentPm.name} (PM)`,
+                    note: note || null, for_month: targetMonth, created_at: createdAt.toISOString()
+                })
+            });
+            if (!logRes.ok) {
+                const errBody = await logRes.text();
+                console.error("salary_advance_log insert failed:", logRes.status, errBody);
+                alert("Advance was added to the employee's balance, but the record log failed to save. Please tell admin.");
+            }
+
+            document.getElementById('pm-salary-advance-amount').value = '';
+            document.getElementById('pm-salary-advance-note').value = '';
+            document.getElementById('pm-salary-advance-worker').value = '';
+            document.getElementById('pm-salary-advance-date').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('pm-salary-advance-month').value = getCurrentMonthString();
+
+            await loadPmWorkers();
+            await loadPmMonthlyBalances();
+            await loadPmSalaryAdvanceHistory();
+            alert(`Issued ₹${amount.toLocaleString('en-IN')} salary advance to ${targetWorker.name} for ${targetMonth}.`);
+        } catch (err) {
+            console.error(err);
+            errEl.innerText = "Failed to give salary advance. Please try again.";
+            errEl.classList.remove('hidden');
+        }
+    }
+
+    function clearPmSalaryAdvanceHistoryMonthFilter() {
+        document.getElementById('pm-salary-advance-history-month-filter').value = '';
+        document.getElementById('pm-salary-advance-history-all-time-btn').className = "px-2 py-1.5 bg-[#16212E] text-white text-[9px] font-semibold rounded-lg uppercase tracking-wide cursor-pointer whitespace-nowrap";
+        loadPmSalaryAdvanceHistory();
+    }
+
+    // An entry's "for_month" is the month it was picked to count against; older
+    // rows saved before this field existed fall back to created_at's month.
+    function pmBalanceEntryMonth(entry) {
+        return entry.for_month || (entry.created_at || '').slice(0, 7);
+    }
+
+    async function loadPmSalaryAdvanceHistory() {
+        const container = document.getElementById('pm-salary-advance-history');
+        const monthVal = document.getElementById('pm-salary-advance-history-month-filter').value;
+        const allTimeBtn = document.getElementById('pm-salary-advance-history-all-time-btn');
+        if (allTimeBtn) {
+            allTimeBtn.className = monthVal
+                ? "px-2 py-1.5 bg-slate-100 text-slate-600 text-[9px] font-semibold rounded-lg uppercase tracking-wide cursor-pointer whitespace-nowrap"
+                : "px-2 py-1.5 bg-[#16212E] text-white text-[9px] font-semibold rounded-lg uppercase tracking-wide cursor-pointer whitespace-nowrap";
+        }
+        try {
+            const res = await fetch(`${SUPABASE_URL}salary_advance_log?order=created_at.desc&limit=200`, { headers: HEADERS });
+            pmSalaryAdvanceLog = res.ok ? await res.json() : [];
+            let rows = pmSalaryAdvanceLog;
+            if (monthVal) rows = rows.filter(e => pmBalanceEntryMonth(e) === monthVal);
+
+            if (rows.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 italic">No salary advances${monthVal ? ' for this month' : ' yet'}.</p>`; return; }
+
+            container.innerHTML = rows.slice(0, 50).map(entry => {
+                const worker = pmWorkers.find(w => w.email === entry.worker_email);
+                const nameStr = worker ? worker.name : entry.worker_email;
+                const dt = new Date(entry.created_at);
+                const dateLabel = dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                const isPm = entry.given_by_type === 'PM';
+                return `
+                <div class="flex items-center justify-between text-[11px] py-1.5 border-b border-slate-50 last:border-0">
+                    <div class="min-w-0">
+                        <div>
+                            <span class="font-semibold text-slate-700">${nameStr}</span>
+                            <span class="ml-1 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full ${isPm ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}">${entry.given_by_type || (isPm ? 'PM' : 'Admin')}</span>
+                        </div>
+                        <div class="text-[10px] text-slate-400">${dateLabel} &middot; for ${new Date(pmBalanceEntryMonth(entry) + '-01').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}${entry.note ? ` &middot; ${entry.note}` : ''}</div>
+                    </div>
+                    <span class="font-mono font-bold shrink-0 text-rose-600">+₹${parseFloat(entry.amount).toLocaleString('en-IN')}</span>
+                </div>`;
+            }).join('');
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = `<p class="text-xs text-rose-500 italic">Failed to load salary advance history.</p>`;
         }
     }
 
