@@ -2723,7 +2723,20 @@
                 // was never even fetched by this app) - that's why "History" looked
                 // broken here compared to the Mid-Day tab. It now shows the same style
                 // of transaction list, filtered by the month picker like everywhere else.
-                const salaryAdvance = parseFloat(currentUser.salary_advance_taken || 0);
+                // Scope both the headline balance AND the listed entries to the selected
+                // month, by for_month (the month it was actually issued/repaid for) -
+                // same convention as the Mid-Day tab.
+                const currentYearForSalaryList = new Date().getFullYear();
+                const salaryListTargetMonthStr = (selectedMonthFilter === 'ALL') ? null : `${currentYearForSalaryList}-${String(parseInt(selectedMonthFilter) + 1).padStart(2, '0')}`;
+
+                // BUGFIX: the headline balance used to always show the live all-time
+                // total (currentUser.salary_advance_taken), even when a specific month
+                // was selected below - so filtering to the current month still showed a
+                // balance that included last month (and every prior month). When a
+                // month is selected, resolve that month's snapshot instead.
+                const salaryAdvance = salaryListTargetMonthStr
+                    ? resolveMonthlyBalanceValue(workerMonthlyBalances, salaryListTargetMonthStr, 'salary_advance_taken')
+                    : parseFloat(currentUser.salary_advance_taken || 0);
                 const salaryNote = currentUser.salary_advance_note;
                 let verifiedTimestamp = currentUser.salary_advance_updated_at
                     ? new Date(currentUser.salary_advance_updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
@@ -2735,7 +2748,7 @@
                 balanceDiv.className = "bg-white p-4 rounded-xl border border-rose-100 shadow-sm text-xs space-y-2";
                 balanceDiv.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <p class="font-bold text-rose-900">Active Structural Salary Advance Balance</p>
+                        <p class="font-bold text-rose-900">${salaryListTargetMonthStr ? monthFilterSelectEl.options[monthFilterSelectEl.selectedIndex].text + ' Salary Advance Balance' : 'Active Structural Salary Advance Balance'}</p>
                         <strong class="${isSalaryNegative ? 'text-emerald-600' : 'text-rose-600'} font-mono text-sm">₹${salaryAdvance.toLocaleString('en-IN')}</strong>
                     </div>
                     <p class="text-[10px] text-gray-500 leading-relaxed">${salaryNote || 'This ledger tracks long-term lump sum structural advances provided directly via central accounts.'}</p>
@@ -2745,10 +2758,6 @@
                     </div>`;
                 stream.appendChild(balanceDiv);
 
-                // Scope the listed entries to the selected month, by for_month (the month
-                // it was actually issued/repaid for) - same convention as the Mid-Day tab.
-                const currentYearForSalaryList = new Date().getFullYear();
-                const salaryListTargetMonthStr = (selectedMonthFilter === 'ALL') ? null : `${currentYearForSalaryList}-${String(parseInt(selectedMonthFilter) + 1).padStart(2, '0')}`;
                 const filteredSalaryAdvanceLog = (workerSalaryAdvanceLog || []).filter(entry => {
                     if (!salaryListTargetMonthStr) return true;
                     const entryMonth = entry.for_month || (entry.created_at || '').slice(0, 7);
