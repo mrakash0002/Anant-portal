@@ -1305,6 +1305,7 @@
         let activeShiftLogs = [];
         let workerMonthlyBalances = [];
         let workerAdvanceLog = [];
+        let workerSalaryAdvanceLog = []; // BUGFIX: powers the new Salary Advance history list below
         let workerSalaryRaiseLog = [];
 
         function getCurrentMonthString() {
@@ -2698,9 +2699,14 @@
                         const dt = new Date(entry.created_at);
                         const dateText = dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
                         const timeText = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                        // BUGFIX: repayments/reductions (see admin's "Repay / Reduce
+                        // Balance") are logged as negative amounts in this same table -
+                        // label and color them as "Repaid" instead of always "Given".
+                        const entryAmt = parseFloat(entry.amount || 0);
+                        const isRepayment = entryAmt < 0;
                         let div = document.createElement('div');
                         div.className = "bg-white p-3.5 rounded-xl border border-amber-100 shadow-sm text-xs flex justify-between items-center";
-                        div.innerHTML = `<div><p class="font-bold text-amber-900">Mid-Day Balance Given</p><p class="text-[10px] text-slate-400">${dateText}, ${timeText} &middot; by ${entry.given_by_name || entry.given_by_type}${entry.note ? ` &middot; ${entry.note}` : ''}</p></div><strong class="text-emerald-600 font-mono font-black text-sm">+ ₹${parseFloat(entry.amount).toLocaleString('en-IN')}</strong>`;
+                        div.innerHTML = `<div><p class="font-bold text-amber-900">${isRepayment ? 'Mid-Day Balance Repaid' : 'Mid-Day Balance Given'}</p><p class="text-[10px] text-slate-400">${dateText}, ${timeText} &middot; by ${entry.given_by_name || entry.given_by_type}${entry.note ? ` &middot; ${entry.note}` : ''}</p></div><strong class="${isRepayment ? 'text-rose-600' : 'text-emerald-600'} font-mono font-black text-sm">${isRepayment ? '&minus;' : '+'} ₹${Math.abs(entryAmt).toLocaleString('en-IN')}</strong>`;
                         stream.appendChild(div);
                     });
                     recordsWithAdvances.forEach(log => {
@@ -2712,26 +2718,61 @@
                     });
                 }
             } else if (currentActiveTab === 'salary') {
+                // BUGFIX: this tab used to show ONLY the current balance number, with no
+                // list of individual advances/repayments beneath it (salary_advance_log
+                // was never even fetched by this app) - that's why "History" looked
+                // broken here compared to the Mid-Day tab. It now shows the same style
+                // of transaction list, filtered by the month picker like everywhere else.
                 const salaryAdvance = parseFloat(currentUser.salary_advance_taken || 0);
-                if (salaryAdvance > 0) {
-                    const salaryNote = currentUser.salary_advance_note;
-                    let verifiedTimestamp = currentUser.salary_advance_updated_at
-                        ? new Date(currentUser.salary_advance_updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
-                        : 'Not recorded';
+                const salaryNote = currentUser.salary_advance_note;
+                let verifiedTimestamp = currentUser.salary_advance_updated_at
+                    ? new Date(currentUser.salary_advance_updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+                    : 'Not recorded';
 
-                    stream.innerHTML = `
-                        <div class="bg-white p-4 rounded-xl border border-rose-100 shadow-sm text-xs space-y-2">
-                            <div class="flex justify-between items-center">
-                                <p class="font-bold text-rose-900">Active Structural Salary Advance Balance</p>
-                                <strong class="text-rose-600 font-mono text-sm">₹${salaryAdvance.toLocaleString('en-IN')}</strong>
-                            </div>
-                            <p class="text-[10px] text-gray-500 leading-relaxed">${salaryNote || 'This ledger tracks long-term lump sum structural advances provided directly via central accounts.'}</p>
-                            <div class="pt-2 border-t border-slate-100 flex justify-between text-[9px] text-slate-400 font-mono uppercase">
-                                <span>Verified: ${verifiedTimestamp}</span>
-                                <span>Ref: AE-STF-${currentUser.id || 'REG'}</span>
-                            </div>
-                        </div>`;
-                } else { stream.innerHTML = `<p class="text-xs text-slate-300 italic text-center py-4">No long-term outstanding salary advance balances found.</p>`; }
+                stream.innerHTML = '';
+                const isSalaryNegative = salaryAdvance < 0;
+                let balanceDiv = document.createElement('div');
+                balanceDiv.className = "bg-white p-4 rounded-xl border border-rose-100 shadow-sm text-xs space-y-2";
+                balanceDiv.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <p class="font-bold text-rose-900">Active Structural Salary Advance Balance</p>
+                        <strong class="${isSalaryNegative ? 'text-emerald-600' : 'text-rose-600'} font-mono text-sm">₹${salaryAdvance.toLocaleString('en-IN')}</strong>
+                    </div>
+                    <p class="text-[10px] text-gray-500 leading-relaxed">${salaryNote || 'This ledger tracks long-term lump sum structural advances provided directly via central accounts.'}</p>
+                    <div class="pt-2 border-t border-slate-100 flex justify-between text-[9px] text-slate-400 font-mono uppercase">
+                        <span>Verified: ${verifiedTimestamp}</span>
+                        <span>Ref: AE-STF-${currentUser.id || 'REG'}</span>
+                    </div>`;
+                stream.appendChild(balanceDiv);
+
+                // Scope the listed entries to the selected month, by for_month (the month
+                // it was actually issued/repaid for) - same convention as the Mid-Day tab.
+                const currentYearForSalaryList = new Date().getFullYear();
+                const salaryListTargetMonthStr = (selectedMonthFilter === 'ALL') ? null : `${currentYearForSalaryList}-${String(parseInt(selectedMonthFilter) + 1).padStart(2, '0')}`;
+                const filteredSalaryAdvanceLog = (workerSalaryAdvanceLog || []).filter(entry => {
+                    if (!salaryListTargetMonthStr) return true;
+                    const entryMonth = entry.for_month || (entry.created_at || '').slice(0, 7);
+                    return entryMonth === salaryListTargetMonthStr;
+                });
+
+                if (filteredSalaryAdvanceLog.length === 0) {
+                    let emptyP = document.createElement('p');
+                    emptyP.className = "text-xs text-slate-300 italic text-center py-4";
+                    emptyP.innerText = "No salary advance activity for this selection.";
+                    stream.appendChild(emptyP);
+                } else {
+                    filteredSalaryAdvanceLog.forEach(entry => {
+                        const dt = new Date(entry.created_at);
+                        const dateText = dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                        const timeText = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                        const entryAmt = parseFloat(entry.amount || 0);
+                        const isRepayment = entryAmt < 0;
+                        let div = document.createElement('div');
+                        div.className = "bg-white p-3.5 rounded-xl border border-rose-100 shadow-sm text-xs flex justify-between items-center";
+                        div.innerHTML = `<div><p class="font-bold text-rose-900">${isRepayment ? 'Salary Advance Repaid' : 'Salary Advance Given'}</p><p class="text-[10px] text-slate-400">${dateText}, ${timeText} &middot; by ${entry.given_by_name || entry.given_by_type}${entry.note ? ` &middot; ${entry.note}` : ''}</p></div><strong class="${isRepayment ? 'text-emerald-600' : 'text-rose-600'} font-mono font-black text-sm">${isRepayment ? '&minus;' : '+'} ₹${Math.abs(entryAmt).toLocaleString('en-IN')}</strong>`;
+                        stream.appendChild(div);
+                    });
+                }
             } else if (currentActiveTab === 'payment') {
                 const paymentMonthStr = document.getElementById('payment-tab-month').value || getPreviousMonthString();
                 const [payYear, payMonthNum] = paymentMonthStr.split('-').map(Number);
@@ -2794,6 +2835,13 @@
 
                 const advanceLogRes = await fetch(`${SUPABASE_URL}morning_advance_log?worker_email=eq.${encodeURIComponent(currentUser.email)}&order=created_at.desc&limit=100`, { method: "GET", headers: HEADERS });
                 workerAdvanceLog = advanceLogRes.ok ? await advanceLogRes.json() : [];
+
+                // BUGFIX: the Salary tab used to show only the current balance number with
+                // no transaction list at all, because this log was never fetched here -
+                // that's why salary advance "history" looked broken to workers. Mirrors
+                // the morning_advance_log fetch above.
+                const salaryAdvanceLogRes = await fetch(`${SUPABASE_URL}salary_advance_log?worker_email=eq.${encodeURIComponent(currentUser.email)}&order=created_at.desc&limit=100`, { method: "GET", headers: HEADERS });
+                workerSalaryAdvanceLog = salaryAdvanceLogRes.ok ? await salaryAdvanceLogRes.json() : [];
 
                 const raiseLogRes = await fetch(`${SUPABASE_URL}salary_raise_log?worker_email=eq.${encodeURIComponent(currentUser.email)}&order=created_at.desc&limit=100`, { method: "GET", headers: HEADERS });
                 workerSalaryRaiseLog = raiseLogRes.ok ? await raiseLogRes.json() : [];
