@@ -265,6 +265,11 @@
         document.getElementById('pm-wallet-balance').innerText = `₹${parseFloat(currentPm.wallet_balance).toLocaleString('en-IN')}`;
         document.getElementById('pm-salary-advance-date').value = new Date().toISOString().slice(0, 10);
         document.getElementById('pm-salary-advance-month').value = getCurrentMonthString();
+        // BUGFIX: Salary Advance History used to open on "All Time" (blank filter),
+        // so it always included last month and every other month by default. Default
+        // it to the current month; "All Time" is still one click away.
+        const salaryHistoryMonthInput = document.getElementById('pm-salary-advance-history-month-filter');
+        if (salaryHistoryMonthInput) salaryHistoryMonthInput.value = getCurrentMonthString();
         await loadPmWorkers();
         await loadPmShifts();
         await loadPmWalletHistory();
@@ -320,15 +325,18 @@
 
         container.innerHTML = `<p class="text-xs text-slate-400 italic">Loading...</p>`;
         try {
-            const start = `${monthVal}-01`;
-            const endDate = new Date(monthVal + '-01'); endDate.setMonth(endDate.getMonth() + 1);
-            const end = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-01`;
-
-            const res = await fetch(`${SUPABASE_URL}morning_advance_log?created_at=gte.${start}&created_at=lt.${end}&order=created_at.desc`, { headers: HEADERS });
-            const rows = res.ok ? await res.json() : [];
+            // BUGFIX: this used to filter by created_at (the moment the entry was saved),
+            // which put back-dated advances in the wrong month. Every other monthly view
+            // in this app (admin.html, index.html) groups by for_month - the month the
+            // admin/PM actually selected when dispatching the entry - with created_at as
+            // a fallback only for legacy rows saved before for_month existed. Match that
+            // here so this panel agrees with the rest of the app.
+            const res = await fetch(`${SUPABASE_URL}morning_advance_log?order=created_at.desc&limit=1000`, { headers: HEADERS });
+            const allRows = res.ok ? await res.json() : [];
+            const rows = allRows.filter(r => (r.for_month || (r.created_at || '').slice(0, 7)) === monthVal);
 
             const totals = {};
-            rows.forEach(r => { totals[r.worker_email] = (totals[r.worker_email] || 0) + parseFloat(r.amount); });
+            rows.forEach(r => { totals[r.worker_email] = (totals[r.worker_email] || 0) + parseFloat(r.amount || 0); });
 
             const active = pmWorkers.filter(w => w.status !== 'inactive');
             if (Object.keys(totals).length === 0) {
@@ -337,10 +345,14 @@
             }
             container.innerHTML = Object.entries(totals).map(([email, total]) => {
                 const w = active.find(w => w.email === email);
+                // Negative net total for the month means repayments/reductions outweighed
+                // what was given (see the new "Reduce / Repay" flow in admin.html) - label
+                // and color it accordingly instead of always saying "given".
+                const isNegative = total < 0;
                 return `
                 <div class="flex items-center justify-between text-[11px] py-1.5 border-b border-slate-50 last:border-0">
                     <span class="font-semibold text-slate-700">${w ? w.name : email}</span>
-                    <span class="font-mono font-bold text-blue-700">₹${total.toLocaleString('en-IN')} given</span>
+                    <span class="font-mono font-bold ${isNegative ? 'text-rose-700' : 'text-blue-700'}">₹${Math.abs(total).toLocaleString('en-IN')} ${isNegative ? 'net repaid' : 'given'}</span>
                 </div>`;
             }).join('');
         } catch (err) {
@@ -492,16 +504,22 @@
                 const dt = new Date(entry.created_at);
                 const dateLabel = dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
                 const isPm = entry.given_by_type === 'PM';
+                // Repayments/reductions (see admin.html's "Reduce / Repay Salary Advance")
+                // are logged as negative amounts in this same table - render them as a
+                // distinct "Repaid" line instead of a "+" advance so history reads clearly.
+                const amt = parseFloat(entry.amount || 0);
+                const isRepayment = amt < 0;
                 return `
                 <div class="flex items-center justify-between text-[11px] py-1.5 border-b border-slate-50 last:border-0">
                     <div class="min-w-0">
                         <div>
                             <span class="font-semibold text-slate-700">${nameStr}</span>
                             <span class="ml-1 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full ${isPm ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}">${entry.given_by_type || (isPm ? 'PM' : 'Admin')}</span>
+                            ${isRepayment ? `<span class="ml-1 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Repaid</span>` : ''}
                         </div>
                         <div class="text-[10px] text-slate-400">${dateLabel} &middot; for ${new Date(pmBalanceEntryMonth(entry) + '-01').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}${entry.note ? ` &middot; ${entry.note}` : ''}</div>
                     </div>
-                    <span class="font-mono font-bold shrink-0 text-rose-600">+₹${parseFloat(entry.amount).toLocaleString('en-IN')}</span>
+                    <span class="font-mono font-bold shrink-0 ${isRepayment ? 'text-emerald-600' : 'text-rose-600'}">${isRepayment ? '&minus;' : '+'}₹${Math.abs(amt).toLocaleString('en-IN')}</span>
                 </div>`;
             }).join('');
         } catch (err) {
