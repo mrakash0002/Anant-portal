@@ -938,6 +938,34 @@
                 <!-- monthly status breakdown -->
                 <div id="shifts-monthly-breakdown" class="mb-3"></div>
 
+                <!-- employee balances summary: morning balance + salary advance for everyone -->
+                <div class="mb-4 border border-slate-200 rounded-xl overflow-hidden">
+                    <div class="px-3 py-2.5 bg-slate-50 flex items-center justify-between gap-2 flex-wrap">
+                        <span class="text-xs font-bold text-slate-700">📊 Employee Balances &mdash; Morning Balance &amp; Salary Advance</span>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <input type="month" id="balances-summary-month-filter" onchange="renderBalancesSummary()" class="p-1.5 bg-white border border-gray-200 rounded-lg text-[10px] font-semibold outline-none">
+                            <button type="button" id="balances-summary-all-time-btn" onclick="clearBalancesSummaryMonth()" class="px-2.5 py-1.5 bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap">All Time</button>
+                        </div>
+                    </div>
+                    <div class="p-3">
+                        <div class="overflow-x-auto max-h-96 overflow-y-auto">
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="text-[9px] uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                                        <th class="text-left py-1.5 pr-2 font-bold">Employee</th>
+                                        <th class="text-right py-1.5 px-2 font-bold">Given (Company + Mid-Day)</th>
+                                        <th class="text-right py-1.5 px-2 font-bold">Expenses Spent</th>
+                                        <th class="text-right py-1.5 px-2 font-bold">Morning Balance</th>
+                                        <th class="text-right py-1.5 pl-2 font-bold">Salary Advance</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="balances-summary-body"></tbody>
+                            </table>
+                        </div>
+                        <p id="balances-summary-note" class="text-[9px] text-slate-400 italic mt-2"></p>
+                    </div>
+                </div>
+
                 <!-- morning / mid-day balance records -->
                 <div class="mb-4 border border-slate-200 rounded-xl overflow-hidden">
                     <button onclick="toggleBalanceRecordsPanel()" class="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition cursor-pointer">
@@ -1218,7 +1246,7 @@
                 // fetched here (not just when the Balance Records panel opens) so the
                 // Employee Monthly Overview can show that month's actual given/repaid
                 // activity instead of just the always-live running wallet total.
-                const morningLogRes = await fetch(`${SUPABASE_URL}morning_advance_log?order=created_at.desc&limit=500`, { method: "GET", headers: HEADERS });
+                const morningLogRes = await fetch(`${SUPABASE_URL}morning_advance_log?order=created_at.desc&limit=5000`, { method: "GET", headers: HEADERS });
                 runtimeMorningAdvanceLog = morningLogRes.ok ? await morningLogRes.json() : [];
 
                 renderRegistrySelectorPanel();
@@ -3940,7 +3968,83 @@
             doc.save(`Anant-Electrical-Full-Monthly-Report.pdf`);
         }
 
+        // Morning balance + salary advance for every active employee in one table.
+        // Month selected -> that month's resolved snapshot (same logic as the records
+        // panels below); blank / "All Time" -> live running totals from workers_registry.
+        function clearBalancesSummaryMonth() {
+            document.getElementById('balances-summary-month-filter').value = '';
+            renderBalancesSummary();
+        }
+
+        function renderBalancesSummary() {
+            const body = document.getElementById('balances-summary-body');
+            if (!body) return;
+            const monthInput = document.getElementById('balances-summary-month-filter');
+            if (monthInput && !monthInput.dataset.init) {
+                monthInput.value = getCurrentMonthString();
+                monthInput.dataset.init = '1';
+            }
+            const month = monthInput ? monthInput.value : '';   // 'YYYY-MM' or '' for all time
+            const allBtn = document.getElementById('balances-summary-all-time-btn');
+            if (allBtn) {
+                allBtn.className = month
+                    ? "px-2.5 py-1.5 bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap"
+                    : "px-2.5 py-1.5 bg-[#16212E] text-white text-[9px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap";
+            }
+            const workers = (runtimeWorkers || []).filter(w => w.status !== 'inactive')
+                .slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            if (workers.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" class="text-xs text-slate-400 italic py-3">No employees found.</td></tr>';
+                return;
+            }
+            const fmt = n => (n < 0 ? '&minus;' : '') + '₹' + Math.abs(n).toLocaleString('en-IN');
+            const shiftMonth = log => {
+                const d = new Date(log.punch_in_time || log.created_at);
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            };
+            const entryMonth = e => e.for_month || (e.created_at || '').slice(0, 7);
+            // Same figure the employee sees as "Morning Wallet Balance":
+            //   (company-given entries + mid-day cash advances received) - approved expenses
+            const spendStatuses = ['Approved', 'Pending', 'Rejected', 'N/A'];
+            // Salary advance: same as the employee app (All Time = current month's snapshot)
+            const advMonth = month || getCurrentMonthString();
+
+            let tGiven = 0, tSpent = 0, tBal = 0, tAdv = 0;
+            const rows = workers.map(w => {
+                const logs = (runtimeShifts || []).filter(l => l.worker_email === w.email && (!month || shiftMonth(l) === month));
+                const companyGiven = (runtimeMorningAdvanceLog || [])
+                    .filter(e => e.worker_email === w.email && (!month || entryMonth(e) === month))
+                    .reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+                const midDay = logs.filter(l => l.status !== 'Active')
+                    .reduce((sum, l) => sum + parseFloat(l.payment_advance_taken || 0), 0);
+                const given = companyGiven + midDay;
+                const spent = logs.filter(l => spendStatuses.includes(l.status) && l.expense_status === 'Approved')
+                    .reduce((sum, l) => sum + parseFloat(l.transport_expense || 0) + parseFloat(l.food_expense || 0) + parseFloat(l.material_expense || 0), 0);
+                const bal = given - spent;
+                const adv = resolveMonthlyBalanceValue(runtimeMonthlyBalances || [], w.email, advMonth, 'salary_advance_taken');
+                tGiven += given; tSpent += spent; tBal += bal; tAdv += adv;
+                return `<tr class="border-b border-slate-100">
+                    <td class="py-1.5 pr-2 font-semibold text-slate-800">${w.name || 'Unnamed'}</td>
+                    <td class="py-1.5 px-2 text-right font-mono text-slate-600">${fmt(given)}</td>
+                    <td class="py-1.5 px-2 text-right font-mono text-slate-600">${fmt(spent)}</td>
+                    <td class="py-1.5 px-2 text-right font-mono font-bold ${bal < 0 ? 'text-rose-600' : 'text-amber-700'}">${fmt(bal)}</td>
+                    <td class="py-1.5 pl-2 text-right font-mono font-bold ${adv > 0 ? 'text-rose-600' : 'text-slate-500'}">${fmt(adv)}</td>
+                </tr>`;
+            }).join('');
+            body.innerHTML = rows + `<tr class="bg-slate-50 font-bold">
+                <td class="py-2 pr-2 text-[10px] uppercase tracking-wide text-slate-600">Total (${workers.length})</td>
+                <td class="py-2 px-2 text-right font-mono text-slate-700">${fmt(tGiven)}</td>
+                <td class="py-2 px-2 text-right font-mono text-slate-700">${fmt(tSpent)}</td>
+                <td class="py-2 px-2 text-right font-mono text-amber-800">${fmt(tBal)}</td>
+                <td class="py-2 pl-2 text-right font-mono text-rose-700">${fmt(tAdv)}</td>
+            </tr>`;
+            const note = document.getElementById('balances-summary-note');
+            if (note) note.textContent = 'Morning Balance = Given (company top-ups + mid-day cash advances) minus approved expenses, same as the employee app. A negative balance means the company owes the employee.'
+                + (month ? '' : ' Salary Advance shows the current month when All Time is selected.');
+        }
+
         function renderRegistrySelectorPanel() {
+            renderBalancesSummary();
             const container = document.getElementById('worker-selection-list');
             container.innerHTML = '';
             if(runtimeWorkers.length === 0) {
