@@ -228,6 +228,23 @@
             }
         }
     </style>
+    <style id="punch-theme">
+        .punch-card { position: relative; overflow: hidden; }
+        .punch-btn {
+            width: 100%; display: flex; align-items: center; justify-content: center; gap: .6rem;
+            padding: 1rem 1.25rem; border: 0; border-radius: 16px; color: #fff; cursor: pointer;
+            font-weight: 800; font-size: .8rem; letter-spacing: .12em; text-transform: uppercase;
+            transition: transform .12s ease, filter .2s ease, box-shadow .2s ease;
+        }
+        .punch-btn:active { transform: scale(.98); }
+        .punch-btn:hover { filter: brightness(1.06); }
+        .punch-btn-in  { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 12px 26px -12px rgba(5,150,105,.75); }
+        .punch-btn-out { background: linear-gradient(135deg, #ef4444, #be123c); box-shadow: 0 12px 26px -12px rgba(190,18,60,.7); }
+        .punch-btn-out::before { content: ""; width: .7rem; height: .7rem; border-radius: 3px; background: #fff; flex: none; }
+        .punch-btn-locked { background: #e2e8f0; color: #64748b; box-shadow: none; cursor: not-allowed; letter-spacing: .02em; text-transform: none; font-size: .75rem; }
+        .punch-btn-locked:hover { filter: none; }
+        .punch-btn:disabled { cursor: not-allowed; }
+    </style>
 </head>
 <body class="text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center px-4 py-8">
 
@@ -411,7 +428,7 @@
 
         <!-- Dashboard Section -->
         <div id="portal-dashboard" class="hidden w-full lg:columns-2 lg:gap-6">
-            
+
             <div class="mb-6 break-inside-avoid bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
                 <div class="bg-gradient-to-r from-[#1e3a5f] to-[#2f5480] p-6 text-white flex justify-between items-start">
                     <div>
@@ -488,6 +505,158 @@
                     <span>Total Mid-Day Advances: <strong id="display-midday-advance" class="text-amber-600 font-bold">₹0</strong></span>
                 </div>
             </div>
+
+            <!-- Punch In / Out: kept first on the dashboard -->
+            <!-- Punch In / Out (sits directly under the summary card) -->
+            <div class="punch-card mb-6 break-inside-avoid bg-white rounded-2xl shadow-xl p-6 space-y-4 border border-slate-100">
+                <div class="absolute inset-x-0 top-0 h-1" style="background: linear-gradient(90deg, #10b981, #1e3a5f);"></div>
+                <h3 class="text-sm font-black uppercase tracking-wider text-gray-700 flex items-center gap-2">
+                    Shift Attendance
+                </h3>
+
+                <div id="punch-in-panel" class="space-y-3">
+                    <div class="flex items-center justify-between rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Not on shift</p>
+                            <p id="punch-live-clock" class="text-2xl font-black font-mono text-slate-800 leading-tight">--:--</p>
+                        </div>
+                        <p id="punch-live-date" class="text-[11px] font-semibold text-slate-500 text-right">--</p>
+                    </div>
+                    <button onclick="openCamera('in')" class="punch-btn punch-btn-in">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        Punch In
+                    </button>
+                    <p class="text-[10px] text-slate-400 text-center">A selfie is required to start your shift.</p>
+                </div>
+
+                <div id="punch-out-panel" class="hidden space-y-3">
+                    <div class="rounded-2xl p-4 flex items-center justify-between text-white" style="background: linear-gradient(135deg, #059669, #047857);">
+                        <div class="text-left">
+                            <p class="flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider text-emerald-100">
+                                <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span></span>
+                                Shift Active
+                            </p>
+                            <p id="punch-in-time-display" class="text-sm font-mono font-bold mt-1 text-white">Started: --:--</p>
+                        </div>
+                        <div id="active-selfie-box" class="hidden">
+                            <img id="active-selfie-image" class="w-12 h-12 rounded-full border-2 border-white/80 shadow-sm object-cover" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Active Site Location</label>
+                        <input type="text" id="shift-location" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]" placeholder="e.g., Koramangala More Supermarket">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Progress Notes / Task Summary</label>
+                        <textarea id="shift-progress" rows="2" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]" placeholder="Describe work completed today..."></textarea>
+                    </div>
+
+                    <div class="border-t border-slate-100 pt-3 mt-2 space-y-3">
+                        <label class="block text-[10px] font-black text-gray-700 uppercase tracking-wider">Log Site Expenses & Mid-Day Advances</label>
+                        
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Transport</label>
+                                <input type="number" id="exp-transport" oninput="updateRequiredBillsUI()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#1e3a5f]" value="0">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Food/Hostel</label>
+                                <input type="number" id="exp-food" oninput="updateRequiredBillsUI()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#1e3a5f]" value="0">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Materials</label>
+                                <input type="number" id="exp-material" oninput="updateRequiredBillsUI()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#1e3a5f]" value="0">
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Mid-Day Advance Cash Received Today</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-black text-sm">₹</span>
+                                <input type="number" id="exp-advance" class="w-full pl-7 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg font-mono font-bold text-sm text-slate-800 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-100" value="0">
+                            </div>
+                            <p class="text-[9px] text-slate-500 mt-1.5 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                This will increase your rolling wallet balance availability.
+                            </p>
+                        </div>
+
+                        <div>
+                            <input type="text" id="exp-material-desc" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]" placeholder="List materials bought...">
+                        </div>
+
+                        <div id="bill-verification-section" class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3 hidden">
+                            <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm space-y-2.5">
+                                <div class="flex items-center gap-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-[#1e3a5f]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    <span class="text-[10px] font-black text-slate-700 uppercase tracking-wider">Bill Submission Rules</span>
+                                </div>
+                                <div class="flex items-start gap-2.5">
+                                    <span class="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[9px] font-bold">✓</span>
+                                    <p class="text-[10px] leading-snug text-slate-600">Attach a clear photo or UPI screenshot for <span class="font-bold text-slate-800">every expense entered above</span> before you can punch out.</p>
+                                </div>
+                                <div class="flex items-start gap-2.5">
+                                    <span class="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[9px] font-bold">i</span>
+                                    <p class="text-[10px] leading-snug text-slate-600"><span class="font-bold text-slate-800">Akash will review</span> these bills against your shift. Your expense is only payable once the shift is approved.</p>
+                                </div>
+                            </div>
+                            <label class="block text-[10px] font-black text-slate-700 uppercase tracking-wider">Required Claims Submission</label>
+                            
+                            <div id="bill-req-transport" class="hidden space-y-2 bg-white p-3 rounded-xl border border-slate-100/60 shadow-sm">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[10px] font-bold text-slate-800/80 block">Transportation Receipts / UPI Screenshots:</span>
+                                    <span id="badge-status-transport" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 uppercase tracking-wider">Missing Receipt</span>
+                                </div>
+                                <div id="action-block-transport" class="flex gap-2">
+                                    <button type="button" onclick="openCamera('transport')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
+                                    <input type="file" id="bill-file-transport" accept="image/*" multiple onchange="handleBillFileSelected('transport')" class="hidden">
+                                    <button type="button" onclick="document.getElementById('bill-file-transport').click()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-3 rounded-lg text-[10px] uppercase transition">Upload Multiple</button>
+                                </div>
+                                <div id="preview-container-transport" class="hidden p-2 bg-slate-50 rounded-lg border border-slate-200">
+                                    <div id="preview-list-transport" class="flex gap-2 overflow-x-auto py-1"></div>
+                                </div>
+                            </div>
+
+                            <div id="bill-req-food" class="hidden space-y-2 bg-white p-3 rounded-xl border border-slate-100/60 shadow-sm">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[10px] font-bold text-slate-800/80 block">Food, Meals & Hostel Bills / UPI Screenshots:</span>
+                                    <span id="badge-status-food" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 uppercase tracking-wider">Missing Receipt</span>
+                                </div>
+                                <div id="action-block-food" class="flex gap-2">
+                                    <button type="button" onclick="openCamera('food')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
+                                    <input type="file" id="bill-file-food" accept="image/*" multiple onchange="handleBillFileSelected('food')" class="hidden">
+                                    <button type="button" onclick="document.getElementById('bill-file-food').click()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-3 rounded-lg text-[10px] uppercase transition">Upload Multiple</button>
+                                </div>
+                                <div id="preview-container-food" class="hidden p-2 bg-slate-50 rounded-lg border border-slate-200">
+                                    <div id="preview-list-food" class="flex gap-2 overflow-x-auto py-1"></div>
+                                </div>
+                            </div>
+
+                            <div id="bill-req-material" class="hidden space-y-2 bg-white p-3 rounded-xl border border-slate-100/60 shadow-sm">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[10px] font-bold text-slate-800/80 block">Materials Invoices / UPI Screenshots:</span>
+                                    <span id="badge-status-material" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 uppercase tracking-wider">Missing Receipt</span>
+                                </div>
+                                <div id="action-block-material" class="flex gap-2">
+                                    <button type="button" onclick="openCamera('material')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
+                                    <input type="file" id="bill-file-material" accept="image/*" multiple onchange="handleBillFileSelected('material')" class="hidden">
+                                    <button type="button" onclick="document.getElementById('bill-file-material').click()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-3 rounded-lg text-[10px] uppercase transition">Upload Multiple</button>
+                                </div>
+                                <div id="preview-container-material" class="hidden p-2 bg-slate-50 rounded-lg border border-slate-200">
+                                    <div id="preview-list-material" class="flex gap-2 overflow-x-auto py-1"></div>
+                                </div>
+                            </div>
+
+                            <p id="bills-verification-status" class="text-[10px] text-slate-500 italic px-1">Bills are submitted with your shift for admin review, no scan needed.</p>
+                        </div>
+                    </div>
+
+                    <button id="punch-out-button" onclick="openCamera('out')" class="punch-btn punch-btn-out">Punch Out</button>
+                </div>
+            </div>
+
+            
 
             <!-- Visual Analytics Container -->
             <div class="mb-6 break-inside-avoid bg-white rounded-2xl shadow-xl p-5 space-y-6 border border-slate-100">
@@ -700,144 +869,6 @@
                     
                     <button onclick="saveUserProfile()" class="w-full bg-[#1e3a5f] hover:bg-[#14283f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer mt-2">
                         Save Profile Data
-                    </button>
-                </div>
-            </div>
-
-            <div class="mb-6 break-inside-avoid bg-white rounded-2xl shadow-xl p-6 space-y-4">
-                <h3 class="text-sm font-black uppercase tracking-wider text-gray-700 flex items-center gap-2">
-                    Shift Operational Log System
-                </h3>
-                
-                <div id="punch-in-panel" class="space-y-3">
-                    <p class="text-xs text-slate-500">You do not have an active shift running. Punch in to begin tracking your work shift hours.</p>
-                    <button onclick="openCamera('in')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer">
-                        Capture Selfie & Punch In
-                    </button>
-                </div>
-
-                <div id="punch-out-panel" class="hidden space-y-3">
-                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-center flex items-center justify-between">
-                        <div class="text-left">
-                            <p class="text-[10px] uppercase font-bold text-blue-700 font-mono tracking-wider">Status: Shift Active</p>
-                            <p id="punch-in-time-display" class="text-xs text-slate-700 font-mono font-bold mt-0.5">Started: --:--</p>
-                        </div>
-                        <div id="active-selfie-box" class="hidden">
-                            <img id="active-selfie-image" class="w-12 h-12 rounded-full border-2 border-emerald-500 shadow-sm object-cover" />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Active Site Location</label>
-                        <input type="text" id="shift-location" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]" placeholder="e.g., Koramangala More Supermarket">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Progress Notes / Task Summary</label>
-                        <textarea id="shift-progress" rows="2" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]" placeholder="Describe work completed today..."></textarea>
-                    </div>
-
-                    <div class="border-t border-slate-100 pt-3 mt-2 space-y-3">
-                        <label class="block text-[10px] font-black text-gray-700 uppercase tracking-wider">Log Site Expenses & Mid-Day Advances</label>
-                        
-                        <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Transport</label>
-                                <input type="number" id="exp-transport" oninput="updateRequiredBillsUI()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#1e3a5f]" value="0">
-                            </div>
-                            <div>
-                                <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Food/Hostel</label>
-                                <input type="number" id="exp-food" oninput="updateRequiredBillsUI()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#1e3a5f]" value="0">
-                            </div>
-                            <div>
-                                <label class="block text-[9px] font-bold text-gray-400 uppercase text-center mb-1">Materials</label>
-                                <input type="number" id="exp-material" oninput="updateRequiredBillsUI()" class="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-mono font-bold text-xs outline-none focus:border-[#1e3a5f]" value="0">
-                            </div>
-                        </div>
-
-                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                            <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Mid-Day Advance Cash Received Today</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-black text-sm">₹</span>
-                                <input type="number" id="exp-advance" class="w-full pl-7 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg font-mono font-bold text-sm text-slate-800 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-100" value="0">
-                            </div>
-                            <p class="text-[9px] text-slate-500 mt-1.5 flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                                This will increase your rolling wallet balance availability.
-                            </p>
-                        </div>
-
-                        <div>
-                            <input type="text" id="exp-material-desc" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-[#1e3a5f]" placeholder="List materials bought...">
-                        </div>
-
-                        <div id="bill-verification-section" class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3 hidden">
-                            <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm space-y-2.5">
-                                <div class="flex items-center gap-1.5">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-[#1e3a5f]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                    <span class="text-[10px] font-black text-slate-700 uppercase tracking-wider">Bill Submission Rules</span>
-                                </div>
-                                <div class="flex items-start gap-2.5">
-                                    <span class="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[9px] font-bold">✓</span>
-                                    <p class="text-[10px] leading-snug text-slate-600">Attach a clear photo or UPI screenshot for <span class="font-bold text-slate-800">every expense entered above</span> before you can punch out.</p>
-                                </div>
-                                <div class="flex items-start gap-2.5">
-                                    <span class="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[9px] font-bold">i</span>
-                                    <p class="text-[10px] leading-snug text-slate-600"><span class="font-bold text-slate-800">Akash will review</span> these bills against your shift. Your expense is only payable once the shift is approved.</p>
-                                </div>
-                            </div>
-                            <label class="block text-[10px] font-black text-slate-700 uppercase tracking-wider">Required Claims Submission</label>
-                            
-                            <div id="bill-req-transport" class="hidden space-y-2 bg-white p-3 rounded-xl border border-slate-100/60 shadow-sm">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-[10px] font-bold text-slate-800/80 block">Transportation Receipts / UPI Screenshots:</span>
-                                    <span id="badge-status-transport" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 uppercase tracking-wider">Missing Receipt</span>
-                                </div>
-                                <div id="action-block-transport" class="flex gap-2">
-                                    <button type="button" onclick="openCamera('transport')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
-                                    <input type="file" id="bill-file-transport" accept="image/*" multiple onchange="handleBillFileSelected('transport')" class="hidden">
-                                    <button type="button" onclick="document.getElementById('bill-file-transport').click()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-3 rounded-lg text-[10px] uppercase transition">Upload Multiple</button>
-                                </div>
-                                <div id="preview-container-transport" class="hidden p-2 bg-slate-50 rounded-lg border border-slate-200">
-                                    <div id="preview-list-transport" class="flex gap-2 overflow-x-auto py-1"></div>
-                                </div>
-                            </div>
-
-                            <div id="bill-req-food" class="hidden space-y-2 bg-white p-3 rounded-xl border border-slate-100/60 shadow-sm">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-[10px] font-bold text-slate-800/80 block">Food, Meals & Hostel Bills / UPI Screenshots:</span>
-                                    <span id="badge-status-food" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 uppercase tracking-wider">Missing Receipt</span>
-                                </div>
-                                <div id="action-block-food" class="flex gap-2">
-                                    <button type="button" onclick="openCamera('food')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
-                                    <input type="file" id="bill-file-food" accept="image/*" multiple onchange="handleBillFileSelected('food')" class="hidden">
-                                    <button type="button" onclick="document.getElementById('bill-file-food').click()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-3 rounded-lg text-[10px] uppercase transition">Upload Multiple</button>
-                                </div>
-                                <div id="preview-container-food" class="hidden p-2 bg-slate-50 rounded-lg border border-slate-200">
-                                    <div id="preview-list-food" class="flex gap-2 overflow-x-auto py-1"></div>
-                                </div>
-                            </div>
-
-                            <div id="bill-req-material" class="hidden space-y-2 bg-white p-3 rounded-xl border border-slate-100/60 shadow-sm">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-[10px] font-bold text-slate-800/80 block">Materials Invoices / UPI Screenshots:</span>
-                                    <span id="badge-status-material" class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 uppercase tracking-wider">Missing Receipt</span>
-                                </div>
-                                <div id="action-block-material" class="flex gap-2">
-                                    <button type="button" onclick="openCamera('material')" class="flex-1 bg-slate-100 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg text-[10px] uppercase tracking-wider transition">Add Photo</button>
-                                    <input type="file" id="bill-file-material" accept="image/*" multiple onchange="handleBillFileSelected('material')" class="hidden">
-                                    <button type="button" onclick="document.getElementById('bill-file-material').click()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-3 rounded-lg text-[10px] uppercase transition">Upload Multiple</button>
-                                </div>
-                                <div id="preview-container-material" class="hidden p-2 bg-slate-50 rounded-lg border border-slate-200">
-                                    <div id="preview-list-material" class="flex gap-2 overflow-x-auto py-1"></div>
-                                </div>
-                            </div>
-
-                            <p id="bills-verification-status" class="text-[10px] text-slate-500 italic px-1">Bills are submitted with your shift for admin review, no scan needed.</p>
-                        </div>
-                    </div>
-
-                    <button id="punch-out-button" onclick="openCamera('out')" class="w-full bg-[#1e3a5f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest shadow-md transition cursor-pointer">
-                        Capture Selfie & Punch Out
                     </button>
                 </div>
             </div>
@@ -1572,15 +1603,39 @@
             return urls;
         }
 
-        function fetchCurrentGPSLocation() {
+        // ---- GPS for punch in / punch out ----
+        // Saved inside site_location as "(GPS In: lat, lng | GPS Out: lat, lng)" so no new
+        // database column is needed and the punch-in point survives the punch-out.
+        const GPS_REQUIRED_MSG = "Location (GPS) is required to punch in or out. Please turn on location on your phone and allow access for this page, then try again.";
+        let pendingGpsPromise = null;
+
+        function requestGPSFix() {
             return new Promise((resolve) => {
-                if (!navigator.geolocation) return resolve("GPS Not Supported");
+                if (!navigator.geolocation) return resolve({ ok: false, denied: true, at: Date.now() });
                 navigator.geolocation.getCurrentPosition(
-                    (p) => resolve(`GPS: ${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`),
-                    (e) => resolve("GPS Access Denied"),
-                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+                    (p) => resolve({ ok: true, lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy, at: Date.now() }),
+                    (e) => resolve({ ok: false, denied: e && e.code === 1, at: Date.now() }),
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
                 );
             });
+        }
+
+        // reuse the fix taken when the camera opened if it is still fresh, else take a new one
+        async function getFixForPunch() {
+            let fix = pendingGpsPromise ? await pendingGpsPromise : null;
+            if (!fix || (Date.now() - fix.at) > 180000) fix = await requestGPSFix();
+            pendingGpsPromise = null;
+            return fix;
+        }
+
+        function formatGPS(label, fix) {
+            return fix && fix.ok ? `GPS ${label}: ${fix.lat.toFixed(5)}, ${fix.lng.toFixed(5)}` : `GPS ${label}: Unavailable`;
+        }
+
+        // pulls the punch-in point back out of what was saved at punch in (also reads old "GPS: lat, lng" records)
+        function extractGpsIn(loc) {
+            const m = (loc || '').match(/GPS(?:\s*In)?\s*:\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i);
+            return m ? `GPS In: ${m[1]}, ${m[2]}` : 'GPS In: Unavailable';
         }
 
         // --- PROFILE & ID CARD TOGGLE & LOGIC ---
@@ -2261,6 +2316,18 @@
             }
         }
 
+        // live clock shown above the Punch In button
+        function tickPunchClock() {
+            const c = document.getElementById('punch-live-clock');
+            const d = document.getElementById('punch-live-date');
+            if (!c) return;
+            const now = new Date();
+            c.innerText = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+            if (d) d.innerText = now.toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'short' });
+        }
+        tickPunchClock();
+        setInterval(tickPunchClock, 15000);
+
         function startLockTimer(startTimeISO) {
             if(lockTimerInterval) clearInterval(lockTimerInterval);
             const punchOutBtn = document.getElementById('punch-out-button');
@@ -2270,14 +2337,14 @@
                 const remainingTime = lockUntilTime - new Date().getTime();
                 if (remainingTime > 0) {
                     punchOutBtn.disabled = true;
-                    punchOutBtn.className = "w-full bg-gray-400 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest cursor-not-allowed";
+                    punchOutBtn.className = "punch-btn punch-btn-locked";
                     const hours = Math.floor(remainingTime / (1000 * 60 * 60));
                     const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
                     punchOutBtn.innerText = `Locked (Min Shift 4 Hrs) - ${hours}h ${minutes}m left`;
                 } else {
                     punchOutBtn.disabled = false;
-                    punchOutBtn.className = "w-full bg-[#1e3a5f] hover:bg-[#14283f] text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest cursor-pointer shadow-md transition";
-                    punchOutBtn.innerText = "Capture Selfie & Punch Out";
+                    punchOutBtn.className = "punch-btn punch-btn-out";
+                    punchOutBtn.innerText = "Punch Out";
                     clearInterval(lockTimerInterval);
                 }
             }
@@ -3167,6 +3234,13 @@
                 if(!allRequiredBillsAttached()) return;
             }
 
+            if (mode === 'in' || mode === 'out') {
+                pendingGpsPromise = requestGPSFix();
+                pendingGpsPromise.then(f => {
+                    if (!f.ok && f.denied) { alert(GPS_REQUIRED_MSG); closeCameraModal(); }
+                });
+            }
+
             document.getElementById('camera-modal').classList.remove('hidden');
 
             const isIdentitySelfie = (mode === 'in' || mode === 'out' || mode === 'idcard');
@@ -3261,6 +3335,9 @@
         }
 
         async function punchIn() {
+            const gpsFix = await getFixForPunch();
+            if (!gpsFix.ok && gpsFix.denied) { alert(GPS_REQUIRED_MSG); return; }
+
             document.getElementById('punch-in-panel').classList.add('hidden');
             document.getElementById('punch-out-panel').classList.remove('hidden');
             document.getElementById('punch-in-time-display').innerText = "Started: Right Now (Saving...)";
@@ -3271,7 +3348,7 @@
                 document.getElementById('active-selfie-image').src = tempSelfieBase64;
             }
 
-            const gpsCoords = await fetchCurrentGPSLocation();
+            const gpsCoords = formatGPS('In', gpsFix);
             const payload = { 
                 worker_email: currentUser.email, 
                 status: "Active", 
@@ -3307,6 +3384,10 @@
         async function punchOut() {
             if (!activeShift) return;
 
+            const gpsFix = await getFixForPunch();
+            if (!gpsFix.ok && gpsFix.denied) { alert(GPS_REQUIRED_MSG); return; }
+            if (!activeShift) return;
+
             const punchOutBtn = document.getElementById('punch-out-button');
             punchOutBtn.innerText = "Ending Shift...";
             punchOutBtn.disabled = true;
@@ -3329,6 +3410,8 @@
             const selfieBase64 = tempSelfieBase64;
             const billImagesSnapshot = JSON.parse(JSON.stringify(capturedBillImages));
             const wasOnline = navigator.onLine;
+            // keep BOTH points: where the shift started and where it ended
+            const finalSiteLocation = `${manualLocation} (${extractGpsIn(activeShift.site_location)} | ${formatGPS('Out', gpsFix)})`;
 
             // shift ends on screen right here - GPS/photo upload/server sync happen
             // below in the background so a slow connection doesn't block the UI
@@ -3351,6 +3434,7 @@
 
             document.getElementById('punch-out-panel').classList.add('hidden');
             document.getElementById('punch-in-panel').classList.remove('hidden');
+            punchOutBtn.className = "punch-btn punch-btn-out";
             punchOutBtn.innerText = "Punch Out";
             punchOutBtn.disabled = false;
             playPunchOutSound();
@@ -3372,18 +3456,14 @@
                 };
 
                 if (!wasOnline) {
-                    const gpsCoords = await fetchCurrentGPSLocation();
-                    const site_location = manualLocation ? `${manualLocation} (${gpsCoords})` : gpsCoords;
-                    await savePunchToOfflineQueue('out', buildPayload(site_location), selfieBase64, billImagesSnapshot);
+                    await savePunchToOfflineQueue('out', buildPayload(finalSiteLocation), selfieBase64, billImagesSnapshot);
                     updateNetworkBadge(false);
                     finishUp();
                     return;
                 }
 
                 try {
-                    const gpsCoords = await fetchCurrentGPSLocation();
-                    const site_location = manualLocation ? `${manualLocation} (${gpsCoords})` : gpsCoords;
-                    const shiftPayload = buildPayload(site_location);
+                    const shiftPayload = buildPayload(finalSiteLocation);
 
                     let selfieUrl = null;
                     if (selfieBase64) {
@@ -3402,7 +3482,7 @@
                     finishUp();
 
                 } catch(err) {
-                    await savePunchToOfflineQueue('out', buildPayload(manualLocation || 'GPS Unavailable'), selfieBase64, billImagesSnapshot);
+                    await savePunchToOfflineQueue('out', buildPayload(finalSiteLocation), selfieBase64, billImagesSnapshot);
                     finishUp();
                 }
             })();
