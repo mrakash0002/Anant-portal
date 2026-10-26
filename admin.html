@@ -66,6 +66,71 @@
             background: rgba(22, 33, 46, 0.4);
         }
     </style>
+    <style id="theme-v2">
+        /* ===== Admin portal theme v2: left sidebar layout, softer cards, cleaner tables ===== */
+        :root {
+            --ink: #16212E; --ink-2: #1F2E40; --copper: #C0813C; --copper-soft: #FBF3EA;
+            --line: #E4E7EC; --muted: #667085; --canvas: #F2F4F7;
+        }
+        body { background: radial-gradient(1200px 500px at 85% -10%, #FBF3EA 0%, transparent 60%), var(--canvas); padding: 1.25rem !important; }
+
+        /* layout: sidebar + content */
+        #main-admin-dashboard-layout {
+            max-width: 1400px !important;
+            display: grid !important; grid-template-columns: 236px minmax(0, 1fr); column-gap: 1.5rem; row-gap: 0;
+            align-items: start;
+        }
+        #main-admin-dashboard-layout.hidden { display: none !important; }
+        #main-admin-dashboard-layout > * { grid-column: 2; min-width: 0; }
+        #main-admin-dashboard-layout > header { grid-column: 1 / -1; padding: 1rem 1.5rem !important; border-radius: 18px !important; }
+        #main-admin-dashboard-layout > header h1 { font-size: 1.25rem !important; }
+        #main-admin-dashboard-layout > header > div:first-of-type + div { gap: .5rem; }
+
+        /* sidebar nav */
+        #main-admin-dashboard-layout > nav {
+            grid-column: 1; grid-row: 2 / span 60; position: sticky; top: 1.25rem; align-self: start;
+            flex-direction: column !important; flex-wrap: nowrap !important; gap: 2px !important; padding: .75rem !important;
+            background: linear-gradient(170deg, var(--ink-2), var(--ink)) !important; border: 0 !important; border-radius: 18px !important;
+            box-shadow: 0 12px 30px -12px rgba(22,33,46,.45) !important;
+        }
+        #main-admin-dashboard-layout > nav button {
+            flex: none !important; width: 100%; min-width: 0 !important; text-align: left; position: relative;
+            padding: .7rem .9rem .7rem 1.1rem !important; border-radius: 12px !important;
+            font-size: 11.5px !important; letter-spacing: .06em; color: #A9B6C6 !important; background: transparent !important; box-shadow: none !important;
+        }
+        #main-admin-dashboard-layout > nav button:hover { background: rgba(255,255,255,.07) !important; color: #fff !important; }
+        #main-admin-dashboard-layout > nav button[class*="text-white"] { background: rgba(192,129,60,.18) !important; color: #fff !important; }
+        #main-admin-dashboard-layout > nav button[class*="text-white"]::before {
+            content: ""; position: absolute; left: 5px; top: 22%; bottom: 22%; width: 3px; border-radius: 3px; background: var(--copper);
+        }
+
+        /* cards & panels */
+        .panel { border-radius: 18px !important; border: 1px solid var(--line) !important; box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px -14px rgba(16,24,40,.10) !important; }
+        .inner-card { border-radius: 14px; background: #F8F9FB; border-color: var(--line); }
+        #main-admin-dashboard-layout .rounded-xl.border { border-color: var(--line); }
+        #main-admin-dashboard-layout section.panel, #main-admin-dashboard-layout .panel { transition: box-shadow .2s ease; }
+        .panel-overlay > div { border-radius: 20px !important; box-shadow: 0 30px 70px -20px rgba(16,24,40,.45) !important; }
+
+        /* controls */
+        button { transition: background-color .15s ease, color .15s ease, transform .1s ease, box-shadow .15s ease; }
+        button.cursor-pointer:active { transform: scale(.975); }
+        input, select, textarea { transition: border-color .15s ease, box-shadow .15s ease; }
+        input:focus, select:focus, textarea:focus { border-color: var(--copper) !important; box-shadow: 0 0 0 3px rgba(192,129,60,.16); outline: none; }
+
+        /* tables & numbers */
+        .font-mono, table { font-variant-numeric: tabular-nums; }
+        table thead th { background: #F8F9FB; color: var(--muted); position: sticky; top: 0; z-index: 1; }
+        table tbody tr { transition: background-color .12s ease; }
+        table tbody tr:hover { background: var(--copper-soft); }
+
+        /* narrow windows: stack, nav becomes a scrolling bar */
+        @media (max-width: 960px) {
+            #main-admin-dashboard-layout { grid-template-columns: minmax(0, 1fr); }
+            #main-admin-dashboard-layout > * { grid-column: 1; }
+            #main-admin-dashboard-layout > nav { grid-row: auto; position: static; flex-direction: row !important; overflow-x: auto; margin-bottom: 1.5rem; }
+            #main-admin-dashboard-layout > nav button { width: auto; white-space: nowrap; }
+        }
+    </style>
 </head>
 <body class="text-slate-800 font-sans min-h-screen flex flex-col justify-between p-4 md:p-8 antialiased">
 
@@ -1778,6 +1843,10 @@
                     body: JSON.stringify(payload)
                 });
                 if (!res.ok) throw new Error("Insert failed");
+                if (hasExpense) {
+                    try { await adjustStoredWalletBalance(worker_email, -(finalTransport + finalFood + finalMaterial)); }
+                    catch (balErr) { console.error(balErr); alert("Entry saved, but the employee's stored balance could not be updated. Please adjust it manually."); }
+                }
                 closeAddShiftModal();
                 await fetchAllDataFromNode();
                 alert("Entry saved.");
@@ -3714,7 +3783,9 @@
             const monthlyAggregation = {};
 
             // group approved shifts by month + employee
-            runtimeShifts.filter(shift => shift.status === 'Approved').forEach(shift => {
+            // Approved shifts count as work days; expense-only entries (status 'N/A') add their
+            // approved expenses but no days.
+            runtimeShifts.filter(shift => shift.status === 'Approved' || (shift.status === 'N/A' && shift.expense_status === 'Approved')).forEach(shift => {
                 const shiftDateRaw = shift.punch_in_time || shift.created_at;
                 const dateObj = new Date(shiftDateRaw);
                 const monthKey = dateObj.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
@@ -3745,7 +3816,7 @@
                     };
                 }
 
-                monthlyAggregation[monthKey][associatedWorker.email].shiftCount += shiftPayUnits(shift);
+                if (shift.status === 'Approved') monthlyAggregation[monthKey][associatedWorker.email].shiftCount += shiftPayUnits(shift);
                 if (shift.expense_status === 'Approved') {
                     monthlyAggregation[monthKey][associatedWorker.email].totalTransport += parseFloat(shift.transport_expense || 0);
                     monthlyAggregation[monthKey][associatedWorker.email].totalFood += parseFloat(shift.food_expense || 0);
@@ -4344,12 +4415,36 @@
             return total;
         }
 
+        // reads "GPS In: lat, lng" / "GPS Out: lat, lng" (and old "GPS: lat, lng") out of site_location
+        function parseShiftGps(raw) {
+            const grab = (label) => {
+                const m = (raw || '').match(new RegExp('GPS\\s*' + label + '\\s*:\\s*(-?\\d+(?:\\.\\d+)?)\\s*,\\s*(-?\\d+(?:\\.\\d+)?)', 'i'));
+                return m ? { lat: m[1], lng: m[2] } : null;
+            };
+            let gIn = grab('In'), gOut = grab('Out');
+            if (!gIn && !gOut) {
+                const legacy = (raw || '').match(/GPS\s*:\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i);
+                if (legacy) gIn = { lat: legacy[1], lng: legacy[2] };
+            }
+            return { gIn, gOut };
+        }
+
+        function renderShiftGpsLine(raw) {
+            const { gIn, gOut } = parseShiftGps(raw);
+            const piece = (label, g) => g
+                ? `<a href="https://www.google.com/maps?q=${g.lat},${g.lng}" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-semibold">${label} 📍 ${g.lat}, ${g.lng}</a>`
+                : `<span class="text-slate-400">${label}: not recorded</span>`;
+            return `<p class="text-[10px] mt-1 flex flex-col gap-0.5">${piece('GPS In', gIn)}${piece('GPS Out', gOut)}</p>`;
+        }
+
         // strips "(GPS: 12.3, 45.6)" / "GPS ACCESS DENIED" / a bare "GPS: lat, lng" from a
         // site_location string so the same physical site doesn't split into a block per coordinate
         function stripGpsFromSiteName(raw) {
             let s = (raw || '').trim();
             s = s.replace(/\(\s*gps[^)]*\)/gi, '');
-            s = s.replace(/\bgps\s*:?\s*[-\d.]+\s*,\s*[-\d.]+/gi, '');
+            s = s.replace(/\bgps\s*(?:in|out)?\s*:?\s*[-\d.]+\s*,\s*[-\d.]+/gi, '');
+            s = s.replace(/\bgps\s*(?:in|out)?\s*:\s*unavailable/gi, '');
+            s = s.replace(/\bgps\s+(?:access\s+denied|not\s+supported|unavailable)\b/gi, '');
             s = s.replace(/\s{2,}/g, ' ').replace(/^[,\s]+|[,\s]+$/g, '');
             return s.trim();
         }
@@ -4958,6 +5053,32 @@
             }
         }
 
+        // An entry needs admin action if its SHIFT is pending OR it carries a pending
+        // EXPENSE claim. Expense-only entries (status 'N/A') and approved shifts with a
+        // still-pending expense used to be missed because the tabs only checked s.status.
+        function shiftExpenseTotal(s) {
+            return parseFloat(s.transport_expense || 0) + parseFloat(s.food_expense || 0) + parseFloat(s.material_expense || 0);
+        }
+        function shiftExpenseStatus(s) {
+            return s.expense_status || (shiftExpenseTotal(s) > 0 ? 'Pending' : 'N/A');
+        }
+        function shiftNeedsApproval(s) {
+            if (s.status === 'Pending') return true;
+            return s.status !== 'Active' && shiftExpenseTotal(s) > 0 && shiftExpenseStatus(s) === 'Pending';
+        }
+        function shiftMatchesTab(s, tab) {
+            if (tab === 'All') return true;
+            if (tab === 'Pending') return shiftNeedsApproval(s);
+            if (tab === 'Approved') return s.status === 'Approved' || (s.status === 'N/A' && shiftExpenseStatus(s) === 'Approved');
+            return s.status === tab;
+        }
+        function updatePendingTabCount() {
+            const tab = document.getElementById('tab-Pending');
+            if (!tab) return;
+            const n = (runtimeShifts || []).filter(shiftNeedsApproval).length;
+            tab.textContent = n > 0 ? `Pending (${n})` : 'Pending';
+        }
+
         function renderShiftsMonthlyBreakdown() {
             const container = document.getElementById('shifts-monthly-breakdown');
             if (!container) return;
@@ -4968,7 +5089,9 @@
                 if (isNaN(d.getTime())) return;
                 const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                 if (!byMonth[key]) byMonth[key] = { Approved: 0, Rejected: 0, Pending: 0, Active: 0 };
-                if (byMonth[key][s.status] !== undefined) byMonth[key][s.status]++;
+                if (s.status === 'Rejected' || s.status === 'Active') byMonth[key][s.status]++;
+                if (shiftMatchesTab(s, 'Approved')) byMonth[key].Approved++;
+                if (shiftNeedsApproval(s)) byMonth[key].Pending++;
             });
 
             const months = Object.keys(byMonth).sort((a, b) => b.localeCompare(a));
@@ -5003,9 +5126,10 @@
         function renderShiftsStreamDisplay() {
             const container = document.getElementById('shifts-container-stream');
             container.innerHTML = '';
+            updatePendingTabCount();
             let logsToDisplay = runtimeShifts;
             if(currentFilterStatus !== 'All') {
-                logsToDisplay = logsToDisplay.filter(s => s.status === currentFilterStatus);
+                logsToDisplay = logsToDisplay.filter(s => shiftMatchesTab(s, currentFilterStatus));
             }
             if(shiftSearchQuery) {
                 logsToDisplay = logsToDisplay.filter(s => {
@@ -5091,10 +5215,13 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs items-center">
                         <div class="space-y-1 md:col-span-1">
                             <p class="text-[10px] uppercase tracking-wider font-semibold text-gray-400">Site Location</p>
-                            <p class="font-semibold text-slate-700">${log.site_location || (log.status === 'N/A' ? 'Expense Entry' : 'Not Specified')}</p>
-                            <p class="text-gray-400 text-[9px]">Shift Started: ${timestampClock}</p>
+                            <p class="font-semibold text-slate-700">${stripGpsFromSiteName(log.site_location) || (log.status === 'N/A' ? 'Expense Entry' : 'Not Specified')}</p>
+                            ${log.status === 'N/A' ? '' : renderShiftGpsLine(log.site_location)}
+                            ${log.status === 'N/A'
+                                ? `<p class="text-gray-400 text-[9px]">Expense date: ${calendarDate}</p>`
+                                : `<p class="text-gray-400 text-[9px]">Shift Started: ${timestampClock}</p>
                             <p class="text-gray-400 text-[9px]">Shift Ended: ${checkOutClock}</p>
-                            <p class="text-gray-500 italic mt-1 text-[11px] bg-slate-50 p-2 rounded-lg border border-slate-100">"${log.progress_notes || 'No work summary documented.'}"</p>
+                            <p class="text-gray-500 italic mt-1 text-[11px] bg-slate-50 p-2 rounded-lg border border-slate-100">"${log.progress_notes || 'No work summary documented.'}"</p>`}
                         </div>
                         <div class="space-y-1.5 bg-purple-50/40 p-3 rounded-xl border border-purple-100 md:col-span-1">
                             <p class="text-[10px] uppercase tracking-wider font-semibold text-purple-900">Expenses</p>
@@ -5232,6 +5359,19 @@
             await Promise.all(urls.filter(Boolean).map(u => deleteStorageFileFromPublicUrl(u)));
         }
 
+        // Keeps workers_registry.morning_advance in step with approved expenses:
+        // approving deducts, so manual approved entries deduct and deleting an approved
+        // expense refunds. delta is added to the stored balance (negative = deduct).
+        async function adjustStoredWalletBalance(workerEmail, delta) {
+            if (!delta) return;
+            const worker = (runtimeWorkers || []).find(w => w.email === workerEmail);
+            if (!worker) return;
+            const newBalance = parseFloat(worker.morning_advance || 0) + delta;
+            const res = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(workerEmail)}`, { method: 'PATCH', headers: HEADERS, body: JSON.stringify({ morning_advance: newBalance }) });
+            if (!res.ok) throw new Error("Could not update stored balance");
+            worker.morning_advance = newBalance;
+        }
+
         async function deleteShiftRecord(id, nameStr, calendarDate) {
             const typedConfirm = prompt(`This will PERMANENTLY delete ${nameStr}'s shift from ${calendarDate}, including its expense claim and photos. This cannot be undone.\n\nType DELETE to confirm:`);
             if (!typedConfirm || typedConfirm.trim().toUpperCase() !== 'DELETE') {
@@ -5250,6 +5390,11 @@
                     throw new Error("The server accepted the request but deleted 0 rows - this usually means a Supabase Row Level Security policy is silently blocking DELETE on shift_logs. Check Database > Policies for that table.");
                 }
                 cleanupShiftStorageFiles(shiftRecord); // not awaited, keeps UI snappy
+                if (shiftRecord && shiftRecord.expense_status === 'Approved') {
+                    const refund = parseFloat(shiftRecord.transport_expense || 0) + parseFloat(shiftRecord.food_expense || 0) + parseFloat(shiftRecord.material_expense || 0);
+                    try { await adjustStoredWalletBalance(shiftRecord.worker_email, refund); }
+                    catch (balErr) { console.error(balErr); alert("Shift deleted, but the employee's stored balance could not be refunded. Please adjust it manually."); }
+                }
                 alert("Shift record deleted.");
                 await fetchAllDataFromNode();
             } catch (e) {
