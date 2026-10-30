@@ -430,6 +430,11 @@
         <div id="portal-dashboard" class="hidden w-full lg:columns-2 lg:gap-6">
 
             <div class="mb-6 break-inside-avoid bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+                <!-- Header notice: shows "No Punch In - No Salary" by default; replaced by admin's custom message when one has been sent -->
+                <div id="header-notice" class="flex items-center gap-2 px-4 py-2.5 bg-rose-600 text-white text-[11px] font-black uppercase tracking-wider">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span id="header-notice-text" class="flex-1 min-w-0 break-words">No Punch In &ndash; No Salary</span>
+                </div>
                 <div class="bg-gradient-to-r from-[#1e3a5f] to-[#2f5480] p-6 text-white flex justify-between items-start">
                     <div>
                         <div class="flex items-center gap-2 mb-2">
@@ -2209,7 +2214,43 @@
             } catch(e) { /* best-effort only */ }
         }
 
+        // ---- Header notice ----
+        // Default: "No Punch In - No Salary". If admin has sent a custom message to this
+        // employee, that message replaces it in the header for HEADER_NOTICE_HOURS.
+        // The two quick-reminder buttons are not custom messages, so they never replace it.
+        const DEFAULT_HEADER_NOTICE = 'No Punch In \u2013 No Salary';
+        const HEADER_NOTICE_HOURS = 24;
+        const STANDARD_REMINDERS = ['please start your shift', 'please punch out the shift'];
+        function isStandardReminder(msg) {
+            return STANDARD_REMINDERS.includes(String(msg || '').trim().toLowerCase());
+        }
+        function setHeaderNotice(message) {
+            const box = document.getElementById('header-notice');
+            const txt = document.getElementById('header-notice-text');
+            if (!box || !txt) return;
+            const custom = (message || '').trim();
+            txt.textContent = custom ? `Notice from Akash: ${custom}` : DEFAULT_HEADER_NOTICE;
+            box.classList.toggle('bg-rose-600', !custom);
+            box.classList.toggle('bg-[#1e3a5f]', !!custom);
+        }
+        async function loadHeaderNotice() {
+            if (!currentUser) return;
+            try {
+                const res = await fetch(`${SUPABASE_URL}staff_alerts?worker_email=eq.${encodeURIComponent(currentUser.email)}&order=id.desc&limit=30`, { method: 'GET', headers: HEADERS });
+                if (!res.ok) return;
+                const rows = await res.json();
+                const cutoff = Date.now() - HEADER_NOTICE_HOURS * 3600 * 1000;
+                const latest = (Array.isArray(rows) ? rows : []).find(r => {
+                    if (isStandardReminder(r.message)) return false;
+                    const t = r.created_at ? new Date(r.created_at).getTime() : NaN;
+                    return isNaN(t) || t >= cutoff; // no timestamp column -> treat as current
+                });
+                setHeaderNotice(latest ? latest.message : '');
+            } catch (e) { console.error('Header notice load failed:', e); }
+        }
+
         function showShiftAlert(message) {
+            if (!isStandardReminder(message)) setHeaderNotice(message);
             playNotificationSound();
             speakReminder(message);
             showBrowserNotification(message);
@@ -2907,6 +2948,7 @@
             if(!currentUser) return;
             subscribeToShiftAlerts();
             pollStaffAlerts();
+            loadHeaderNotice();
 
             try {
                 const userRes = await fetch(`${SUPABASE_URL}workers_registry?email=eq.${encodeURIComponent(currentUser.email)}`, { method: "GET", headers: HEADERS });
