@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anant Electrical - Staff Node Portal</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231e3a5f'/%3E%3Ctext x='32' y='43' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='26' fill='white' text-anchor='middle'%3EAE%3C/text%3E%3C/svg%3E">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231e3a5f'/%3E%3Ctext x='32' y='43' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='26' fill='white' text-anchor='middle'%3EAE%3C/text%3E%3C/svg%3E">
+    <!-- Installable web app (PWA) -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-title" content="Anant Portal">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <!-- Web App Capability for Mobile Browsers -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -280,6 +284,28 @@
 <style>
         @keyframes faceScanSweep{0%{transform:translateY(60px)}100%{transform:translateY(316px)}}
         .face-scan-bar{animation:faceScanSweep 1.8s ease-in-out infinite alternate;}
+    </style>
+<style>
+        /* Attendance calendar */
+        .att-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem;}
+        .att-dow{font-size:.6rem;font-weight:800;text-align:center;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;padding-bottom:.15rem;}
+        .att-cell{position:relative;aspect-ratio:1/1;border-radius:.6rem;display:flex;align-items:center;justify-content:center;
+            font-size:.75rem;font-weight:700;font-family:'IBM Plex Mono',ui-monospace,monospace;border:0;cursor:pointer;transition:transform .1s;}
+        .att-cell:active{transform:scale(.94);}
+        .att-empty{visibility:hidden;}
+        .att-none{background:rgba(30,41,59,.7);color:#64748b;}
+        .att-future{background:transparent;color:#475569;cursor:default;border:1px dashed rgba(148,163,184,.15);}
+        .att-approved{background:#10b981;color:#fff;}
+        .att-pending{background:#fbbf24;color:#1e293b;}
+        .att-active{background:#0ea5e9;color:#fff;animation:attPulse 1.6s ease-in-out infinite;}
+        .att-fix{background:#f97316;color:#fff;}
+        .att-rejected{background:#f43f5e;color:#fff;}
+        .att-today{box-shadow:0 0 0 2px #67e8f9;}
+        .att-selected{box-shadow:0 0 0 2px #fff;}
+        .att-half::after{content:"½";position:absolute;right:3px;bottom:1px;font-size:.5rem;font-weight:800;opacity:.9;}
+        @keyframes attPulse{0%,100%{opacity:1}50%{opacity:.65}}
+        .att-dot{display:inline-block;width:.55rem;height:.55rem;border-radius:.2rem;margin-right:.3rem;vertical-align:middle;}
+        .install-card{background:linear-gradient(135deg,#1e3a5f,#274568);border:1px solid rgba(148,163,184,.25);border-radius:1rem;}
     </style>
 </head>
 <body class="text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center px-4 py-8">
@@ -916,6 +942,56 @@
 
             <div id="recent-updates-banner" class="hidden mb-4 space-y-2"></div>
 
+            <!-- Install app card (shown only when installable) -->
+            <div id="install-card" class="hidden install-card p-3.5 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="shrink-0 w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><polyline points="7 11 12 16 17 11"/><path d="M5 20h14"/></svg></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-black text-white uppercase tracking-wider">Install Anant Portal</p>
+                        <p id="install-card-text" class="text-[10px] text-slate-300 leading-snug mt-0.5">Add to your home screen for quick, full-screen access.</p>
+                    </div>
+                    <button id="install-card-btn" onclick="installPwa()" class="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-wide px-3 py-2 rounded-lg cursor-pointer">Install</button>
+                    <button onclick="dismissInstallCard()" class="shrink-0 text-slate-400 hover:text-white text-lg leading-none px-1 cursor-pointer" aria-label="Dismiss">&times;</button>
+                </div>
+            </div>
+
+            <!-- Attendance calendar -->
+            <div class="mb-6 break-inside-avoid">
+                <div class="ledger-card space-y-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 text-white"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 10h18"/></svg>
+                            <p class="text-[11px] uppercase font-black tracking-wider font-mono">Attendance Calendar</p>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="attShiftMonth(-1)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center cursor-pointer" aria-label="Previous month"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+                            <span id="att-month-label" class="text-[11px] font-bold text-slate-100 font-mono min-w-[88px] text-center">--</span>
+                            <button id="att-next-btn" onclick="attShiftMonth(1)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-default" aria-label="Next month"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+                        </div>
+                    </div>
+
+                    <div id="att-summary" class="grid grid-cols-4 gap-1.5 text-center"></div>
+
+                    <div>
+                        <div class="att-grid mb-1">
+                            <div class="att-dow">Sun</div><div class="att-dow">Mon</div><div class="att-dow">Tue</div><div class="att-dow">Wed</div><div class="att-dow">Thu</div><div class="att-dow">Fri</div><div class="att-dow">Sat</div>
+                        </div>
+                        <div id="att-grid" class="att-grid"></div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-x-3 gap-y-1 text-[9px] text-slate-300 font-mono">
+                        <span><i class="att-dot" style="background:#10b981"></i>Approved</span>
+                        <span><i class="att-dot" style="background:#fbbf24"></i>Pending</span>
+                        <span><i class="att-dot" style="background:#f97316"></i>Needs fix</span>
+                        <span><i class="att-dot" style="background:#f43f5e"></i>Rejected</span>
+                        <span><i class="att-dot" style="background:#0ea5e9"></i>On shift</span>
+                        <span><i class="att-dot" style="background:#1e293b;border:1px solid #475569"></i>No record</span>
+                        <span>½ = half day</span>
+                    </div>
+
+                    <div id="att-detail" class="rounded-xl bg-slate-900/50 border border-slate-500/20 p-3 text-[11px] text-slate-300"></div>
+                </div>
+            </div>
+
             <div class="mb-6 break-inside-avoid">
                 <div class="ledger-card space-y-3">
 
@@ -1041,6 +1117,11 @@
                     <p class="absolute bottom-3 inset-x-0 text-center text-[10px] font-bold text-white uppercase tracking-widest drop-shadow">Align your face in the oval</p>
                 </div>
 
+                <img id="camera-preview" alt="Captured photo preview" class="hidden absolute inset-0 w-full h-full object-cover bg-slate-900">
+                <p id="camera-preview-badge" class="hidden absolute bottom-3 inset-x-0 text-center text-[10px] font-bold text-white uppercase tracking-widest drop-shadow">Check the photo is clear</p>
+                <button id="btn-torch" onclick="toggleCameraTorch()" class="hidden absolute top-12 right-2 pointer-events-auto bg-slate-900/60 hover:bg-slate-900/80 text-white p-2 rounded-full transition backdrop-blur-sm" aria-label="Flash">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </button>
                 <button id="btn-switch-camera" onclick="toggleCameraFacing()" class="hidden absolute top-2 right-2 pointer-events-auto bg-slate-900/60 hover:bg-slate-900/80 text-white p-2 rounded-full transition backdrop-blur-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                 </button>
@@ -1048,9 +1129,13 @@
             </div>
 
             <!-- Always visible -->
-            <div class="flex gap-2">
+            <div id="camera-actions-live" class="flex gap-2">
                 <button onclick="closeCameraModal()" class="px-4 text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 font-bold text-xs uppercase tracking-widest rounded-xl transition">Cancel</button>
-                <button id="btn-capture-photo" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition shadow-lg">Confirm &amp; Capture</button>
+                <button id="btn-capture-photo" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition shadow-lg">Capture</button>
+            </div>
+            <div id="camera-actions-review" class="hidden flex gap-2">
+                <button id="btn-retake-photo" class="px-4 text-slate-600 bg-slate-100 hover:bg-slate-200 font-bold text-xs uppercase tracking-widest rounded-xl transition">Retake</button>
+                <button id="btn-use-photo" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition shadow-lg">Use Photo</button>
             </div>
         </div>
     </div>
@@ -1094,10 +1179,7 @@
                         <span id="correction-checkin-empty" class="text-[10px] text-slate-400 italic">No photo yet</span>
                         <div class="ml-auto flex gap-1.5">
                             <label class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[9px] font-semibold px-2.5 py-1.5 rounded-md uppercase cursor-pointer"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Camera
-                                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="previewCorrectionPhoto('checkin', this)">
-                            </label>
-                            <label class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[9px] font-semibold px-2.5 py-1.5 rounded-md uppercase cursor-pointer"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Gallery
-                                <input type="file" accept="image/*" class="hidden" onchange="previewCorrectionPhoto('checkin', this)">
+                                <input type="file" accept="image/*" capture="user" class="hidden" onchange="previewCorrectionPhoto('checkin', this)">
                             </label>
                         </div>
                     </div>
@@ -2174,6 +2256,166 @@
             });
         }
 
+
+        // ================= ATTENDANCE CALENDAR =================
+        let attYear = null, attMonth = null, attSelectedKey = null;
+        const ATT_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+        function attEsc(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+        function attKey(y, m, d) { return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
+        function attLogKey(log) {
+            const d = new Date(log.punch_in_time || log.created_at);
+            return attKey(d.getFullYear(), d.getMonth(), d.getDate());
+        }
+        // worst-first so a day needing attention is never hidden behind an approved shift
+        const ATT_PRIORITY = ['Needs Correction', 'Rejected', 'Pending', 'Active', 'Approved'];
+        function attDayStatus(logs) {
+            for (const st of ATT_PRIORITY) if (logs.some(l => l.status === st)) return st;
+            return null;
+        }
+        function attStatusClass(st) {
+            return ({ 'Approved': 'att-approved', 'Pending': 'att-pending', 'Active': 'att-active', 'Needs Correction': 'att-fix', 'Rejected': 'att-rejected' })[st] || 'att-none';
+        }
+
+        function attShiftMonth(delta) {
+            attMonth += delta;
+            if (attMonth < 0) { attMonth = 11; attYear--; }
+            else if (attMonth > 11) { attMonth = 0; attYear++; }
+            attSelectedKey = null;
+            renderAttendanceCalendar();
+        }
+
+        function attSelectDay(key) {
+            attSelectedKey = (attSelectedKey === key) ? null : key;
+            renderAttendanceCalendar();
+        }
+
+        function renderAttendanceCalendar() {
+            const gridEl = document.getElementById('att-grid');
+            if (!gridEl) return;
+            const now = new Date();
+            if (attYear === null) { attYear = now.getFullYear(); attMonth = now.getMonth(); }
+
+            document.getElementById('att-month-label').innerText = `${ATT_MONTHS[attMonth].slice(0, 3)} ${attYear}`;
+            document.getElementById('att-next-btn').disabled = (attYear > now.getFullYear()) || (attYear === now.getFullYear() && attMonth >= now.getMonth());
+
+            // attendance only - expense-only entries (status N/A) are not a shift
+            const logs = Array.isArray(activeShiftLogs) ? activeShiftLogs.filter(l => l.status !== 'N/A') : [];
+            const byDay = {};
+            logs.forEach(l => {
+                const d = new Date(l.punch_in_time || l.created_at);
+                if (d.getFullYear() === attYear && d.getMonth() === attMonth) (byDay[attLogKey(l)] = byDay[attLogKey(l)] || []).push(l);
+            });
+
+            const first = new Date(attYear, attMonth, 1).getDay();
+            const daysInMonth = new Date(attYear, attMonth + 1, 0).getDate();
+            const todayKey = attKey(now.getFullYear(), now.getMonth(), now.getDate());
+            let html = '';
+            for (let i = 0; i < first; i++) html += '<div class="att-cell att-empty"></div>';
+            for (let d = 1; d <= daysInMonth; d++) {
+                const key = attKey(attYear, attMonth, d);
+                const isFuture = key > todayKey;
+                const dayLogs = byDay[key] || [];
+                const st = attDayStatus(dayLogs);
+                let cls = 'att-cell ';
+                if (isFuture && !st) cls += 'att-future';
+                else cls += attStatusClass(st);
+                const approved = dayLogs.filter(l => l.status === 'Approved');
+                if (approved.length && sumShiftPayUnits(approved) < 1) cls += ' att-half';
+                if (key === todayKey) cls += ' att-today';
+                if (key === attSelectedKey) cls += ' att-selected';
+                html += `<button type="button" class="${cls}" ${isFuture && !st ? 'disabled' : `onclick="attSelectDay('${key}')"`}>${d}</button>`;
+            }
+            gridEl.innerHTML = html;
+
+            // month summary
+            const monthLogs = Object.values(byDay).flat();
+            const approvedUnits = sumShiftPayUnits(monthLogs.filter(l => l.status === 'Approved'));
+            const cnt = st => new Set(monthLogs.filter(l => l.status === st).map(attLogKey)).size;
+            const chip = (label, val, color) => `<div class="rounded-lg bg-slate-900/50 border border-slate-500/20 py-1.5"><p class="text-sm font-black font-mono" style="color:${color}">${val}</p><p class="text-[8px] uppercase font-bold tracking-wider text-slate-400">${label}</p></div>`;
+            document.getElementById('att-summary').innerHTML =
+                chip('Approved', Number.isInteger(approvedUnits) ? approvedUnits : approvedUnits.toFixed(1), '#34d399') +
+                chip('Pending', cnt('Pending'), '#fbbf24') +
+                chip('Needs fix', cnt('Needs Correction'), '#fb923c') +
+                chip('Rejected', cnt('Rejected'), '#fb7185');
+
+            // selected day detail
+            const detail = document.getElementById('att-detail');
+            if (!attSelectedKey) {
+                detail.innerHTML = '<p class="text-center text-slate-400 font-mono text-[10px]">Tap a day to see its shift details</p>';
+                return;
+            }
+            const [yy, mm, dd] = attSelectedKey.split('-').map(Number);
+            const label = new Date(yy, mm - 1, dd).toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
+            const dayLogs = byDay[attSelectedKey] || [];
+            if (!dayLogs.length) {
+                detail.innerHTML = `<p class="font-bold text-slate-100 mb-1">${label}</p><p class="text-slate-400">No shift recorded on this day.</p>`;
+                return;
+            }
+            const fmtTime = iso => iso ? new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '--';
+            const badge = st => {
+                const c = ({ 'Approved': '#10b981', 'Pending': '#fbbf24', 'Active': '#0ea5e9', 'Needs Correction': '#f97316', 'Rejected': '#f43f5e' })[st] || '#64748b';
+                return `<span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider" style="background:${c}22;color:${c};border:1px solid ${c}55">${attEsc(st)}</span>`;
+            };
+            detail.innerHTML = `<p class="font-bold text-slate-100 mb-2">${label}</p>` + dayLogs.map(l => {
+                const units = shiftPayUnits(l);
+                const reason = (l.status === 'Rejected' || l.status === 'Needs Correction') && l.shift_rejection_reason
+                    ? `<p class="mt-1 text-[10px] ${l.status === 'Rejected' ? 'text-rose-300' : 'text-orange-300'}">${attEsc(l.shift_rejection_reason)}</p>` : '';
+                const fixBtn = (l.status === 'Needs Correction' || l.expense_status === 'Needs Correction')
+                    ? `<button onclick="openCorrectionModal('${attEsc(l.id)}')" class="mt-2 w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-1.5 rounded-lg text-[10px] uppercase tracking-wider cursor-pointer">Edit &amp; Resubmit</button>` : '';
+                return `<div class="rounded-lg bg-slate-800/60 p-2.5 mb-2 last:mb-0">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="font-bold text-slate-100 truncate">${attEsc(l.site_location || 'Field Location Site')}</p>${badge(l.status)}
+                    </div>
+                    <p class="text-[10px] text-slate-400 font-mono mt-1">${fmtTime(l.punch_in_time)} &rarr; ${l.status === 'Active' ? 'on shift' : fmtTime(l.punch_out_time)}${units < 1 ? ' &middot; half day' : ''}</p>
+                    ${reason}${fixBtn}
+                </div>`;
+            }).join('');
+        }
+
+        // ================= INSTALL APP (PWA) =================
+        let deferredInstallPrompt = null;
+        const INSTALL_DISMISS_KEY = 'anant_install_dismissed_at';
+        function isStandalone() {
+            return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        }
+        function installDismissedRecently() {
+            try { const t = parseInt(localStorage.getItem(INSTALL_DISMISS_KEY) || '0', 10); return t && (Date.now() - t) < 7 * 24 * 3600 * 1000; } catch (e) { return false; }
+        }
+        function showInstallCard(iosMode) {
+            if (isStandalone() || installDismissedRecently()) return;
+            const card = document.getElementById('install-card');
+            if (!card) return;
+            if (iosMode) {
+                document.getElementById('install-card-text').innerText = 'Tap Share, then "Add to Home Screen".';
+                document.getElementById('install-card-btn').classList.add('hidden');
+            }
+            card.classList.remove('hidden');
+        }
+        function dismissInstallCard() {
+            document.getElementById('install-card').classList.add('hidden');
+            try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (e) {}
+        }
+        async function installPwa() {
+            if (!deferredInstallPrompt) return;
+            deferredInstallPrompt.prompt();
+            try { await deferredInstallPrompt.userChoice; } catch (e) {}
+            deferredInstallPrompt = null;
+            document.getElementById('install-card').classList.add('hidden');
+        }
+        window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt = e; showInstallCard(false); });
+        window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; const c = document.getElementById('install-card'); if (c) c.classList.add('hidden'); });
+        window.addEventListener('load', () => {
+            // iPhone/iPad Safari never fires beforeinstallprompt - show manual steps instead
+            const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+            if (isIos) showInstallCard(true);
+            if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+                navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker not registered:', err));
+            }
+        });
+
         // --- NOTIFICATION SOUNDS ---
         // mobile blocks audio until there's been a user gesture on the page,
         // so we spin up the AudioContext on first tap and reuse it after that
@@ -2411,7 +2653,7 @@
                         showShiftAlert(message);
                     })
                     .subscribe((status, err) => {
-                        if (status === 'SUBSCRIBED') setStatus(`Alerts: connected ✓ (listening: ${currentUser.email})`, 'text-emerald-400');
+                        if (status === 'SUBSCRIBED') setStatus('Alerts: connected ✓', 'text-emerald-400');
                         else if (status === 'CHANNEL_ERROR') setStatus(`Alerts: connection error${err ? ' - ' + err.message : ''}`, 'text-rose-400');
                         else if (status === 'TIMED_OUT') setStatus('Alerts: connection timed out', 'text-rose-400');
                         else if (status === 'CLOSED') setStatus('Alerts: connection closed', 'text-slate-500');
@@ -3066,6 +3308,7 @@
 
                 const res = await fetch(`${SUPABASE_URL}shift_logs?worker_email=eq.${encodeURIComponent(currentUser.email)}&order=created_at.desc`, { method: "GET", headers: HEADERS });
                 activeShiftLogs = await res.json();
+                try { renderAttendanceCalendar(); } catch (e) { console.error('Calendar render failed:', e); }
 
                 const monthlyBalRes = await fetch(`${SUPABASE_URL}monthly_balances?worker_email=eq.${encodeURIComponent(currentUser.email)}`, { method: "GET", headers: HEADERS });
                 workerMonthlyBalances = monthlyBalRes.ok ? await monthlyBalRes.json() : [];
@@ -3393,6 +3636,7 @@
                 });
             }
 
+            resetCameraPreview();
             document.getElementById('camera-modal').classList.remove('hidden');
 
             const isIdentitySelfie = (mode === 'in' || mode === 'out' || mode === 'idcard');
@@ -3407,14 +3651,18 @@
                 document.getElementById('camera-title').innerText = `Capture Proof: ${mode.toUpperCase()}`;
                 laser.classList.remove('hidden');
                 faceOverlay.classList.add('hidden');
-                switchBtn.classList.add('hidden');
+                switchBtn.classList.remove('hidden');
                 currentCameraFacingMode = "environment";
             }
 
             await startCameraStream(currentCameraFacingMode);
 
-            document.getElementById('btn-capture-photo').onclick = async () => {
+            document.getElementById('btn-capture-photo').onclick = () => {
                 capturePhotoSnapshotData();
+                showCameraPreview();
+            };
+            document.getElementById('btn-retake-photo').onclick = () => { tempSelfieBase64 = null; resetCameraPreview(); };
+            document.getElementById('btn-use-photo').onclick = async () => {
                 closeCameraModal();
                 
                 if(currentCameraMode === 'in') punchIn();
@@ -3454,6 +3702,15 @@
                 }
             }
 
+            // flash/torch button: only when the active camera supports it
+            torchOn = false;
+            updateTorchButton();
+            try {
+                const track = mediaStream.getVideoTracks()[0];
+                const caps = (track && track.getCapabilities) ? track.getCapabilities() : {};
+                document.getElementById('btn-torch').classList.toggle('hidden', !caps.torch);
+            } catch (e) { document.getElementById('btn-torch').classList.add('hidden'); }
+
             // only mirror for the front camera, mirrored rear shots look wrong
             if (desiredFacingMode === "user") {
                 video.classList.add('-scale-x-100');
@@ -3463,6 +3720,60 @@
                 facingLabel.innerText = 'Back Camera';
             }
             facingLabel.classList.toggle('hidden', document.getElementById('btn-switch-camera').classList.contains('hidden'));
+        }
+
+        let torchOn = false;
+        function updateTorchButton() {
+            const btn = document.getElementById('btn-torch');
+            if (!btn) return;
+            btn.classList.toggle('bg-amber-400', torchOn);
+            btn.classList.toggle('text-slate-900', torchOn);
+            btn.classList.toggle('bg-slate-900/60', !torchOn);
+            btn.classList.toggle('text-white', !torchOn);
+        }
+
+        async function toggleCameraTorch() {
+            if (!mediaStream) return;
+            const track = mediaStream.getVideoTracks()[0];
+            try {
+                torchOn = !torchOn;
+                await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+            } catch (e) {
+                torchOn = false;
+                document.getElementById('btn-torch').classList.add('hidden');
+            }
+            updateTorchButton();
+        }
+
+        function showCameraPreview() {
+            const video = document.getElementById('camera-stream');
+            document.getElementById('camera-preview').src = tempSelfieBase64;
+            document.getElementById('camera-preview').classList.remove('hidden');
+            document.getElementById('camera-preview-badge').classList.remove('hidden');
+            ['face-scan-overlay', 'camera-laser', 'btn-switch-camera', 'btn-torch', 'camera-facing-label'].forEach(id => {
+                const el = document.getElementById(id); if (el) el.classList.add('hidden');
+            });
+            document.getElementById('camera-actions-live').classList.add('hidden');
+            document.getElementById('camera-actions-review').classList.remove('hidden');
+            video.pause();
+        }
+
+        function resetCameraPreview() {
+            const video = document.getElementById('camera-stream');
+            document.getElementById('camera-preview').classList.add('hidden');
+            document.getElementById('camera-preview-badge').classList.add('hidden');
+            document.getElementById('camera-actions-review').classList.add('hidden');
+            document.getElementById('camera-actions-live').classList.remove('hidden');
+            const selfie = (currentCameraMode === 'in' || currentCameraMode === 'out' || currentCameraMode === 'idcard');
+            document.getElementById('face-scan-overlay').classList.toggle('hidden', !selfie);
+            document.getElementById('camera-laser').classList.toggle('hidden', selfie);
+            document.getElementById('btn-switch-camera').classList.remove('hidden');
+            document.getElementById('camera-facing-label').classList.remove('hidden');
+            if (mediaStream) {
+                const caps = mediaStream.getVideoTracks()[0] && mediaStream.getVideoTracks()[0].getCapabilities ? mediaStream.getVideoTracks()[0].getCapabilities() : {};
+                document.getElementById('btn-torch').classList.toggle('hidden', !caps.torch);
+            }
+            if (video.paused && video.srcObject) video.play().catch(() => {});
         }
 
         async function toggleCameraFacing() {
@@ -3490,6 +3801,11 @@
 
         function closeCameraModal() {
             document.getElementById('camera-modal').classList.add('hidden');
+            document.getElementById('camera-preview').classList.add('hidden');
+            document.getElementById('camera-preview-badge').classList.add('hidden');
+            document.getElementById('camera-actions-review').classList.add('hidden');
+            document.getElementById('camera-actions-live').classList.remove('hidden');
+            torchOn = false;
             if(mediaStream) { mediaStream.getTracks().forEach(track => track.stop()); mediaStream = null; }
         }
 
