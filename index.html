@@ -245,6 +245,42 @@
         .punch-btn-locked:hover { filter: none; }
         .punch-btn:disabled { cursor: not-allowed; }
     </style>
+
+    <style>
+        /* Verified Ledger Streams - redesigned tabs */
+        .ledger-card{background:rgba(15,23,42,.55);border:1px solid rgba(148,163,184,.18);border-radius:1.25rem;padding:.85rem;}
+        .stream-tabs{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;}
+        .stream-tab{display:flex;align-items:center;gap:.6rem;text-align:left;padding:.65rem .7rem;border-radius:.9rem;
+            background:rgba(30,41,59,.75);border:1.5px solid rgba(148,163,184,.18);color:#cbd5e1;cursor:pointer;transition:all .15s ease;}
+        .stream-tab:hover{border-color:rgba(148,163,184,.45);color:#fff;}
+        .stream-tab .st-ico{flex:none;width:2rem;height:2rem;border-radius:.65rem;display:flex;align-items:center;justify-content:center;font-size:1rem;background:rgba(148,163,184,.15);}
+        .stream-tab .st-title{display:block;font-size:.75rem;font-weight:800;line-height:1.1;}
+        .stream-tab .st-sub{display:block;font-size:.6rem;font-weight:600;opacity:.65;margin-top:2px;}
+        .stream-tab.active{background:#fff;color:#1e3a5f;box-shadow:0 4px 14px rgba(0,0,0,.25);}
+        .stream-tab.active .st-sub{opacity:.7;}
+        .stream-tab[data-tone="shifts"].active .st-ico{color:#1e3a5f;}
+        .stream-tab[data-tone="midday"].active .st-ico{color:#b45309;}
+        .stream-tab[data-tone="salary"].active .st-ico{color:#e11d48;}
+        .stream-tab[data-tone="payment"].active .st-ico{color:#059669;}
+        .stream-tab[data-tone="shifts"].active{border-color:#1e3a5f;}
+        .stream-tab[data-tone="shifts"].active .st-ico{background:#dbe7f5;}
+        .stream-tab[data-tone="midday"].active{border-color:#f59e0b;}
+        .stream-tab[data-tone="midday"].active .st-ico{background:#fef3c7;}
+        .stream-tab[data-tone="salary"].active{border-color:#f43f5e;}
+        .stream-tab[data-tone="salary"].active .st-ico{background:#ffe4e6;}
+        .stream-tab[data-tone="payment"].active{border-color:#10b981;}
+        .stream-tab[data-tone="payment"].active .st-ico{background:#d1fae5;}
+        .ledger-filter-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;padding:.55rem .75rem;border-radius:.75rem;
+            background:rgba(30,41,59,.6);border:1px dashed rgba(148,163,184,.35);color:#cbd5e1;font-size:.65rem;font-weight:800;
+            text-transform:uppercase;letter-spacing:.06em;cursor:pointer;}
+        .ledger-filter-toggle .chev{transition:transform .2s;}
+        .ledger-filter-toggle.open .chev{transform:rotate(180deg);}
+        .ledger-divider{height:1px;background:rgba(148,163,184,.15);margin:.15rem 0;}
+    </style>
+<style>
+        @keyframes faceScanSweep{0%{transform:translateY(60px)}100%{transform:translateY(316px)}}
+        .face-scan-bar{animation:faceScanSweep 1.8s ease-in-out infinite alternate;}
+    </style>
 </head>
 <body class="text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center px-4 py-8">
 
@@ -880,10 +916,16 @@
 
             <div id="recent-updates-banner" class="hidden mb-4 space-y-2"></div>
 
-            <div class="mb-6 break-inside-avoid space-y-2">
-                <div class="flex justify-between items-center px-1">
-                    <p class="text-[10px] uppercase font-bold tracking-wider text-slate-300 font-mono">Verified Ledger Streams</p>
-                    <select id="dashboard-month-filter" onchange="sessionStorage.setItem('manualMonthSet', 'true'); refreshDashboard()" class="bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-100 font-mono focus:outline-none">
+            <div class="mb-6 break-inside-avoid">
+                <div class="ledger-card space-y-3">
+
+                    <!-- Header -->
+                    <div class="flex justify-between items-center gap-2">
+                        <div>
+                            <p class="text-[11px] uppercase font-black tracking-wider text-white font-mono">Verified Ledger Streams</p>
+                            <p class="text-[9px] text-slate-400 font-mono mt-0.5">Pick a stream to see its records</p>
+                        </div>
+                        <select id="dashboard-month-filter" onchange="sessionStorage.setItem('manualMonthSet', 'true'); refreshDashboard()" class="bg-slate-900/60 border border-slate-500/40 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-100 font-mono focus:outline-none">
                         <option value="ALL">All Records</option>
                         <option value="0">January</option>
                         <option value="1">February</option>
@@ -898,66 +940,118 @@
                         <option value="10">November</option>
                         <option value="11">December</option>
                     </select>
-                </div>
+                    </div>
 
-                <div class="flex items-center gap-1.5 px-1 flex-wrap">
-                    <input type="date" id="history-date-from" style="color-scheme: dark;" class="flex-1 min-w-[110px] bg-slate-800 border border-slate-500/40 rounded-lg px-2 py-1.5 text-[11px] text-white font-mono focus:outline-none">
-                    <span class="text-[9px] text-slate-400 font-mono">to</span>
-                    <input type="date" id="history-date-to" style="color-scheme: dark;" class="flex-1 min-w-[110px] bg-slate-800 border border-slate-500/40 rounded-lg px-2 py-1.5 text-[11px] text-white font-mono focus:outline-none">
-                    <button onclick="renderActiveStreamTab()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg transition cursor-pointer">Apply</button>
-                    <button onclick="document.getElementById('history-date-from').value=''; document.getElementById('history-date-to').value=''; renderActiveStreamTab();" class="text-[9px] text-slate-400 hover:text-white uppercase font-bold px-1.5 transition cursor-pointer">Clear</button>
-                </div>
+                    <!-- Stream chooser: 2x2 cards -->
+                    <div class="stream-tabs">
+                        <button onclick="switchStreamTab('shifts')" id="tab-btn-shifts" data-tone="shifts" class="stream-tab active">
+                            <span class="st-ico"><svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg></span>
+                            <span><span class="st-title">Shifts</span><span class="st-sub">Work logs</span></span>
+                        </button>
+                        <button onclick="switchStreamTab('midday')" id="tab-btn-midday" data-tone="midday" class="stream-tab">
+                            <span class="st-ico"><svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg></span>
+                            <span><span class="st-title">Mid-Day Adv</span><span class="st-sub">On-site cash</span></span>
+                        </button>
+                        <button onclick="switchStreamTab('salary')" id="tab-btn-salary" data-tone="salary" class="stream-tab">
+                            <span class="st-ico"><svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V10M10 21V10M14 21V10M19 21V10"/><path d="M12 3 3 8h18l-9-5z"/></svg></span>
+                            <span><span class="st-title">Salary Adv</span><span class="st-sub">Lump-sum advance</span></span>
+                        </button>
+                        <button onclick="switchStreamTab('payment')" id="tab-btn-payment" data-tone="payment" class="stream-tab">
+                            <span class="st-ico"><svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 1.8 3-.2 1 2.8 2.5 1.7-.9 2.9.9 2.9-2.5 1.7-1 2.8-3-.2L12 21l-2.4-1.8-3 .2-1-2.8L3.1 14.9 4 12l-.9-2.9 2.5-1.7 1-2.8 3 .2L12 3z"/><polyline points="8.5 12 11 14.5 15.5 9.5"/></svg></span>
+                            <span><span class="st-title">Payment</span><span class="st-sub">Monthly payout</span></span>
+                        </button>
+                    </div>
 
-                <p id="date-filter-status" class="hidden text-[9px] text-amber-300 px-1 font-mono"></p>
+                    <!-- Payment month picker (only on Payment tab) -->
+                    <div id="payment-tab-month-row" class="hidden items-center justify-between gap-2 px-1">
+                        <label class="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Payment for month</label>
+                        <input type="month" id="payment-tab-month" onchange="renderActiveStreamTab()" class="p-1.5 bg-white/90 border border-slate-500/20 rounded-lg text-[11px] font-semibold outline-none">
+                    </div>
 
-                <div id="payment-tab-month-row" class="hidden items-center gap-2 px-1">
-                    <label class="text-[9px] font-bold text-slate-300 uppercase tracking-wider">Payment for month</label>
-                    <input type="month" id="payment-tab-month" onchange="renderActiveStreamTab()" class="p-1.5 bg-white/90 border border-slate-500/20 rounded-lg text-[10px] font-semibold outline-none">
-                </div>
+                    <div class="ledger-divider"></div>
 
-                <div class="flex bg-slate-900/40 p-1 rounded-xl border border-slate-500/20 gap-1">
-                    <button onclick="switchStreamTab('shifts')" id="tab-btn-shifts" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer bg-white text-[#1e3a5f] shadow-sm">
-                        Shifts
+                    <!-- Collapsible date filter -->
+                    <div>
+                        <button type="button" id="ledger-filter-toggle" onclick="toggleLedgerFilter()" class="ledger-filter-toggle">
+                            <span class="flex items-center gap-2"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 10h18"/></svg>Filter by date range</span>
+                            <svg class="chev w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div id="ledger-filter-panel" class="hidden mt-2 space-y-2">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">From</label>
+                                    <input type="date" id="history-date-from" style="color-scheme: dark;" class="w-full bg-slate-800 border border-slate-500/40 rounded-lg px-2 py-2 text-[11px] text-white font-mono focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">To</label>
+                                    <input type="date" id="history-date-to" style="color-scheme: dark;" class="w-full bg-slate-800 border border-slate-500/40 rounded-lg px-2 py-2 text-[11px] text-white font-mono focus:outline-none">
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="renderActiveStreamTab()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-wide py-2 rounded-lg transition cursor-pointer">Apply</button>
+                                <button onclick="document.getElementById('history-date-from').value=''; document.getElementById('history-date-to').value=''; renderActiveStreamTab();" class="flex-1 bg-slate-700/70 hover:bg-slate-700 text-slate-200 text-[10px] font-bold uppercase tracking-wide py-2 rounded-lg transition cursor-pointer">Clear</button>
+                            </div>
+                        </div>
+                        <p id="date-filter-status" class="hidden text-[9px] text-amber-300 px-1 mt-1.5 font-mono"></p>
+                    </div>
+
+                    <!-- Add entry -->
+                    <button onclick="openAddEntryModal()" class="w-full border border-dashed border-slate-400/40 hover:border-emerald-400 hover:text-emerald-300 text-slate-200 text-[10px] font-bold py-2.5 rounded-xl uppercase tracking-wider transition cursor-pointer">
+                        + Add Shift / Expense Entry
                     </button>
-                    <button onclick="switchStreamTab('midday')" id="tab-btn-midday" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer text-slate-300 hover:text-white">
-                        Mid-Day Adv
-                    </button>
-                    <button onclick="switchStreamTab('salary')" id="tab-btn-salary" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer text-slate-300 hover:text-white">
-                        Salary Adv
-                    </button>
-                    <button onclick="switchStreamTab('payment')" id="tab-btn-payment" class="flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer text-slate-300 hover:text-white">
-                        Payment
-                    </button>
+
+                    <div class="ledger-divider"></div>
+
+                    <div id="personal-logs-stream" class="space-y-3 max-h-[350px] overflow-y-auto pr-1"></div>
                 </div>
-
-                <button onclick="openAddEntryModal()" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-semibold py-2 rounded-lg uppercase tracking-wider transition cursor-pointer">
-                    + Add Shift / Expense Entry
-                </button>
-
-                <div id="personal-logs-stream" class="space-y-3 max-h-[350px] overflow-y-auto pr-1"></div>
             </div>
 
         </div>
     </main>
 
     <!-- Camera Workflow Modal -->
-    <div id="camera-modal" class="fixed inset-0 bg-slate-900/90 z-50 hidden flex flex-col items-center justify-center p-6 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4 relative">
+    <div id="camera-modal" class="fixed inset-0 bg-slate-900/90 z-50 hidden flex items-center justify-center p-3 backdrop-blur-sm" style="height:100dvh;">
+        <div class="bg-white rounded-3xl p-4 w-full max-w-sm shadow-2xl relative flex flex-col gap-3" style="max-height:calc(100dvh - 1.5rem);">
             <h3 class="text-sm font-black text-center text-slate-800 uppercase tracking-widest" id="camera-title">Identity Verification</h3>
-            <div class="relative w-full aspect-[3/4] bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
-                <video id="camera-stream" autoplay playsinline class="w-full h-full object-cover transform -scale-x-100"></video>
+
+            <!-- Camera frame: always 3:4, but shrinks so buttons never fall off-screen -->
+            <div class="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 shadow-inner mx-auto" style="aspect-ratio:3/4; width:min(100%, calc((100dvh - 14rem) * 0.75));">
+                <video id="camera-stream" autoplay playsinline muted class="w-full h-full object-cover transform -scale-x-100"></video>
                 <div id="camera-laser" class="hidden absolute inset-x-0 h-1 bg-cyan-400 shadow-[0_0_15px_#22d3ee] animate-laser"></div>
-                <button id="btn-switch-camera" onclick="toggleCameraFacing()" class="hidden absolute top-2 right-2 bg-slate-900/60 hover:bg-slate-900/80 text-white p-2 rounded-full transition backdrop-blur-sm">
+
+                <!-- Face scan overlay (selfie modes) -->
+                <div id="face-scan-overlay" class="hidden absolute inset-0 pointer-events-none">
+                    <svg viewBox="0 0 300 400" class="w-full h-full" preserveAspectRatio="none">
+                        <defs>
+                            <clipPath id="face-clip"><ellipse cx="150" cy="185" rx="95" ry="125"/></clipPath>
+                            <linearGradient id="scan-grad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0" stop-color="#22d3ee" stop-opacity="0"/>
+                                <stop offset="0.85" stop-color="#22d3ee" stop-opacity="0.55"/>
+                                <stop offset="1" stop-color="#67e8f9" stop-opacity="1"/>
+                            </linearGradient>
+                        </defs>
+                        <path fill="rgba(2,6,23,0.55)" fill-rule="evenodd" d="M0 0H300V400H0Z M55 185 a95 125 0 1 0 190 0 a95 125 0 1 0 -190 0 Z"/>
+                        <ellipse cx="150" cy="185" rx="95" ry="125" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-dasharray="7 6"/>
+                        <g clip-path="url(#face-clip)"><rect class="face-scan-bar" x="55" y="0" width="190" height="34" fill="url(#scan-grad)"/></g>
+                        <g stroke="#22d3ee" stroke-width="4" stroke-linecap="round" fill="none">
+                            <path d="M40 90V60a20 20 0 0 1 20-20h30"/><path d="M260 90V60a20 20 0 0 0-20-20h-30"/>
+                            <path d="M40 310v30a20 20 0 0 0 20 20h30"/><path d="M260 310v30a20 20 0 0 1-20 20h-30"/>
+                        </g>
+                    </svg>
+                    <p class="absolute bottom-3 inset-x-0 text-center text-[10px] font-bold text-white uppercase tracking-widest drop-shadow">Align your face in the oval</p>
+                </div>
+
+                <button id="btn-switch-camera" onclick="toggleCameraFacing()" class="hidden absolute top-2 right-2 pointer-events-auto bg-slate-900/60 hover:bg-slate-900/80 text-white p-2 rounded-full transition backdrop-blur-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                 </button>
-                <p id="camera-facing-label" class="hidden absolute bottom-2 left-2 bg-slate-900/60 text-white text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-full backdrop-blur-sm"></p>
+                <p id="camera-facing-label" class="hidden absolute top-2 left-2 bg-slate-900/60 text-white text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-full backdrop-blur-sm"></p>
             </div>
-            <button id="btn-capture-photo" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition shadow-lg">
-                Confirm & Capture
-            </button>
-            <button onclick="closeCameraModal()" class="w-full text-slate-400 hover:text-slate-600 font-bold text-center text-xs uppercase tracking-widest transition">
-                Cancel
-            </button>
+
+            <!-- Always visible -->
+            <div class="flex gap-2">
+                <button onclick="closeCameraModal()" class="px-4 text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 font-bold text-xs uppercase tracking-widest rounded-xl transition">Cancel</button>
+                <button id="btn-capture-photo" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition shadow-lg">Confirm &amp; Capture</button>
+            </div>
         </div>
     </div>
 
@@ -998,10 +1092,14 @@
                     <div class="flex items-center gap-2">
                         <img id="correction-checkin-preview" class="hidden w-14 h-14 rounded-lg object-cover border border-slate-200">
                         <span id="correction-checkin-empty" class="text-[10px] text-slate-400 italic">No photo yet</span>
-                        <label class="ml-auto bg-slate-100 hover:bg-slate-200 text-slate-600 text-[9px] font-semibold px-2.5 py-1.5 rounded-md uppercase cursor-pointer">
-                            Replace
-                            <input type="file" accept="image/*" capture="environment" id="correction-checkin-file" class="hidden" onchange="previewCorrectionPhoto('checkin')">
-                        </label>
+                        <div class="ml-auto flex gap-1.5">
+                            <label class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[9px] font-semibold px-2.5 py-1.5 rounded-md uppercase cursor-pointer"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Camera
+                                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="previewCorrectionPhoto('checkin', this)">
+                            </label>
+                            <label class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[9px] font-semibold px-2.5 py-1.5 rounded-md uppercase cursor-pointer"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Gallery
+                                <input type="file" accept="image/*" class="hidden" onchange="previewCorrectionPhoto('checkin', this)">
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1032,30 +1130,42 @@
                 <div id="correction-bills-transport" class="bg-slate-50 rounded-lg p-2 space-y-1.5">
                     <div class="flex items-center justify-between">
                         <span class="text-[9px] font-bold text-slate-500 uppercase">Transport</span>
-                        <label class="bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer">
-                            + Add
-                            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('transport', this)">
-                        </label>
+                        <div class="flex gap-1.5">
+                            <label class="inline-flex items-center gap-1 bg-white border border-gray-200 hover:bg-slate-100 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Camera
+                                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('transport', this)">
+                            </label>
+                            <label class="inline-flex items-center gap-1 bg-white border border-gray-200 hover:bg-slate-100 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Gallery
+                                <input type="file" accept="image/*" multiple class="hidden" onchange="addCorrectionBillPhoto('transport', this)">
+                            </label>
+                        </div>
                     </div>
                     <div id="correction-bills-transport-list" class="flex gap-1.5 flex-wrap"></div>
                 </div>
                 <div id="correction-bills-food" class="bg-slate-50 rounded-lg p-2 space-y-1.5">
                     <div class="flex items-center justify-between">
                         <span class="text-[9px] font-bold text-slate-500 uppercase">Food</span>
-                        <label class="bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer">
-                            + Add
-                            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('food', this)">
-                        </label>
+                        <div class="flex gap-1.5">
+                            <label class="inline-flex items-center gap-1 bg-white border border-gray-200 hover:bg-slate-100 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Camera
+                                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('food', this)">
+                            </label>
+                            <label class="inline-flex items-center gap-1 bg-white border border-gray-200 hover:bg-slate-100 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Gallery
+                                <input type="file" accept="image/*" multiple class="hidden" onchange="addCorrectionBillPhoto('food', this)">
+                            </label>
+                        </div>
                     </div>
                     <div id="correction-bills-food-list" class="flex gap-1.5 flex-wrap"></div>
                 </div>
                 <div id="correction-bills-material" class="bg-slate-50 rounded-lg p-2 space-y-1.5">
                     <div class="flex items-center justify-between">
                         <span class="text-[9px] font-bold text-slate-500 uppercase">Material</span>
-                        <label class="bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer">
-                            + Add
-                            <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('material', this)">
-                        </label>
+                        <div class="flex gap-1.5">
+                            <label class="inline-flex items-center gap-1 bg-white border border-gray-200 hover:bg-slate-100 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Camera
+                                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="addCorrectionBillPhoto('material', this)">
+                            </label>
+                            <label class="inline-flex items-center gap-1 bg-white border border-gray-200 hover:bg-slate-100 text-slate-600 text-[9px] font-semibold px-2 py-1 rounded cursor-pointer"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Gallery
+                                <input type="file" accept="image/*" multiple class="hidden" onchange="addCorrectionBillPhoto('material', this)">
+                            </label>
+                        </div>
                     </div>
                     <div id="correction-bills-material-list" class="flex gap-1.5 flex-wrap"></div>
                 </div>
@@ -2053,25 +2163,14 @@
             }
         }
 
-        // always plays the full 10s (4 staged 3D scenes, see .welcome-scene in <style>) -
-        // no skip, this runs every time regardless of how impatient someone is
-        const WELCOME_INTRO_DURATION_MS = 10000;
+        // Login intro removed: go straight from login to the dashboard.
         function showWelcomeIntro(userName) {
             return new Promise(resolve => {
                 document.getElementById('auth-section').classList.add('hidden');
-                const welcome = document.getElementById('welcome-intro');
-                document.getElementById('welcome-subtitle').innerText = userName ? `Signing in as ${userName}...` : 'Preparing your dashboard...';
-                document.getElementById('welcome-back-name').innerText = userName ? `Welcome back, ${userName}` : 'Welcome back';
-                welcome.classList.remove('hidden');
-                if (window.nodeNetworkBoost) window.nodeNetworkBoost(WELCOME_INTRO_DURATION_MS);
+                document.getElementById('welcome-intro').classList.add('hidden');
+                document.getElementById('portal-dashboard').classList.remove('hidden');
                 unlockNotificationAudio(); // the login button click is itself the user gesture that unlocks audio
-                playWelcomeIntroSound();
-
-                setTimeout(() => {
-                    welcome.classList.add('hidden');
-                    document.getElementById('portal-dashboard').classList.remove('hidden');
-                    resolve();
-                }, WELCOME_INTRO_DURATION_MS);
+                resolve();
             });
         }
 
@@ -2435,13 +2534,20 @@
             banner.classList.remove('flex');
         }
 
+        function toggleLedgerFilter(forceOpen) {
+            const panel = document.getElementById('ledger-filter-panel');
+            const btn = document.getElementById('ledger-filter-toggle');
+            if (!panel || !btn) return;
+            const open = typeof forceOpen === 'boolean' ? forceOpen : panel.classList.contains('hidden');
+            panel.classList.toggle('hidden', !open);
+            btn.classList.toggle('open', open);
+        }
+
         function switchStreamTab(tabName) {
             currentActiveTab = tabName;
             ['shifts', 'midday', 'salary', 'payment'].forEach(t => {
                 const btn = document.getElementById(`tab-btn-${t}`);
-                btn.className = t === tabName 
-                    ? "flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer bg-white text-[#1e3a5f] shadow-sm"
-                    : "flex-1 py-2 text-center rounded-lg text-xs font-bold transition cursor-pointer text-slate-300 hover:text-white";
+                if (btn) btn.classList.toggle('active', t === tabName);
             });
 
             const paymentMonthRow = document.getElementById('payment-tab-month-row');
@@ -2570,11 +2676,12 @@
             });
         }
 
-        async function previewCorrectionPhoto(which) {
-            const input = document.getElementById('correction-checkin-file');
-            const file = input.files[0];
+        async function previewCorrectionPhoto(which, inputEl) {
+            const input = inputEl || document.getElementById('correction-checkin-file');
+            const file = input && input.files[0];
             if (!file) return;
             correctionCheckinFile = await fileToBase64(file);
+            input.value = '';
             const preview = document.getElementById('correction-checkin-preview');
             preview.src = correctionCheckinFile;
             preview.classList.remove('hidden');
@@ -2582,10 +2689,11 @@
         }
 
         async function addCorrectionBillPhoto(type, inputEl) {
-            const file = inputEl.files[0];
-            if (!file) return;
-            const base64 = await fileToBase64(file);
-            correctionPendingBills[type].push(base64);
+            const files = Array.from(inputEl.files || []);
+            if (!files.length) return;
+            for (const file of files) {
+                correctionPendingBills[type].push(await fileToBase64(file));
+            }
             inputEl.value = '';
             renderCorrectionBillList(type);
         }
@@ -2724,6 +2832,7 @@
 
             const statusMsg = document.getElementById('date-filter-status');
             if (dateRangeActive) {
+                toggleLedgerFilter(true);
                 statusMsg.classList.remove('hidden');
                 statusMsg.innerText = `Showing date range (month filter ignored) - ${filteredShiftLogs.length} record(s) found.`;
             } else {
@@ -3266,6 +3375,7 @@
         async function openCamera(mode) {
             currentCameraMode = mode;
             const laser = document.getElementById('camera-laser');
+            const faceOverlay = document.getElementById('face-scan-overlay');
             const switchBtn = document.getElementById('btn-switch-camera');
             const facingLabel = document.getElementById('camera-facing-label');
 
@@ -3290,11 +3400,13 @@
             if (isIdentitySelfie) {
                 document.getElementById('camera-title').innerText = `${mode === 'in' ? 'Punch In' : (mode === 'out' ? 'Punch Out' : 'ID Card')} Identity Selfie`;
                 laser.classList.add('hidden');
+                faceOverlay.classList.remove('hidden');
                 switchBtn.classList.remove('hidden');
                 currentCameraFacingMode = "user";
             } else {
                 document.getElementById('camera-title').innerText = `Capture Proof: ${mode.toUpperCase()}`;
                 laser.classList.remove('hidden');
+                faceOverlay.classList.add('hidden');
                 switchBtn.classList.add('hidden');
                 currentCameraFacingMode = "environment";
             }
@@ -3367,7 +3479,12 @@
                 ctx.translate(canvas.width, 0);
                 ctx.scale(-1, 1);
             }
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const vw = video.videoWidth || canvas.width, vh = video.videoHeight || canvas.height;
+            const targetRatio = canvas.width / canvas.height;
+            let sw = vw, sh = vh, sx = 0, sy = 0;
+            if (vw / vh > targetRatio) { sw = vh * targetRatio; sx = (vw - sw) / 2; }
+            else { sh = vw / targetRatio; sy = (vh - sh) / 2; }
+            ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
             tempSelfieBase64 = canvas.toDataURL('image/jpeg', 0.65);
         }
 
