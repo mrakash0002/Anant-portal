@@ -1522,12 +1522,14 @@
             return total;
         }
 
-        function computeMiddayWalletBalance(monthFilter) {
+        function computeMiddayWalletBalance(monthFilter, yearOverride) {
             const inMonth = (dateStr) => {
                 if (monthFilter === undefined || monthFilter === 'ALL') return true;
-                return new Date(dateStr).getMonth() === parseInt(monthFilter);
+                const d = new Date(dateStr);
+                if (yearOverride && d.getFullYear() !== yearOverride) return false;
+                return d.getMonth() === parseInt(monthFilter);
             };
-            const currentYear = new Date().getFullYear();
+            const currentYear = yearOverride || new Date().getFullYear();
             const targetMonthStr = (monthFilter === undefined || monthFilter === 'ALL') ? null : `${currentYear}-${String(parseInt(monthFilter) + 1).padStart(2, '0')}`;
             const totalAdminGiven = workerAdvanceLog
                 .filter(e => {
@@ -1861,20 +1863,23 @@
             }
         }
 
-        async function downloadMonthlyPayslipPDF() {
+        async function downloadMonthlyPayslipPDF(forMonth) {
             if (!currentUser) return alert("User session not found.");
 
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
 
             const monthFilterSelect = document.getElementById('dashboard-month-filter');
-            const selectedMonthVal = monthFilterSelect.value;
-            const selectedMonthName = monthFilterSelect.options[monthFilterSelect.selectedIndex].text;
-            const currentYear = new Date().getFullYear();
+            const selectedMonthVal = forMonth ? String(parseInt(forMonth.split('-')[1]) - 1) : monthFilterSelect.value;
+            const selectedMonthName = forMonth
+                ? new Date(2000, parseInt(forMonth.split('-')[1]) - 1, 1).toLocaleDateString('en-US', { month: 'long' })
+                : monthFilterSelect.options[monthFilterSelect.selectedIndex].text;
+            const currentYear = forMonth ? parseInt(forMonth.split('-')[0]) : new Date().getFullYear();
 
             const filteredLogs = activeShiftLogs.filter(log => {
                 if (selectedMonthVal === 'ALL') return true;
                 const dateObj = new Date(log.punch_in_time || log.created_at);
+                if (forMonth && dateObj.getFullYear() !== currentYear) return false;
                 return dateObj.getMonth() === parseInt(selectedMonthVal);
             });
 
@@ -1895,7 +1900,7 @@
                 }
             });
 
-            const totalMiddayAdvance = computeMiddayWalletBalance(selectedMonthVal);
+            const totalMiddayAdvance = computeMiddayWalletBalance(selectedMonthVal, forMonth ? currentYear : undefined);
 
             const totalReimbursements = totalTransport + totalFood + totalMaterial;
             const payslipCurrentRealMonth = getCurrentMonthString();
@@ -1933,29 +1938,19 @@
             doc.setFont("helvetica", "normal");
             doc.setTextColor(220, 230, 240);
             doc.text("Payslip", 14, 25);
+            doc.setTextColor(220, 230, 240);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(7.5);
+            [
+                "No.39, 3rd Cross Road, Ground Floor, Ramohalli,",
+                "Near Railway Gate, Kengeri, Bengaluru,",
+                "Ramohalli Grama Panchayathi, Chollaghatta,",
+                "Bengaluru Urban 560060"
+            ].forEach((line, i) => doc.text(line, 196, 7 + i * 4.2, { align: "right" }));
             doc.setTextColor(255, 255, 255);
             doc.setFont("helvetica", "bold");
-            doc.text(`Period: ${selectedMonthName} ${currentYear}`, 196, 25, { align: "right" });
-
-            if (isPayslipPaid) {
-                const stampX = 178, stampY = 14;
-                doc.setFillColor(255, 255, 255);
-                doc.setDrawColor(...EMERALD);
-                doc.setLineWidth(1);
-                doc.circle(stampX, stampY, 9.5, 'FD');
-                doc.setDrawColor(...EMERALD);
-                doc.setLineWidth(0.4);
-                doc.circle(stampX, stampY, 7.8, 'S');
-                doc.setTextColor(...EMERALD);
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(9);
-                doc.text("PAID", stampX, stampY + 1.5, { align: "center", angle: -10 });
-                if (payslipPaidDateLabel) {
-                    doc.setFontSize(5);
-                    doc.setFont("helvetica", "normal");
-                    doc.text(payslipPaidDateLabel, stampX, stampY + 5.5, { align: "center", angle: -10 });
-                }
-            }
+            doc.setFontSize(9.5);
+            doc.text(`Period: ${selectedMonthName} ${currentYear}`, 196, 29, { align: "right" });
 
             doc.setFillColor(248, 250, 252);
             doc.setDrawColor(...NAVY);
@@ -2048,6 +2043,29 @@
                 headStyles: { fillColor: NAVY_DARK },
                 alternateRowStyles: { fillColor: [240, 244, 249] }
             });
+
+            if (isPayslipPaid) {
+                const stampPageH = doc.internal.pageSize.height;
+                const R = 24;
+                let stampTop = doc.lastAutoTable.finalY + 8;
+                if (stampTop + 2 * R + 6 > stampPageH - 22) { doc.addPage(); stampTop = 22; }
+                const sx = 196 - R - 6, sy = stampTop + R;
+                doc.setFillColor(255, 255, 255);
+                doc.setDrawColor(...EMERALD);
+                doc.setLineWidth(1.6);
+                doc.circle(sx, sy, R, 'FD');
+                doc.setLineWidth(0.5);
+                doc.circle(sx, sy, R - 3.2, 'S');
+                doc.setTextColor(...EMERALD);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(30);
+                doc.text("PAID", sx, sy + 3, { align: "center", angle: -12 });
+                if (payslipPaidDateLabel) {
+                    doc.setFontSize(9);
+                    doc.setFont("helvetica", "normal");
+                    doc.text(payslipPaidDateLabel, sx + 1.5, sy + 12, { align: "center", angle: -12 });
+                }
+            }
 
             const pageHeight = doc.internal.pageSize.height;
             doc.setDrawColor(...COPPER);
@@ -3170,7 +3188,65 @@
                         <p class="text-[10px] text-gray-400">${sumShiftPayUnits(approvedForPayMonth)} approved shift${sumShiftPayUnits(approvedForPayMonth) === 1 ? '' : 's'} &middot; ₹${earningsAmount.toLocaleString('en-IN')}${salaryAdvanceForPayMonth > 0 ? ` &minus; ₹${salaryAdvanceForPayMonth.toLocaleString('en-IN')} advance` : ''}</p>
                         ${isPaid && paymentSnapshot ? `<p class="text-[10px] text-emerald-600 pt-1">Paid on ${paymentSnapshot.payment_date || '--'}${paymentSnapshot.payment_reference ? ` &middot; Ref: ${paymentSnapshot.payment_reference}` : ''}</p>` : `<p class="text-[10px] text-amber-600 pt-1">Transferred between the 1st and 10th of ${dueLabel}.</p>`}
                     </div>`;
+                stream.insertAdjacentHTML('beforeend', renderPayslipHistoryHtml());
             }
+        }
+
+        function buildPayslipHistory() {
+            const months = new Set();
+            activeShiftLogs.forEach(l => {
+                if (l.status !== 'Approved') return;
+                const d = new Date(l.punch_in_time || l.created_at);
+                months.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+            });
+            workerMonthlyBalances.forEach(r => { if (r.month) months.add(r.month); });
+            return Array.from(months).sort((a, b) => b.localeCompare(a)).slice(0, 12).map(m => {
+                const [y, mo] = m.split('-').map(Number);
+                const approved = activeShiftLogs.filter(l => {
+                    if (l.status !== 'Approved') return false;
+                    const d = new Date(l.punch_in_time || l.created_at);
+                    return d.getFullYear() === y && (d.getMonth() + 1) === mo;
+                });
+                const days = sumShiftPayUnits(approved);
+                const earnings = days * resolveRateForMonth(parseFloat(currentUser.fixed_salary || 0), workerSalaryRaiseLog, m);
+                const bonus = resolveMonthlyBalanceValue(workerMonthlyBalances, m, 'bonus_amount');
+                const advance = resolveMonthlyBalanceValue(workerMonthlyBalances, m, 'salary_advance_taken');
+                const snap = workerMonthlyBalances.find(r => r.month === m);
+                return {
+                    month: m,
+                    label: new Date(y, mo - 1, 1).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
+                    days, net: earnings + bonus - advance,
+                    status: (snap && snap.payment_status) || 'Unpaid'
+                };
+            });
+        }
+        function renderPayslipHistoryHtml() {
+            const rows = buildPayslipHistory();
+            if (!rows.length) return '';
+            return `
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-xs mt-3">
+                    <p class="font-bold text-slate-800 mb-2">Payslip history</p>
+                    <div class="divide-y divide-slate-100">
+                        ${rows.map(r => `
+                            <div class="py-2 flex items-center justify-between gap-2">
+                                <div class="min-w-0">
+                                    <p class="font-bold text-slate-800">${r.label}
+                                        <span class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${r.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${r.status}</span></p>
+                                    <p class="text-[10px] text-slate-500">${r.days} shift${r.days === 1 ? '' : 's'} &middot; Net ₹${r.net.toLocaleString('en-IN')}</p>
+                                </div>
+                                <div class="flex gap-1.5 flex-none">
+                                    <button onclick="downloadMonthlyPayslipPDF('${r.month}')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-white font-bold text-[10px] cursor-pointer">PDF</button>
+                                    <button onclick="sharePayslipOnWhatsApp('${r.month}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-[10px] cursor-pointer">Share</button>
+                                </div>
+                            </div>`).join('')}
+                    </div>
+                </div>`;
+        }
+        function sharePayslipOnWhatsApp(month) {
+            const r = buildPayslipHistory().find(x => x.month === month);
+            if (!r) return;
+            const text = `Anant Electrical - Salary summary\n${currentUser.name}\n${r.label}: ${r.days} shift${r.days === 1 ? '' : 's'}\nNet salary: Rs. ${r.net.toLocaleString('en-IN')}\nStatus: ${r.status}`;
+            window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
         }
 
         async function refreshDashboard(isBackgroundCheck) {
