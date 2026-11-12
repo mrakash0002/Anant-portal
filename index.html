@@ -260,15 +260,15 @@
         .stream-tab.active{background:#fff;color:#1e3a5f;box-shadow:0 4px 14px rgba(0,0,0,.25);}
         .stream-tab.active .st-sub{opacity:.7;}
         .stream-tab[data-tone="shifts"].active .st-ico{color:#1e3a5f;}
-        .stream-tab[data-tone="midday"].active .st-ico{color:#b45309;}
-        .stream-tab[data-tone="salary"].active .st-ico{color:#e11d48;}
+        .stream-tab[data-tone="midday"].active .st-ico{color:#0e7490;}
+        .stream-tab[data-tone="salary"].active .st-ico{color:#6d28d9;}
         .stream-tab[data-tone="payment"].active .st-ico{color:#059669;}
         .stream-tab[data-tone="shifts"].active{border-color:#1e3a5f;}
         .stream-tab[data-tone="shifts"].active .st-ico{background:#dbe7f5;}
-        .stream-tab[data-tone="midday"].active{border-color:#f59e0b;}
-        .stream-tab[data-tone="midday"].active .st-ico{background:#fef3c7;}
-        .stream-tab[data-tone="salary"].active{border-color:#f43f5e;}
-        .stream-tab[data-tone="salary"].active .st-ico{background:#ffe4e6;}
+        .stream-tab[data-tone="midday"].active{border-color:#06b6d4;}
+        .stream-tab[data-tone="midday"].active .st-ico{background:#cffafe;}
+        .stream-tab[data-tone="salary"].active{border-color:#8b5cf6;}
+        .stream-tab[data-tone="salary"].active .st-ico{background:#ede9fe;}
         .stream-tab[data-tone="payment"].active{border-color:#10b981;}
         .stream-tab[data-tone="payment"].active .st-ico{background:#d1fae5;}
         .ledger-filter-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;padding:.55rem .75rem;border-radius:.75rem;
@@ -309,6 +309,14 @@
     .tracking-wider,.tracking-widest,.tracking-wide{letter-spacing:0 !important;}
     .font-black{font-weight:700 !important;}
     .font-mono{font-family:inherit !important;font-variant-numeric:tabular-nums;}
+</style>
+<style>
+#correction-modal label{font-size:11px;font-weight:700;color:#64748b;letter-spacing:.02em}
+#correction-modal input:not([type=radio]):not([type=checkbox]):not([type=file]),#correction-modal textarea,#correction-modal select{border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;transition:border-color .15s,box-shadow .15s}
+#correction-modal input:focus,#correction-modal textarea:focus,#correction-modal select:focus{outline:none;border-color:#1e3a5f;box-shadow:0 0 0 3px rgba(30,58,95,.12);background:#fff}
+</style>
+<style>
+#payment-tab-month{background:rgba(255,255,255,.06)!important;color:#e2e8f0!important;border:1px solid rgba(255,255,255,.14)!important;border-radius:12px;color-scheme:dark}
 </style>
 </head>
 <body class="text-slate-800 font-sans min-h-screen flex flex-col items-center justify-center px-4 py-8">
@@ -709,59 +717,70 @@
                     <h3 class="text-xs font-black uppercase tracking-wider text-gray-700 flex items-center gap-2">
                         Earnings Overview
                     </h3>
-                    <p class="text-[10px] text-gray-400 font-mono mt-0.5">A visual breakdown of your salary and expenses</p>
+                    <p class="text-[11px] text-gray-400 mt-0.5">A visual breakdown of your salary and expenses</p>
                 </div>
                 
                 <div class="space-y-6">
-                    <div class="bg-slate-50/60 p-3.5 rounded-xl border border-slate-100">
-                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-2.5 font-mono block">Daily Expense Breakdown</span>
+                    <div class="rounded-2xl border border-slate-100 p-4 bg-white">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-[11px] font-bold text-slate-600">Expense overview</span>
+                            <span class="text-[10px] text-slate-400">Approved claims</span>
+                        </div>
                         <div class="grid grid-cols-3 gap-2">
-                            <div class="bg-white p-2.5 rounded-lg border border-slate-200 text-center">
-                                <span class="text-[9px] text-gray-400 uppercase font-mono block">Transport</span>
-                                <strong id="display-breakdown-transport" class="text-sm font-black font-mono text-slate-700">₹0</strong>
+                            <div class="rounded-xl p-2.5 text-center" style="background:#f0f9ff;border:1px solid #e0f2fe">
+                                <span class="block mx-auto mb-1" style="width:18px;height:4px;border-radius:99px;background:#0ea5e9"></span>
+                                <span class="text-[10px] text-slate-500 block">Transport</span>
+                                <strong id="display-breakdown-transport" class="text-sm font-black text-slate-800 block">₹0</strong>
+                                <span id="pct-transport" class="text-[10px] text-slate-400">0%</span>
                             </div>
-                            <div class="bg-white p-2.5 rounded-lg border border-slate-200 text-center">
-                                <span class="text-[9px] text-amber-700 uppercase font-mono block">Food</span>
-                                <strong id="display-breakdown-food" class="text-sm font-black font-mono text-slate-700">₹0</strong>
+                            <div class="rounded-xl p-2.5 text-center" style="background:#fff7ed;border:1px solid #ffedd5">
+                                <span class="block mx-auto mb-1" style="width:18px;height:4px;border-radius:99px;background:#f97316"></span>
+                                <span class="text-[10px] text-slate-500 block">Food</span>
+                                <strong id="display-breakdown-food" class="text-sm font-black text-slate-800 block">₹0</strong>
+                                <span id="pct-food" class="text-[10px] text-slate-400">0%</span>
                             </div>
-                            <div class="bg-white p-2.5 rounded-lg border border-slate-200 text-center">
-                                <span class="text-[9px] text-blue-700 uppercase font-mono block">Material</span>
-                                <strong id="display-breakdown-material" class="text-sm font-black font-mono text-slate-700">₹0</strong>
+                            <div class="rounded-xl p-2.5 text-center" style="background:#f5f3ff;border:1px solid #ede9fe">
+                                <span class="block mx-auto mb-1" style="width:18px;height:4px;border-radius:99px;background:#8b5cf6"></span>
+                                <span class="text-[10px] text-slate-500 block">Material</span>
+                                <strong id="display-breakdown-material" class="text-sm font-black text-slate-800 block">₹0</strong>
+                                <span id="pct-material" class="text-[10px] text-slate-400">0%</span>
                             </div>
                         </div>
-                        <div class="flex justify-between items-center bg-slate-800 text-white p-3 rounded-lg mt-2.5">
-                            <span class="text-[10px] font-black uppercase tracking-wider">Total Expense</span>
-                            <strong id="display-breakdown-total" class="text-base font-black font-mono text-emerald-400">₹0</strong>
+                        <div id="expense-share-bar" class="flex mt-3 overflow-hidden" style="height:8px;border-radius:99px;background:#eef2f7"></div>
+                        <div class="flex justify-between items-center text-white px-4 py-3 rounded-xl mt-3" style="background:linear-gradient(135deg,#1e293b,#1e3a5f)">
+                            <span class="text-xs font-semibold text-slate-300">Total expense</span>
+                            <strong id="display-breakdown-total" class="text-lg font-black text-emerald-400">₹0</strong>
                         </div>
                     </div>
 
-                    <div class="bg-slate-50/60 p-3 rounded-xl border border-slate-100 flex flex-col items-center">
-                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-2 font-mono">Earnings Breakdown</span>
-                        <div class="w-full max-w-[210px] aspect-square">
+                    <div class="rounded-2xl border border-slate-100 p-4" style="background:linear-gradient(160deg,#f8fafc,#eef2f7)">
+                        <span class="text-[11px] font-bold text-slate-600 block mb-3">Earnings breakdown</span>
+                        <div class="relative mx-auto" style="width:170px;height:170px">
                             <canvas id="dashboardPieChartCanvas"></canvas>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span class="text-[10px] text-slate-400 font-semibold">Net earnings</span>
+                                <strong id="donut-center-value" class="text-xl font-black text-[#1e3a5f]">₹0</strong>
+                            </div>
                         </div>
+                        <div id="donut-legend" class="grid grid-cols-2 gap-x-3 gap-y-2 mt-4 text-[11px]"></div>
                     </div>
-                    
-                    <div class="bg-slate-50/60 p-3 rounded-xl border border-slate-100 flex flex-col items-center">
-                        <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 mb-2 font-mono">Amount Comparison</span>
-                        <div class="w-full h-52">
-                            <canvas id="dashboardBarChartCanvas"></canvas>
-                        </div>
+
+                    <div class="rounded-2xl border border-slate-100 p-4 bg-white">
+                        <span class="text-[11px] font-bold text-slate-600 block mb-3">Amount comparison</span>
+                        <div id="comparison-rows" class="space-y-3"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="mb-6 break-inside-avoid bg-white rounded-2xl shadow-xl p-5 border border-slate-100 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <span class="flex items-center justify-center w-9 h-9 rounded-lg bg-slate-100 text-[#1e3a5f]">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    </span>
-                    <div>
-                        <h3 class="text-xs font-black uppercase tracking-wider text-gray-700">Staff Profile & ID Card</h3>
-                        <p class="text-[10px] text-gray-400 font-mono">Tap button to view or edit digital ID card</p>
+            <div class="mb-6 break-inside-avoid rounded-2xl shadow-xl p-4 border border-slate-100 bg-white flex justify-between items-center gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span id="profile-teaser-avatar" class="flex-none flex items-center justify-center w-12 h-12 rounded-full text-white text-sm font-black" style="background:linear-gradient(135deg,#1e3a5f,#2f5a8f);box-shadow:0 0 0 3px #e2e8f0">--</span>
+                    <div class="min-w-0">
+                        <h3 id="profile-teaser-name" class="text-sm font-black text-slate-800 truncate">Staff profile</h3>
+                        <p id="profile-teaser-role" class="text-[11px] text-slate-500 truncate">Digital ID card</p>
                     </div>
                 </div>
-                <button onclick="toggleProfileSection()" id="toggle-profile-section-btn" class="bg-slate-100 text-[#1e3a5f] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-300 transition cursor-pointer">
+                <button onclick="toggleProfileSection()" id="toggle-profile-section-btn" class="flex-none whitespace-nowrap bg-[#1e3a5f] text-white px-4 py-2.5 rounded-full text-xs font-bold hover:opacity-90 transition cursor-pointer">
                     Show ID Card
                 </button>
             </div>
@@ -1907,7 +1926,7 @@
             const payslipTargetMonth = selectedMonthVal === 'ALL' ? payslipCurrentRealMonth : `${currentYear}-${String(parseInt(selectedMonthVal) + 1).padStart(2, '0')}`;
             const salaryAdvanceOutstanding = resolveMonthlyBalanceValue(workerMonthlyBalances, payslipTargetMonth, 'salary_advance_taken');
             const payslipBonusAmount = resolveMonthlyBalanceValue(workerMonthlyBalances, payslipTargetMonth, 'bonus_amount');
-            const netPayout = grossEarned + totalReimbursements + payslipBonusAmount - totalMiddayAdvance;
+            const netPayout = grossEarned + totalReimbursements + payslipBonusAmount - salaryAdvanceOutstanding - totalMiddayAdvance;
 
             const paymentSnapshotForPayslip = workerMonthlyBalances.find(r => r.month === payslipTargetMonth);
             const isPayslipPaid = !!(paymentSnapshotForPayslip && paymentSnapshotForPayslip.payment_status === 'Paid');
@@ -1987,7 +2006,7 @@
                 head: [['Deductions & Advance Adjustments', 'Reference / Status', 'Amount (INR)']],
                 body: [
                     ['Mid-Day Cash Advances Received', 'Rolling Field Wallet / Site Manager', `- Rs. ${totalMiddayAdvance.toLocaleString('en-IN')}`],
-                    ['Salary advance pending', 'Office', `Rs. ${salaryAdvanceOutstanding.toLocaleString('en-IN')}`],
+                    ['Salary Advance (deducted)', 'Office', `- Rs. ${salaryAdvanceOutstanding.toLocaleString('en-IN')}`],
                 ],
                 headStyles: { fillColor: [140, 76, 34], textColor: [255, 255, 255], fontStyle: 'bold' },
                 alternateRowStyles: { fillColor: COPPER_LIGHT }
@@ -2978,6 +2997,7 @@
         function renderActiveStreamTab() {
             const stream = document.getElementById('personal-logs-stream');
             stream.innerHTML = '';
+            stream.style.maxHeight = currentActiveTab === 'payment' ? 'none' : '';
             if (!currentActiveTab) return;
             const monthFilterSelectEl = document.getElementById('dashboard-month-filter');
             const selectedMonthFilter = monthFilterSelectEl.value;
@@ -3060,15 +3080,18 @@
                     : null;
                 let balanceDiv = document.createElement('div');
                 balanceDiv.className = isNegative
-                    ? "bg-rose-50 p-3.5 rounded-xl border border-rose-200 shadow-sm text-xs space-y-1"
-                    : "bg-amber-50 p-3.5 rounded-xl border border-amber-200 shadow-sm text-xs space-y-1";
+                    ? "p-4 rounded-2xl shadow-lg text-xs text-white"
+                    : "p-4 rounded-2xl shadow-lg text-xs text-white";
+                balanceDiv.style.background = isNegative ? 'linear-gradient(135deg,#9f1239,#e11d48)' : 'linear-gradient(135deg,#0f766e,#0891b2)';
                 balanceDiv.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <p class="font-bold ${isNegative ? 'text-rose-900' : 'text-amber-900'}">${isNegative ? 'Balance Owed' : (selectedMonthFilter === 'ALL' ? 'Current Wallet Balance' : monthFilterSelectEl.options[monthFilterSelectEl.selectedIndex].text + ' Wallet Balance')}</p>
-                        <strong class="${isNegative ? 'text-rose-600' : 'text-amber-600'} font-mono font-black text-sm">₹${morningWalletAmt.toLocaleString('en-IN')}</strong>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-semibold text-white/80">${isNegative ? 'Balance Owed' : (selectedMonthFilter === 'ALL' ? 'Current wallet balance' : monthFilterSelectEl.options[monthFilterSelectEl.selectedIndex].text + ' wallet balance')}</p>
+                            <p class="text-sm font-semibold mt-1 truncate">${morningNote || 'Admin/PM allocated fund balance'}</p>
+                        </div>
+                        <strong class="text-3xl font-black leading-none">₹${morningWalletAmt.toLocaleString('en-IN')}</strong>
                     </div>
-                    <p class="text-[10px] text-slate-500">${morningNote || 'Admin/PM allocated fund balance'}</p>
-                    ${morningUpdated ? `<p class="text-[9px] text-slate-400 font-mono">Last updated: ${morningUpdated}</p>` : ''}
+                    ${morningUpdated ? `<p class="text-[10px] text-white/70 mt-4 pt-2 border-t border-white/20">Updated ${morningUpdated}</p>` : ''}
                 `;
                 stream.appendChild(balanceDiv);
 
@@ -3088,15 +3111,15 @@
                         const entryAmt = parseFloat(entry.amount || 0);
                         const isRepayment = entryAmt < 0;
                         let div = document.createElement('div');
-                        div.className = "bg-white p-3.5 rounded-xl border border-amber-100 shadow-sm text-xs flex justify-between items-center";
-                        div.innerHTML = `<div><p class="font-bold text-amber-900">${isRepayment ? 'Mid-Day Balance Repaid' : 'Mid-Day Balance Given'}</p><p class="text-[10px] text-slate-400">${dateText}, ${timeText} &middot; by ${entry.given_by_name || entry.given_by_type}${entry.note ? ` &middot; ${entry.note}` : ''}</p></div><strong class="${isRepayment ? 'text-rose-600' : 'text-emerald-600'} font-mono font-black text-sm">${isRepayment ? '&minus;' : '+'} ₹${Math.abs(entryAmt).toLocaleString('en-IN')}</strong>`;
+                        div.className = "p-3.5 rounded-2xl text-xs flex justify-between items-center gap-3"; div.style.cssText = "background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-left:3px solid #2dd4bf";
+                        div.innerHTML = `<div class="min-w-0"><p class="font-semibold text-slate-100">${isRepayment ? 'Mid-Day Balance Repaid' : 'Mid-Day Balance Given'}</p><p class="text-[11px] text-slate-400 mt-0.5">${dateText}, ${timeText} &middot; by ${entry.given_by_name || entry.given_by_type}${entry.note ? ` &middot; ${entry.note}` : ''}</p></div><strong class="${isRepayment ? 'text-rose-400' : 'text-emerald-400'} font-black text-base whitespace-nowrap flex-none">${isRepayment ? '&minus;' : '+'} ₹${Math.abs(entryAmt).toLocaleString('en-IN')}</strong>`;
                         stream.appendChild(div);
                     });
                     recordsWithAdvances.forEach(log => {
                         let dateText = new Date(log.punch_in_time || log.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
                         let div = document.createElement('div');
-                        div.className = "bg-white p-3.5 rounded-xl border border-amber-100 shadow-sm text-xs flex justify-between items-center";
-                        div.innerHTML = `<div><p class="font-bold text-amber-900">Mid-Day Advance Received</p><p class="text-[10px] text-slate-400">${dateText} • ${log.site_location || 'On-Site entry'}</p></div><strong class="text-amber-600 font-mono font-black text-sm">+ ₹${parseFloat(log.payment_advance_taken).toLocaleString('en-IN')}</strong>`;
+                        div.className = "p-3.5 rounded-2xl text-xs flex justify-between items-center gap-3"; div.style.cssText = "background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-left:3px solid #2dd4bf";
+                        div.innerHTML = `<div class="min-w-0"><p class="font-semibold text-slate-100">Mid-Day Advance Received</p><p class="text-[11px] text-slate-400 mt-0.5">${dateText} • ${log.site_location || 'On-Site entry'}</p></div><strong class="text-teal-300 font-black text-base whitespace-nowrap flex-none">+ ₹${parseFloat(log.payment_advance_taken).toLocaleString('en-IN')}</strong>`;
                         stream.appendChild(div);
                     });
                 }
@@ -3115,14 +3138,17 @@
                 stream.innerHTML = '';
                 const isSalaryNegative = salaryAdvance < 0;
                 let balanceDiv = document.createElement('div');
-                balanceDiv.className = "bg-white p-4 rounded-xl border border-rose-100 shadow-sm text-xs space-y-2";
+                balanceDiv.className = "p-4 rounded-2xl shadow-lg text-xs text-white";
+                balanceDiv.style.background = "linear-gradient(135deg,#4338ca,#7c3aed)";
                 balanceDiv.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <p class="font-bold text-rose-900">${salaryListTargetMonthStr ? monthFilterSelectEl.options[monthFilterSelectEl.selectedIndex].text + ' salary advance balance' : 'Salary advance balance'}</p>
-                        <strong class="${isSalaryNegative ? 'text-emerald-600' : 'text-rose-600'} font-mono text-sm">₹${salaryAdvance.toLocaleString('en-IN')}</strong>
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-semibold text-white/80">${salaryListTargetMonthStr ? monthFilterSelectEl.options[monthFilterSelectEl.selectedIndex].text + ' salary advance' : 'Salary advance'}</p>
+                            <p class="text-sm font-semibold mt-1 truncate">${salaryNote || 'Salary advance given by the office.'}</p>
+                        </div>
+                        <strong class="${isSalaryNegative ? 'text-emerald-300' : ''} text-3xl font-black leading-none">₹${salaryAdvance.toLocaleString('en-IN')}</strong>
                     </div>
-                    <p class="text-[10px] text-gray-500 leading-relaxed">${salaryNote || 'Salary advance given by the office.'}</p>
-                    <div class="pt-2 border-t border-slate-100 flex justify-between text-[9px] text-slate-400 font-mono uppercase">
+                    <div class="mt-4 pt-2 border-t border-white/20 flex justify-between text-[10px] text-white/70">
                         <span>Updated: ${verifiedTimestamp}</span>
                         <span>Ref: AE-STF-${currentUser.id || 'REG'}</span>
                     </div>`;
@@ -3147,8 +3173,8 @@
                         const entryAmt = parseFloat(entry.amount || 0);
                         const isRepayment = entryAmt < 0;
                         let div = document.createElement('div');
-                        div.className = "bg-white p-3.5 rounded-xl border border-rose-100 shadow-sm text-xs flex justify-between items-center";
-                        div.innerHTML = `<div><p class="font-bold text-rose-900">${isRepayment ? 'Salary Advance Repaid' : 'Salary Advance Given'}</p><p class="text-[10px] text-slate-400">${dateText}, ${timeText} &middot; by ${entry.given_by_name || entry.given_by_type}${entry.note ? ` &middot; ${entry.note}` : ''}</p></div><strong class="${isRepayment ? 'text-emerald-600' : 'text-rose-600'} font-mono font-black text-sm">${isRepayment ? '&minus;' : '+'} ₹${Math.abs(entryAmt).toLocaleString('en-IN')}</strong>`;
+                        div.className = "p-3.5 rounded-2xl text-xs flex justify-between items-center gap-3"; div.style.cssText = "background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-left:3px solid #a78bfa";
+                        div.innerHTML = `<div class="min-w-0"><p class="font-semibold text-slate-100">${isRepayment ? 'Salary Advance Repaid' : 'Salary Advance Given'}</p><p class="text-[11px] text-slate-400 mt-0.5">${dateText}, ${timeText} &middot; by ${entry.given_by_name || entry.given_by_type}${entry.note ? ` &middot; ${entry.note}` : ''}</p></div><strong class="${isRepayment ? 'text-emerald-400' : 'text-rose-400'} font-black text-base whitespace-nowrap flex-none">${isRepayment ? '&minus;' : '+'} ₹${Math.abs(entryAmt).toLocaleString('en-IN')}</strong>`;
                         stream.appendChild(div);
                     });
                 }
@@ -3168,28 +3194,57 @@
                 const earningsAmount = sumShiftPayUnits(approvedForPayMonth) * rate;
                 const salaryAdvanceForPayMonth = resolveMonthlyBalanceValue(workerMonthlyBalances, paymentMonthStr, 'salary_advance_taken');
                 const bonusForPayMonth = resolveMonthlyBalanceValue(workerMonthlyBalances, paymentMonthStr, 'bonus_amount');
-                const netPayable = earningsAmount + bonusForPayMonth - salaryAdvanceForPayMonth;
+                const reimbForPayMonth = computeMonthReimbursements(payYear, payMonthNum);
+                const middayForPayMonth = computeMiddayWalletBalance(String(payMonthNum - 1), payYear);
+                const netPayable = earningsAmount + reimbForPayMonth + bonusForPayMonth - salaryAdvanceForPayMonth - middayForPayMonth;
 
                 const paymentSnapshot = workerMonthlyBalances.find(r => r.month === paymentMonthStr);
                 const payStatus = (paymentSnapshot && paymentSnapshot.payment_status) || 'Unpaid';
                 const isPaid = payStatus === 'Paid';
 
+                const payRow = (label, amt, sign, color, extra) => `
+                    <div class="flex items-start justify-between gap-3 py-2.5">
+                        <div class="min-w-0"><p class="text-sm text-slate-300">${label}</p>${extra ? `<p class="text-[11px] text-slate-500">${extra}</p>` : ''}</div>
+                        <strong class="text-sm whitespace-nowrap ${color}">${sign}₹${amt.toLocaleString('en-IN')}</strong>
+                    </div>`;
+                const earnRows = payRow('Salary', earningsAmount, '', 'text-white')
+                    + (reimbForPayMonth > 0 ? payRow('Expenses reimbursed', reimbForPayMonth, '+ ', 'text-emerald-400') : '')
+                    + (bonusForPayMonth > 0 ? payRow('Bonus', bonusForPayMonth, '+ ', 'text-violet-300', paymentSnapshot && paymentSnapshot.bonus_reason ? paymentSnapshot.bonus_reason : '') : '');
+                const dedRows = (salaryAdvanceForPayMonth > 0 ? payRow('Salary advance', salaryAdvanceForPayMonth, '− ', 'text-rose-400') : '')
+                    + (middayForPayMonth > 0 ? payRow('Mid-day advances', middayForPayMonth, '− ', 'text-rose-400') : '');
+                const shiftCount = sumShiftPayUnits(approvedForPayMonth);
                 stream.innerHTML = `
-                    <div class="bg-white p-4 rounded-xl border ${isPaid ? 'border-emerald-200' : 'border-amber-200'} shadow-sm text-xs space-y-2">
-                        <div class="flex justify-between items-center">
-                            <p class="font-bold text-slate-800">${monthLabel} Salary</p>
-                            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${payStatus}</span>
+                    <div class="rounded-3xl overflow-hidden shadow-lg" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">
+                        <div class="p-5 text-white" style="background:${isPaid ? 'linear-gradient(135deg,#047857,#10b981)' : 'linear-gradient(135deg,#1e3a5f,#3b6aa5)'}">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs font-semibold text-white/80">${monthLabel}</p>
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${isPaid ? 'bg-white text-emerald-700' : 'bg-amber-300 text-amber-950'}">${payStatus}</span>
+                            </div>
+                            <p class="text-[11px] text-white/70 mt-4">Net payable</p>
+                            <p class="text-4xl font-black leading-tight">₹${netPayable.toLocaleString('en-IN')}</p>
+                            <p class="text-[11px] text-white/70 mt-1">${shiftCount} approved shift${shiftCount === 1 ? '' : 's'}</p>
                         </div>
-                        ${bonusForPayMonth > 0 ? `<div class="flex justify-between items-center text-violet-600"><span> Bonus</span><strong class="font-mono">+ ₹${bonusForPayMonth.toLocaleString('en-IN')}</strong></div>${paymentSnapshot && paymentSnapshot.bonus_reason ? `<p class="text-[9px] text-violet-500">${paymentSnapshot.bonus_reason}</p>` : ''}` : ''}
-                        <div class="flex justify-between items-center pt-2 border-t border-slate-100">
-                            <span class="text-slate-500">Net Payable</span>
-                            <strong class="text-slate-900 font-mono text-sm">₹${netPayable.toLocaleString('en-IN')}</strong>
+                        <div class="px-5 py-3">
+                            <p class="text-[10px] font-bold tracking-wider text-slate-500 uppercase pt-1">Earnings</p>
+                            <div class="divide-y divide-white/5">${earnRows}</div>
+                            ${dedRows ? `<p class="text-[10px] font-bold tracking-wider text-slate-500 uppercase pt-3">Deductions</p><div class="divide-y divide-white/5">${dedRows}</div>` : ''}
+                            ${isPaid && paymentSnapshot
+                                ? `<p class="mt-3 rounded-xl text-[12px] px-3 py-2.5 text-emerald-300" style="background:rgba(52,211,153,.12)">Paid on ${paymentSnapshot.payment_date || '--'}${paymentSnapshot.payment_reference ? ` &middot; Ref: ${paymentSnapshot.payment_reference}` : ''}</p>`
+                                : `<p class="mt-3 rounded-xl text-[12px] px-3 py-2.5 text-amber-300" style="background:rgba(251,191,36,.1)">Transfer expected between the 1st and 10th of ${dueLabel}.</p>`}
                         </div>
-                        <p class="text-[10px] text-gray-400">${sumShiftPayUnits(approvedForPayMonth)} approved shift${sumShiftPayUnits(approvedForPayMonth) === 1 ? '' : 's'} &middot; ₹${earningsAmount.toLocaleString('en-IN')}${salaryAdvanceForPayMonth > 0 ? ` &minus; ₹${salaryAdvanceForPayMonth.toLocaleString('en-IN')} advance` : ''}</p>
-                        ${isPaid && paymentSnapshot ? `<p class="text-[10px] text-emerald-600 pt-1">Paid on ${paymentSnapshot.payment_date || '--'}${paymentSnapshot.payment_reference ? ` &middot; Ref: ${paymentSnapshot.payment_reference}` : ''}</p>` : `<p class="text-[10px] text-amber-600 pt-1">Transferred between the 1st and 10th of ${dueLabel}.</p>`}
                     </div>`;
                 stream.insertAdjacentHTML('beforeend', renderPayslipHistoryHtml());
             }
+        }
+
+        function computeMonthReimbursements(year, monthNum) {
+            return activeShiftLogs
+                .filter(l => {
+                    if (l.status === 'Active' || l.expense_status !== 'Approved') return false;
+                    const d = new Date(l.punch_in_time || l.created_at);
+                    return d.getFullYear() === year && (d.getMonth() + 1) === monthNum;
+                })
+                .reduce((sum, l) => sum + parseFloat(l.transport_expense || 0) + parseFloat(l.food_expense || 0) + parseFloat(l.material_expense || 0), 0);
         }
 
         function buildPayslipHistory() {
@@ -3211,11 +3266,13 @@
                 const earnings = days * resolveRateForMonth(parseFloat(currentUser.fixed_salary || 0), workerSalaryRaiseLog, m);
                 const bonus = resolveMonthlyBalanceValue(workerMonthlyBalances, m, 'bonus_amount');
                 const advance = resolveMonthlyBalanceValue(workerMonthlyBalances, m, 'salary_advance_taken');
+                const reimb = computeMonthReimbursements(y, mo);
+                const midday = computeMiddayWalletBalance(String(mo - 1), y);
                 const snap = workerMonthlyBalances.find(r => r.month === m);
                 return {
                     month: m,
                     label: new Date(y, mo - 1, 1).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
-                    days, net: earnings + bonus - advance,
+                    days, net: earnings + reimb + bonus - advance - midday,
                     status: (snap && snap.payment_status) || 'Unpaid'
                 };
             });
@@ -3223,22 +3280,36 @@
         function renderPayslipHistoryHtml() {
             const rows = buildPayslipHistory();
             if (!rows.length) return '';
+            const money = n => (n < 0 ? '−' : '') + '₹' + Math.abs(n).toLocaleString('en-IN');
             return `
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-xs mt-3">
-                    <p class="font-bold text-slate-800 mb-2">Payslip history</p>
-                    <div class="divide-y divide-slate-100">
-                        ${rows.map(r => `
-                            <div class="py-2 flex items-center justify-between gap-2">
-                                <div class="min-w-0">
-                                    <p class="font-bold text-slate-800">${r.label}
-                                        <span class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${r.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${r.status}</span></p>
-                                    <p class="text-[10px] text-slate-500">${r.days} shift${r.days === 1 ? '' : 's'} &middot; Net ₹${r.net.toLocaleString('en-IN')}</p>
+                <div class="mt-5">
+                    <div class="flex items-baseline justify-between mb-3 px-1">
+                        <p class="text-sm font-bold text-white">Payslip history</p>
+                        <p class="text-[11px] text-slate-400">Last ${rows.length} month${rows.length === 1 ? '' : 's'}</p>
+                    </div>
+                    <div class="space-y-2.5">
+                        ${rows.map(r => {
+                            const paid = r.status === 'Paid';
+                            const stripe = paid ? '#34d399' : '#fbbf24';
+                            const netCls = r.net < 0 ? 'text-rose-400' : (r.net === 0 ? 'text-slate-500' : 'text-white');
+                            return `
+                            <div class="rounded-2xl px-3.5 py-3" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-left:3px solid ${stripe}">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <p class="font-bold text-slate-100 text-sm whitespace-nowrap">${r.label}</p>
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${paid ? 'bg-emerald-400/20 text-emerald-300' : 'bg-amber-400/20 text-amber-300'}">${r.status}</span>
+                                    </div>
+                                    <p class="text-lg font-black whitespace-nowrap ${netCls}">${money(r.net)}</p>
                                 </div>
-                                <div class="flex gap-1.5 flex-none">
-                                    <button onclick="downloadMonthlyPayslipPDF('${r.month}')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-white font-bold text-[10px] cursor-pointer">PDF</button>
-                                    <button onclick="sharePayslipOnWhatsApp('${r.month}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-[10px] cursor-pointer">Share</button>
+                                <div class="flex items-center justify-between gap-3 mt-2">
+                                    <p class="text-[11px] text-slate-400">${r.net < 0 ? 'Balance owed · ' : ''}${r.days} shift${r.days === 1 ? '' : 's'}</p>
+                                    <div class="flex gap-2">
+                                        <button onclick="downloadMonthlyPayslipPDF('${r.month}')" class="px-3.5 py-1.5 rounded-full text-[11px] font-bold text-slate-100 cursor-pointer" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)">&darr; PDF</button>
+                                        <button onclick="sharePayslipOnWhatsApp('${r.month}')" class="px-3.5 py-1.5 rounded-full text-[11px] font-bold text-emerald-300 cursor-pointer" style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3)">Share</button>
+                                    </div>
                                 </div>
-                            </div>`).join('')}
+                            </div>`;
+                        }).join('')}
                     </div>
                 </div>`;
         }
@@ -3367,6 +3438,11 @@
             document.getElementById('display-breakdown-food').innerText = `₹${breakdownFood.toLocaleString('en-IN')}`;
             document.getElementById('display-breakdown-material').innerText = `₹${breakdownMaterial.toLocaleString('en-IN')}`;
             document.getElementById('display-breakdown-total').innerText = `₹${siteSpent.toLocaleString('en-IN')}`;
+            const expParts = [['transport', breakdownTransport, '#0ea5e9'], ['food', breakdownFood, '#f97316'], ['material', breakdownMaterial, '#8b5cf6']];
+            expParts.forEach(([k, v]) => { document.getElementById('pct-' + k).innerText = (siteSpent > 0 ? Math.round(v / siteSpent * 100) : 0) + '%'; });
+            document.getElementById('expense-share-bar').innerHTML = siteSpent > 0
+                ? expParts.filter(x => x[1] > 0).map(([k, v, c]) => `<div style="width:${v / siteSpent * 100}%;background:${c}"></div>`).join('')
+                : '';
 
             const totalMidDayAdvances = computeMiddayWalletBalance(selectedMonthFilter);
 
@@ -3382,22 +3458,39 @@
             const chartColorsPalette = ['#1e3a5f', '#10b981', '#3b82f6', '#f59e0b', '#f43f5e'];
 
             if (runtimePieChartInstance) runtimePieChartInstance.destroy();
+            if (typeof runtimeBarChartInstance !== 'undefined' && runtimeBarChartInstance) { runtimeBarChartInstance.destroy(); runtimeBarChartInstance = null; }
+            const rupee = v => '₹' + Number(v || 0).toLocaleString('en-IN');
+            const donutIdx = [1, 2, 3, 4].filter(k => chartValues[k] > 0);
+            const hasDonut = donutIdx.length > 0;
             runtimePieChartInstance = new Chart(document.getElementById('dashboardPieChartCanvas').getContext('2d'), {
-                type: 'pie',
-                data: { labels: chartLabels, datasets: [{ data: chartValues, backgroundColor: chartColorsPalette, borderWidth: 1.5, borderColor: '#ffffff' }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false }, legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9, family: 'monospace' }, color: '#4b5563' } } } }
+                type: 'doughnut',
+                data: {
+                    labels: hasDonut ? donutIdx.map(k => chartLabels[k]) : ['No data yet'],
+                    datasets: [{ data: hasDonut ? donutIdx.map(k => chartValues[k]) : [1], backgroundColor: hasDonut ? donutIdx.map(k => chartColorsPalette[k]) : ['#e2e8f0'], borderWidth: 3, borderColor: '#f8fafc', hoverOffset: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '72%', events: [], plugins: { legend: { display: false }, tooltip: { enabled: false }, datalabels: { display: false } } }
             });
+            document.getElementById('donut-center-value').innerText = rupee(monthlyNetSalary);
+            document.getElementById('donut-legend').innerHTML = (hasDonut ? donutIdx : []).map(k =>
+                `<div class="flex items-center justify-between gap-2"><span class="flex items-center gap-1.5 text-slate-500 min-w-0"><span style="width:8px;height:8px;border-radius:50%;background:${chartColorsPalette[k]};flex:none"></span><span class="truncate">${chartLabels[k]}</span></span><strong class="text-slate-800">${rupee(chartValues[k])}</strong></div>`
+            ).join('');
 
-            if (runtimeBarChartInstance) runtimeBarChartInstance.destroy();
-            runtimeBarChartInstance = new Chart(document.getElementById('dashboardBarChartCanvas').getContext('2d'), {
-                type: 'bar',
-                data: { labels: chartLabels, datasets: [{ label: 'Amount (₹)', data: chartValues, backgroundColor: chartColorsPalette, borderWidth: 1, borderColor: '#ffffff' }] },
-                options: {
-                    responsive: true, maintainAspectRatio: false, layout: { padding: { top: 25 } },
-                    scales: { y: { beginAtZero: true, grid: { color: '#e5e7eb' }, ticks: { font: { size: 8, family: 'monospace' } } }, x: { grid: { display: false }, ticks: { font: { size: 9, fontStyle: 'bold' } } } },
-                    plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', font: { weight: 'bold', size: 10, family: 'monospace' }, color: '#374151', formatter: v => v === 0 ? '' : '₹' + v.toLocaleString('en-IN') } }
-                }
-            });
+            const maxVal = Math.max(1, ...chartValues.map(v => Math.max(0, v)));
+            document.getElementById('comparison-rows').innerHTML = chartLabels.map((lbl, k) => {
+                const pct = Math.round(Math.max(0, chartValues[k]) / maxVal * 100);
+                return `<div>
+                    <div class="flex items-center justify-between text-xs mb-1">
+                        <span class="flex items-center gap-2 text-slate-600"><span style="width:8px;height:8px;border-radius:50%;background:${chartColorsPalette[k]};display:inline-block"></span>${lbl}</span>
+                        <strong class="text-slate-800">${rupee(chartValues[k])}</strong>
+                    </div>
+                    <div style="height:6px;border-radius:99px;background:#eef2f7;overflow:hidden"><div style="height:100%;width:${pct}%;border-radius:99px;background:${chartColorsPalette[k]}"></div></div>
+                </div>`;
+            }).join('');
+
+            const teaserName = (currentUser.name || 'Staff').trim();
+            document.getElementById('profile-teaser-name').innerText = teaserName;
+            document.getElementById('profile-teaser-role').innerText = (currentUser.role || 'Field Associate') + ' · Digital ID card';
+            document.getElementById('profile-teaser-avatar').innerText = teaserName.split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '--';
 
             renderActiveStreamTab();
             updateRequiredBillsUI();
