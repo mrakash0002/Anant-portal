@@ -97,7 +97,6 @@
                 radial-gradient(circle at 15% 0%, rgba(209,134,63,0.10), transparent 40%),
                 radial-gradient(circle at 100% 20%, rgba(52,90,133,0.35), transparent 45%),
                 linear-gradient(180deg, #0a1220 0%, #14243a 55%, #0f1c2e 100%);
-            perspective: 1600px;
         }
         .readout {
             font-variant-numeric: tabular-nums;
@@ -943,7 +942,6 @@
                         <p id="install-card-text" class="text-[10px] text-slate-300 leading-snug mt-0.5">Add to your home screen for quick, full-screen access.</p>
                     </div>
                     <button id="install-card-btn" onclick="installPwa()" class="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-wide px-3 py-2 rounded-lg cursor-pointer">Install</button>
-                    <button onclick="dismissInstallCard()" class="shrink-0 text-slate-400 hover:text-white text-lg leading-none px-1 cursor-pointer" aria-label="Dismiss">&times;</button>
                 </div>
             </div>
 
@@ -1075,11 +1073,35 @@
         </div>
     </main>
 
-    <div id="camera-modal" class="fixed inset-0 bg-slate-900/90 z-50 hidden flex items-center justify-center p-3 backdrop-blur-sm" style="height:100dvh;">
-        <div class="bg-white rounded-3xl p-4 w-full max-w-sm shadow-2xl relative flex flex-col gap-3" style="max-height:calc(100dvh - 1.5rem);">
+    <div id="install-help-modal" class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3" style="background:rgba(2,6,23,.75);height:100dvh" onclick="if(event.target===this)closeInstallHelp()">
+        <div class="bg-white rounded-3xl w-full max-w-sm p-5 shadow-2xl max-h-[90dvh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-base font-black text-slate-800">Install Anant Portal</h3>
+                <button onclick="closeInstallHelp()" class="text-slate-400 text-2xl leading-none px-1 cursor-pointer" aria-label="Close">&times;</button>
+            </div>
+            <div id="install-browser-warning" class="hidden rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 mb-3">
+                <p class="font-bold mb-1">Open this page in Safari first</p>
+                <p>This browser can't add apps to the iPhone home screen. Copy the link, open Safari, paste it, then follow the steps below.</p>
+                <button onclick="copyInstallLink(this)" class="mt-2 px-3 py-1.5 rounded-lg bg-amber-600 text-white font-bold text-[11px] cursor-pointer">Copy link</button>
+            </div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">iPhone / iPad</p>
+            <ol class="space-y-2.5 text-sm text-slate-700 mb-4">
+                <li class="flex gap-3"><span class="flex-none w-6 h-6 rounded-full bg-slate-800 text-white text-xs font-bold flex items-center justify-center">1</span><span>Open this page in <b>Safari</b>.</span></li>
+                <li class="flex gap-3"><span class="flex-none w-6 h-6 rounded-full bg-slate-800 text-white text-xs font-bold flex items-center justify-center">2</span><span>Tap the <b>Share</b> button <svg class="inline w-4 h-4 -mt-1" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M6 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1"/></svg> at the bottom (or top right on iPad).</span></li>
+                <li class="flex gap-3"><span class="flex-none w-6 h-6 rounded-full bg-slate-800 text-white text-xs font-bold flex items-center justify-center">3</span><span>Scroll down and tap <b>Add to Home Screen</b>.</span></li>
+                <li class="flex gap-3"><span class="flex-none w-6 h-6 rounded-full bg-slate-800 text-white text-xs font-bold flex items-center justify-center">4</span><span>Tap <b>Add</b>. The Anant Portal icon appears on your home screen.</span></li>
+            </ol>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Android</p>
+            <p class="text-sm text-slate-700 mb-4">In Chrome, tap the <b>&#8942;</b> menu, then <b>Install app</b> (or <b>Add to Home screen</b>).</p>
+            <p class="text-[11px] text-slate-400">iPhone has no download button for web apps, so Add to Home Screen is the only way. It needs the portal's website link, not a downloaded file.</p>
+        </div>
+    </div>
+
+    <div id="camera-modal" class="fixed inset-0 bg-slate-900/90 z-50 hidden flex items-center justify-center p-3 overflow-y-auto" style="height:100dvh;">
+        <div class="bg-white rounded-3xl p-4 w-full max-w-sm shadow-2xl relative flex flex-col gap-3 m-auto">
             <h3 class="text-sm font-black text-center text-slate-800 uppercase tracking-widest" id="camera-title">Take your photo</h3>
 
-            <div class="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 shadow-inner mx-auto" style="aspect-ratio:3/4; width:min(100%, calc((100dvh - 14rem) * 0.75));">
+            <div id="camera-frame" class="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 shadow-inner mx-auto" style="aspect-ratio:3/4; width:min(100%, calc((100dvh - 14rem) * 0.75));">
                 <video id="camera-stream" autoplay playsinline muted class="w-full h-full object-cover transform -scale-x-100"></video>
                 <div id="camera-laser" class="hidden absolute inset-x-0 h-1 bg-cyan-400 shadow-[0_0_15px_#22d3ee] animate-laser"></div>
 
@@ -1426,7 +1448,7 @@
                 const py = (e.clientY - rect.top) / rect.height - 0.5;
                 if (rafId) cancelAnimationFrame(rafId);
                 rafId = requestAnimationFrame(() => {
-                    el.style.transform = `rotateX(${(-py * MAX_TILT).toFixed(2)}deg) rotateY(${(px * MAX_TILT).toFixed(2)}deg)`;
+                    el.style.transform = `perspective(1600px) rotateX(${(-py * MAX_TILT).toFixed(2)}deg) rotateY(${(px * MAX_TILT).toFixed(2)}deg)`;
                 });
             }
             function reset() {
@@ -2349,13 +2371,30 @@
         function installDismissedRecently() {
             try { const t = parseInt(localStorage.getItem(INSTALL_DISMISS_KEY) || '0', 10); return t && (Date.now() - t) < 7 * 24 * 3600 * 1000; } catch (e) { return false; }
         }
+        function isIosDevice() {
+            return (/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) && !window.MSStream;
+        }
+        function isIosSafari() {
+            const ua = navigator.userAgent;
+            return isIosDevice() && /safari/i.test(ua) && !/crios|fxios|edgios|opios|gsa|fban|fbav|instagram|whatsapp|line\/|micromessenger|snapchat|twitter/i.test(ua);
+        }
+        function openInstallHelp() {
+            document.getElementById('install-browser-warning').classList.toggle('hidden', !isIosDevice() || isIosSafari());
+            document.getElementById('install-help-modal').classList.remove('hidden');
+        }
+        function closeInstallHelp() { document.getElementById('install-help-modal').classList.add('hidden'); }
+        function copyInstallLink(btn) {
+            const url = location.href.split('#')[0];
+            const done = () => { btn.innerText = 'Link copied'; };
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done).catch(() => prompt('Copy this link:', url));
+            else prompt('Copy this link:', url);
+        }
         function showInstallCard(iosMode) {
-            if (isStandalone() || installDismissedRecently()) return;
+            if (isStandalone()) return;
             const card = document.getElementById('install-card');
             if (!card) return;
             if (iosMode) {
-                document.getElementById('install-card-text').innerText = 'Tap Share, then "Add to Home Screen".';
-                document.getElementById('install-card-btn').classList.add('hidden');
+                document.getElementById('install-card-text').innerText = isIosSafari() ? 'Add it to your iPhone home screen in 3 taps.' : 'Open in Safari to add it to your home screen.';
             }
             card.classList.remove('hidden');
         }
@@ -2364,17 +2403,16 @@
             try { localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now())); } catch (e) {}
         }
         async function installPwa() {
-            if (!deferredInstallPrompt) return;
+            if (!deferredInstallPrompt) { openInstallHelp(); return; }
             deferredInstallPrompt.prompt();
             try { await deferredInstallPrompt.userChoice; } catch (e) {}
             deferredInstallPrompt = null;
             document.getElementById('install-card').classList.add('hidden');
         }
-        window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt = e; showInstallCard(false); });
+        window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt = e; showInstallCard(isIosDevice()); });
         window.addEventListener('appinstalled', () => { deferredInstallPrompt = null; const c = document.getElementById('install-card'); if (c) c.classList.add('hidden'); });
         window.addEventListener('load', () => {
-            const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-            if (isIos) showInstallCard(true);
+            showInstallCard(isIosDevice());
             if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
                 navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker not registered:', err));
             }
@@ -3638,6 +3676,21 @@
             return true;
         }
 
+        function fitCameraModal() {
+            const modal = document.getElementById('camera-modal');
+            const frame = document.getElementById('camera-frame');
+            if (!modal || !frame || modal.classList.contains('hidden')) return;
+            const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+            const vw = (window.visualViewport && window.visualViewport.width) || window.innerWidth;
+            const maxByHeight = Math.max(160, (vh - 190) * 0.75);
+            const maxByWidth = Math.min(vw - 56, 352);
+            frame.style.width = Math.floor(Math.min(maxByHeight, maxByWidth)) + 'px';
+            modal.style.height = vh + 'px';
+        }
+        window.addEventListener('resize', fitCameraModal);
+        window.addEventListener('orientationchange', () => setTimeout(fitCameraModal, 250));
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', fitCameraModal);
+
         async function openCamera(mode) {
             currentCameraMode = mode;
             const laser = document.getElementById('camera-laser');
@@ -3661,6 +3714,8 @@
 
             resetCameraPreview();
             document.getElementById('camera-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            fitCameraModal();
 
             const isIdentitySelfie = (mode === 'in' || mode === 'out' || mode === 'idcard');
 
@@ -3822,6 +3877,7 @@
 
         function closeCameraModal() {
             document.getElementById('camera-modal').classList.add('hidden');
+            document.body.style.overflow = '';
             document.getElementById('camera-preview').classList.add('hidden');
             document.getElementById('camera-preview-badge').classList.add('hidden');
             document.getElementById('camera-actions-review').classList.add('hidden');
