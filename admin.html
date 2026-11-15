@@ -13,8 +13,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @theme {
             /* copper accent scale, overrides tailwind's purple ramp so existing
@@ -130,33 +130,494 @@
             #main-admin-dashboard-layout > nav { grid-row: auto; position: static; flex-direction: row !important; overflow-x: auto; margin-bottom: 1.5rem; }
             #main-admin-dashboard-layout > nav button { width: auto; white-space: nowrap; }
         }
+
+        /* ===== navigation polish + phone layout ===== */
+        #main-admin-dashboard-layout > nav button { display: flex; align-items: center; gap: .7rem; }
+        #main-admin-dashboard-layout > nav button svg { width: 17px; height: 17px; flex: none; opacity: .8; }
+        #main-admin-dashboard-layout > nav button[class*="text-white"] svg { color: #E7C79E; opacity: 1; }
+        #main-admin-dashboard-layout > nav { backdrop-filter: none; }
+        /* ===== all sections: consistent polish ===== */
+        #main-admin-dashboard-layout section.panel { box-shadow: inset 0 3px 0 rgba(192,129,60,.85), 0 1px 2px rgba(16,24,40,.04), 0 10px 28px -16px rgba(16,24,40,.14) !important; }
+        #main-admin-dashboard-layout section.panel h2 { display: flex; align-items: center; gap: .65rem; color: var(--ink); letter-spacing: -.01em; }
+        #main-admin-dashboard-layout section.panel > div.mb-4:first-child { padding-bottom: .9rem; margin-bottom: 1.1rem !important; border-bottom: 1px solid var(--line); }
+        .sec-ico { flex: none; width: 34px; height: 34px; border-radius: 11px; display: inline-flex; align-items: center; justify-content: center; background: var(--copper-soft); color: var(--copper); border: 1px solid #F0DCC3; }
+        .sec-ico svg { width: 18px; height: 18px; }
+        #main-admin-dashboard-layout section.panel h2 + p { margin-top: .2rem; }
+
+        /* tables */
+        #main-admin-dashboard-layout table { border-collapse: separate; border-spacing: 0; width: 100%; }
+        #main-admin-dashboard-layout table thead th { font-size: 10px !important; letter-spacing: .07em; text-transform: uppercase; font-weight: 700 !important; border-bottom: 1px solid var(--line); }
+        #main-admin-dashboard-layout table tbody tr:nth-child(even) { background: #FAFBFC; }
+        #main-admin-dashboard-layout table tbody td { border-bottom: 1px solid #F0F2F5; }
+
+        /* controls */
+        #main-admin-dashboard-layout input:not([type="checkbox"]):not([type="radio"]), #main-admin-dashboard-layout select, #main-admin-dashboard-layout textarea { border-radius: 12px !important; }
+        #main-admin-dashboard-layout button[class*="bg-[#16212E]"]:not(nav button) { background: linear-gradient(135deg, #16212E, #2a3d54) !important; box-shadow: 0 6px 16px -8px rgba(22,33,46,.6); }
+        #main-admin-dashboard-layout button[class*="bg-emerald-600"] { background: linear-gradient(135deg, #059669, #10B981) !important; box-shadow: 0 6px 16px -8px rgba(5,150,105,.55); }
+        #main-admin-dashboard-layout button[class*="rounded-lg"]:not(nav button) { border-radius: 11px !important; }
+
+        /* cards inside sections */
+        #main-admin-dashboard-layout section .rounded-xl.border { transition: box-shadow .15s ease, transform .15s ease; }
+        #main-admin-dashboard-layout section .rounded-xl.border:hover { box-shadow: 0 10px 22px -14px rgba(16,24,40,.25); }
+        #company-overview-view, #company-overview-view > * { min-width: 0; max-width: 100%; }
+
+        /* ===== royal blue theme for the inside of the pages ===== */
+        [id^="menu-view-"] { --copper: #2f5a8f; --copper-soft: #fbeee0; --line: #DCE6FA; --ink: #152740; }
+        [id^="menu-view-"] section.panel { box-shadow: inset 0 3px 0 #2f5a8f, 0 1px 2px rgba(15,42,107,.05), 0 10px 28px -16px rgba(15,42,107,.18) !important; border-color: #DCE6FA !important; }
+        [id^="menu-view-"] section.panel h2 { color: #152740; }
+        [id^="menu-view-"] .sec-ico { background: #2a4263; color: #2f5a8f; border-color: #CFDDFB; }
+        [id^="menu-view-"] .inner-card { background: #F5F8FF; border-color: #DCE6FA; }
+        [id^="menu-view-"] section.panel > div.mb-4:first-child { border-bottom-color: #DCE6FA; }
+        [id^="menu-view-"] table thead th { background: #EEF3FF !important; color: #345a85 !important; border-bottom-color: #CFDDFB !important; }
+        [id^="menu-view-"] table tbody tr:nth-child(even) { background: #F7FAFF; }
+        [id^="menu-view-"] table tbody tr:hover { background: #2a4263; }
+        [id^="menu-view-"] table tbody td { border-bottom-color: #E8EEFB; }
+        [id^="menu-view-"] button[class*="bg-[#16212E]"] { background: linear-gradient(135deg, #1e3a5f, #2f5a8f) !important; box-shadow: 0 6px 16px -8px rgba(47,90,143,.6) !important; }
+        [id^="menu-view-"] button[class*="bg-[#16212E]"]:hover { background: linear-gradient(135deg, #345a85, #1e3a5f) !important; }
+        [id^="menu-view-"] [class*="border-l-[3px]"] { border-left-color: #2f5a8f !important; }
+        [id^="menu-view-"] .text-purple-900, [id^="menu-view-"] .text-purple-800, [id^="menu-view-"] .text-\[\#16212E\] { color: #1E3A8A !important; }
+        [id^="menu-view-"] input:focus, [id^="menu-view-"] select:focus, [id^="menu-view-"] textarea:focus { border-color: #2f5a8f !important; box-shadow: 0 0 0 3px rgba(47,90,143,.15) !important; }
+        [id^="menu-view-"] .bg-slate-50 { background: #F5F8FF; }
+        [id^="menu-view-"] .border-slate-200, [id^="menu-view-"] .border-gray-200 { border-color: #DCE6FA; }
+        [id^="menu-view-"] .rounded-xl.border:hover { box-shadow: 0 10px 22px -14px rgba(47,90,143,.35); }
+
+        /* ===== staff-portal look: dark navy canvas, hero header, white rounded cards ===== */
+        body {
+            background-color: #0f1c2e !important;
+            background-image:
+                radial-gradient(circle at 15% 0%, rgba(209,134,63,0.10), transparent 40%),
+                radial-gradient(circle at 100% 20%, rgba(52,90,133,0.35), transparent 45%),
+                linear-gradient(180deg, #0a1220 0%, #14243a 55%, #0f1c2e 100%) !important;
+            background-attachment: fixed !important;
+        }
+        footer { color: #64748b !important; border-top-color: rgba(255,255,255,.08) !important; }
+
+        /* header = navy hero */
+        #main-admin-dashboard-layout > header {
+            background: linear-gradient(135deg, #1e3a5f, #2f5a8f) !important;
+            border: 1px solid rgba(255,255,255,.12) !important;
+            border-radius: 24px !important;
+            box-shadow: 0 24px 50px -24px rgba(0,0,0,.6) !important;
+        }
+        #main-admin-dashboard-layout > header > div.absolute { background: linear-gradient(90deg, rgba(255,255,255,.35), rgba(255,255,255,0)) !important; height: 2px !important; }
+        #main-admin-dashboard-layout > header h1 { color: #fff !important; }
+        #main-admin-dashboard-layout > header p { color: #cbd5e1 !important; }
+        #main-admin-dashboard-layout > header #admin-identity-tag { color: #e0a262 !important; }
+        #header-logo-3d { box-shadow: 0 0 0 3px rgba(255,255,255,.2); border-radius: 14px !important; }
+        #main-admin-dashboard-layout > header button { border-radius: 999px !important; box-shadow: none !important; }
+        #main-admin-dashboard-layout > header button[class*="bg-slate-100"] { background: rgba(255,255,255,.14) !important; color: #fff !important; border: 1px solid rgba(255,255,255,.22); }
+        #main-admin-dashboard-layout > header button[class*="bg-[#16212E]"] { background: linear-gradient(135deg, #059669, #10B981) !important; color: #fff !important; box-shadow: 0 8px 18px -8px rgba(16,185,129,.6) !important; }
+        #main-admin-dashboard-layout > header button[class*="bg-rose-50"] { background: rgba(244,63,94,.18) !important; color: #fecdd3 !important; border: 1px solid rgba(244,63,94,.35); }
+
+        /* side menu = glass navy */
+        #main-admin-dashboard-layout > nav {
+            background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03)) !important;
+            border: 1px solid rgba(255,255,255,.10) !important; border-radius: 22px !important;
+            box-shadow: 0 24px 50px -28px rgba(0,0,0,.7) !important; backdrop-filter: blur(8px);
+        }
+        #main-admin-dashboard-layout > nav button { color: #b6c3d6 !important; }
+        #main-admin-dashboard-layout > nav button:hover { background: rgba(255,255,255,.08) !important; color: #fff !important; }
+        #main-admin-dashboard-layout > nav button[class*="text-white"] { background: linear-gradient(135deg, rgba(47,90,143,.35), rgba(47,90,143,.15)) !important; color: #fff !important; box-shadow: inset 0 0 0 1px rgba(147,180,221,.25) !important; }
+        #main-admin-dashboard-layout > nav button[class*="text-white"]::before { background: #d1863f !important; }
+        #main-admin-dashboard-layout > nav button[class*="text-white"] svg { color: #e0a262 !important; }
+
+        /* content cards = white, large radius, floating on the navy canvas */
+        #main-admin-dashboard-layout section.panel {
+            border-radius: 24px !important; border: 1px solid rgba(255,255,255,.7) !important;
+            box-shadow: 0 28px 55px -28px rgba(0,0,0,.65) !important; padding: 1.6rem !important;
+        }
+        #main-admin-dashboard-layout section.panel > div.mb-4:first-child { border-bottom-color: #E3EAF8 !important; }
+        #main-admin-dashboard-layout section.panel h2 { font-size: 1.15rem; }
+        [id^="menu-view-"] section.panel { box-shadow: 0 28px 55px -28px rgba(0,0,0,.65) !important; border-color: rgba(255,255,255,.7) !important; }
+        #main-admin-dashboard-layout .inner-card { border-radius: 18px; }
+        #punch-in-alerts-banner > * { border-radius: 16px; }
+
+        /* ===== deep royal-blue panels (no white) ===== */
+        [id^="menu-view-"] section.panel { background: linear-gradient(165deg, #1c3350 0%, #152740 55%, #10213a 100%) !important; border: 1px solid rgba(147,180,221,.20) !important; color: #E2E8F0; box-shadow: 0 30px 60px -30px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.06) !important; }
+        [id^="menu-view-"] section.panel h2 { color: #fff !important; }
+        [id^="menu-view-"] section.panel > div.mb-4:first-child { border-bottom-color: rgba(147,180,221,.18) !important; }
+        [id^="menu-view-"] .sec-ico { background: rgba(209,134,63,.16) !important; color: #e0a262 !important; border-color: rgba(147,180,221,.28) !important; }
+        [id^="menu-view-"] .inner-card { background: rgba(255,255,255,.05) !important; border-color: rgba(147,180,221,.18) !important; }
+        [id^="menu-view-"] .text-slate-900, [id^="menu-view-"] .text-slate-800, [id^="menu-view-"] .text-slate-700, [id^="menu-view-"] .text-gray-900, [id^="menu-view-"] .text-gray-800, [id^="menu-view-"] .text-gray-700, [id^="menu-view-"] .text-black, [id^="menu-view-"] .text-\[\#16212E\], [id^="menu-view-"] .text-\[\#152740\] { color: #F1F5F9 !important; }
+        [id^="menu-view-"] .text-slate-600, [id^="menu-view-"] .text-slate-500, [id^="menu-view-"] .text-gray-600, [id^="menu-view-"] .text-gray-500 { color: #CBD5E1 !important; }
+        [id^="menu-view-"] .text-slate-400, [id^="menu-view-"] .text-gray-400, [id^="menu-view-"] .text-slate-300 { color: #94A3B8 !important; }
+        [id^="menu-view-"] .text-purple-900, [id^="menu-view-"] .text-purple-800, [id^="menu-view-"] .text-purple-700, [id^="menu-view-"] .text-\[\#345a85\] { color: #d5e0ef !important; }
+        [id^="menu-view-"] .bg-white, [id^="menu-view-"] .bg-white\/80, [id^="menu-view-"] .bg-white\/90 { background: rgba(255,255,255,.06) !important; }
+        [id^="menu-view-"] .bg-slate-50, [id^="menu-view-"] .bg-gray-50, [id^="menu-view-"] .bg-slate-50\/50, [id^="menu-view-"] .bg-slate-50\/60 { background: rgba(255,255,255,.05) !important; }
+        [id^="menu-view-"] .bg-slate-100, [id^="menu-view-"] .bg-gray-100, [id^="menu-view-"] .bg-slate-200 { background: rgba(255,255,255,.10) !important; }
+        [id^="menu-view-"] [class*="hover:bg-slate-"]:hover, [id^="menu-view-"] [class*="hover:bg-gray-"]:hover { background: rgba(255,255,255,.14) !important; }
+        [id^="menu-view-"] .border-slate-100, [id^="menu-view-"] .border-slate-200, [id^="menu-view-"] .border-slate-300, [id^="menu-view-"] .border-gray-100, [id^="menu-view-"] .border-gray-200, [id^="menu-view-"] .border-gray-300, [id^="menu-view-"] .border-b, [id^="menu-view-"] .border-t { border-color: rgba(147,180,221,.18) !important; }
+        [id^="menu-view-"] [class*="divide-"] > * { border-color: rgba(147,180,221,.14) !important; }
+        [id^="menu-view-"] [class*="border-[#EDF2FC]"], [id^="menu-view-"] [class*="border-[#CFDDFB]"] { border-color: rgba(147,180,221,.16) !important; }
+        [id^="menu-view-"] [style*="border:1px solid #DCE6FA"], [id^="menu-view-"] [style*="border:1px solid #E4E7EC"] { border-color: rgba(147,180,221,.18) !important; }
+        [id^="menu-view-"] [style*="background:#fff"], [id^="menu-view-"] [style*="background: #fff"] { background: rgba(255,255,255,.05) !important; }
+        [id^="menu-view-"] [style*="background:#EDF2FC"] { background: rgba(255,255,255,.12) !important; }
+        [id^="menu-view-"] input:not([type="checkbox"]):not([type="radio"]), [id^="menu-view-"] select, [id^="menu-view-"] textarea { background: rgba(255,255,255,.07) !important; color: #F1F5F9 !important; border-color: rgba(147,180,221,.28) !important; color-scheme: dark; }
+        [id^="menu-view-"] input::placeholder, [id^="menu-view-"] textarea::placeholder { color: #94A3B8 !important; }
+        [id^="menu-view-"] select option { background: #152740; color: #F1F5F9; }
+        [id^="menu-view-"] table thead th { background: rgba(47,90,143,.28) !important; color: #d5e0ef !important; border-bottom-color: rgba(147,180,221,.25) !important; }
+        [id^="menu-view-"] table tbody tr:nth-child(even) { background: rgba(255,255,255,.03) !important; }
+        [id^="menu-view-"] table tbody tr:hover { background: rgba(47,90,143,.20) !important; }
+        [id^="menu-view-"] table tbody td { border-bottom-color: rgba(147,180,221,.10) !important; color: inherit; }
+        [id^="menu-view-"] .rounded-xl.border:hover { box-shadow: 0 12px 26px -14px rgba(0,0,0,.6) !important; }
+        [id^="menu-view-"] .bg-emerald-50, [id^="menu-view-"] .bg-emerald-100, [id^="menu-view-"] .bg-emerald-50\/60, [id^="menu-view-"] .bg-emerald-50\/50 { background: rgba(16,185,129,.16) !important; }
+        [id^="menu-view-"] .text-emerald-500, [id^="menu-view-"] .text-emerald-600, [id^="menu-view-"] .text-emerald-700, [id^="menu-view-"] .text-emerald-800, [id^="menu-view-"] .text-emerald-900 { color: #6EE7B7 !important; }
+        [id^="menu-view-"] .border-emerald-100, [id^="menu-view-"] .border-emerald-200, [id^="menu-view-"] .border-emerald-300 { border-color: rgba(16,185,129,.38) !important; }
+        [id^="menu-view-"] .bg-green-50, [id^="menu-view-"] .bg-green-100, [id^="menu-view-"] .bg-green-50\/60, [id^="menu-view-"] .bg-green-50\/50 { background: rgba(34,197,94,.16) !important; }
+        [id^="menu-view-"] .text-green-500, [id^="menu-view-"] .text-green-600, [id^="menu-view-"] .text-green-700, [id^="menu-view-"] .text-green-800, [id^="menu-view-"] .text-green-900 { color: #86EFAC !important; }
+        [id^="menu-view-"] .border-green-100, [id^="menu-view-"] .border-green-200, [id^="menu-view-"] .border-green-300 { border-color: rgba(34,197,94,.38) !important; }
+        [id^="menu-view-"] .bg-amber-50, [id^="menu-view-"] .bg-amber-100, [id^="menu-view-"] .bg-amber-50\/60, [id^="menu-view-"] .bg-amber-50\/50 { background: rgba(245,158,11,.16) !important; }
+        [id^="menu-view-"] .text-amber-500, [id^="menu-view-"] .text-amber-600, [id^="menu-view-"] .text-amber-700, [id^="menu-view-"] .text-amber-800, [id^="menu-view-"] .text-amber-900 { color: #FCD34D !important; }
+        [id^="menu-view-"] .border-amber-100, [id^="menu-view-"] .border-amber-200, [id^="menu-view-"] .border-amber-300 { border-color: rgba(245,158,11,.38) !important; }
+        [id^="menu-view-"] .bg-yellow-50, [id^="menu-view-"] .bg-yellow-100, [id^="menu-view-"] .bg-yellow-50\/60, [id^="menu-view-"] .bg-yellow-50\/50 { background: rgba(234,179,8,.16) !important; }
+        [id^="menu-view-"] .text-yellow-500, [id^="menu-view-"] .text-yellow-600, [id^="menu-view-"] .text-yellow-700, [id^="menu-view-"] .text-yellow-800, [id^="menu-view-"] .text-yellow-900 { color: #FDE047 !important; }
+        [id^="menu-view-"] .border-yellow-100, [id^="menu-view-"] .border-yellow-200, [id^="menu-view-"] .border-yellow-300 { border-color: rgba(234,179,8,.38) !important; }
+        [id^="menu-view-"] .bg-orange-50, [id^="menu-view-"] .bg-orange-100, [id^="menu-view-"] .bg-orange-50\/60, [id^="menu-view-"] .bg-orange-50\/50 { background: rgba(249,115,22,.16) !important; }
+        [id^="menu-view-"] .text-orange-500, [id^="menu-view-"] .text-orange-600, [id^="menu-view-"] .text-orange-700, [id^="menu-view-"] .text-orange-800, [id^="menu-view-"] .text-orange-900 { color: #FDBA74 !important; }
+        [id^="menu-view-"] .border-orange-100, [id^="menu-view-"] .border-orange-200, [id^="menu-view-"] .border-orange-300 { border-color: rgba(249,115,22,.38) !important; }
+        [id^="menu-view-"] .bg-rose-50, [id^="menu-view-"] .bg-rose-100, [id^="menu-view-"] .bg-rose-50\/60, [id^="menu-view-"] .bg-rose-50\/50 { background: rgba(244,63,94,.16) !important; }
+        [id^="menu-view-"] .text-rose-500, [id^="menu-view-"] .text-rose-600, [id^="menu-view-"] .text-rose-700, [id^="menu-view-"] .text-rose-800, [id^="menu-view-"] .text-rose-900 { color: #FDA4AF !important; }
+        [id^="menu-view-"] .border-rose-100, [id^="menu-view-"] .border-rose-200, [id^="menu-view-"] .border-rose-300 { border-color: rgba(244,63,94,.38) !important; }
+        [id^="menu-view-"] .bg-red-50, [id^="menu-view-"] .bg-red-100, [id^="menu-view-"] .bg-red-50\/60, [id^="menu-view-"] .bg-red-50\/50 { background: rgba(239,68,68,.16) !important; }
+        [id^="menu-view-"] .text-red-500, [id^="menu-view-"] .text-red-600, [id^="menu-view-"] .text-red-700, [id^="menu-view-"] .text-red-800, [id^="menu-view-"] .text-red-900 { color: #FCA5A5 !important; }
+        [id^="menu-view-"] .border-red-100, [id^="menu-view-"] .border-red-200, [id^="menu-view-"] .border-red-300 { border-color: rgba(239,68,68,.38) !important; }
+        [id^="menu-view-"] .bg-blue-50, [id^="menu-view-"] .bg-blue-100, [id^="menu-view-"] .bg-blue-50\/60, [id^="menu-view-"] .bg-blue-50\/50 { background: rgba(59,130,246,.16) !important; }
+        [id^="menu-view-"] .text-blue-500, [id^="menu-view-"] .text-blue-600, [id^="menu-view-"] .text-blue-700, [id^="menu-view-"] .text-blue-800, [id^="menu-view-"] .text-blue-900 { color: #e0a262 !important; }
+        [id^="menu-view-"] .border-blue-100, [id^="menu-view-"] .border-blue-200, [id^="menu-view-"] .border-blue-300 { border-color: rgba(59,130,246,.38) !important; }
+        [id^="menu-view-"] .bg-sky-50, [id^="menu-view-"] .bg-sky-100, [id^="menu-view-"] .bg-sky-50\/60, [id^="menu-view-"] .bg-sky-50\/50 { background: rgba(14,165,233,.16) !important; }
+        [id^="menu-view-"] .text-sky-500, [id^="menu-view-"] .text-sky-600, [id^="menu-view-"] .text-sky-700, [id^="menu-view-"] .text-sky-800, [id^="menu-view-"] .text-sky-900 { color: #7DD3FC !important; }
+        [id^="menu-view-"] .border-sky-100, [id^="menu-view-"] .border-sky-200, [id^="menu-view-"] .border-sky-300 { border-color: rgba(14,165,233,.38) !important; }
+        [id^="menu-view-"] .bg-indigo-50, [id^="menu-view-"] .bg-indigo-100, [id^="menu-view-"] .bg-indigo-50\/60, [id^="menu-view-"] .bg-indigo-50\/50 { background: rgba(99,102,241,.16) !important; }
+        [id^="menu-view-"] .text-indigo-500, [id^="menu-view-"] .text-indigo-600, [id^="menu-view-"] .text-indigo-700, [id^="menu-view-"] .text-indigo-800, [id^="menu-view-"] .text-indigo-900 { color: #A5B4FC !important; }
+        [id^="menu-view-"] .border-indigo-100, [id^="menu-view-"] .border-indigo-200, [id^="menu-view-"] .border-indigo-300 { border-color: rgba(99,102,241,.38) !important; }
+        [id^="menu-view-"] .bg-purple-50, [id^="menu-view-"] .bg-purple-100, [id^="menu-view-"] .bg-purple-50\/60, [id^="menu-view-"] .bg-purple-50\/50 { background: rgba(168,85,247,.16) !important; }
+        [id^="menu-view-"] .text-purple-500, [id^="menu-view-"] .text-purple-600, [id^="menu-view-"] .text-purple-700, [id^="menu-view-"] .text-purple-800, [id^="menu-view-"] .text-purple-900 { color: #D8B4FE !important; }
+        [id^="menu-view-"] .border-purple-100, [id^="menu-view-"] .border-purple-200, [id^="menu-view-"] .border-purple-300 { border-color: rgba(168,85,247,.38) !important; }
+        [id^="menu-view-"] .bg-violet-50, [id^="menu-view-"] .bg-violet-100, [id^="menu-view-"] .bg-violet-50\/60, [id^="menu-view-"] .bg-violet-50\/50 { background: rgba(139,92,246,.16) !important; }
+        [id^="menu-view-"] .text-violet-500, [id^="menu-view-"] .text-violet-600, [id^="menu-view-"] .text-violet-700, [id^="menu-view-"] .text-violet-800, [id^="menu-view-"] .text-violet-900 { color: #C4B5FD !important; }
+        [id^="menu-view-"] .border-violet-100, [id^="menu-view-"] .border-violet-200, [id^="menu-view-"] .border-violet-300 { border-color: rgba(139,92,246,.38) !important; }
+        [id^="menu-view-"] .bg-teal-50, [id^="menu-view-"] .bg-teal-100, [id^="menu-view-"] .bg-teal-50\/60, [id^="menu-view-"] .bg-teal-50\/50 { background: rgba(20,184,166,.16) !important; }
+        [id^="menu-view-"] .text-teal-500, [id^="menu-view-"] .text-teal-600, [id^="menu-view-"] .text-teal-700, [id^="menu-view-"] .text-teal-800, [id^="menu-view-"] .text-teal-900 { color: #5EEAD4 !important; }
+        [id^="menu-view-"] .border-teal-100, [id^="menu-view-"] .border-teal-200, [id^="menu-view-"] .border-teal-300 { border-color: rgba(20,184,166,.38) !important; }
+        [id^="menu-view-"] .bg-cyan-50, [id^="menu-view-"] .bg-cyan-100, [id^="menu-view-"] .bg-cyan-50\/60, [id^="menu-view-"] .bg-cyan-50\/50 { background: rgba(6,182,212,.16) !important; }
+        [id^="menu-view-"] .text-cyan-500, [id^="menu-view-"] .text-cyan-600, [id^="menu-view-"] .text-cyan-700, [id^="menu-view-"] .text-cyan-800, [id^="menu-view-"] .text-cyan-900 { color: #67E8F9 !important; }
+        [id^="menu-view-"] .border-cyan-100, [id^="menu-view-"] .border-cyan-200, [id^="menu-view-"] .border-cyan-300 { border-color: rgba(6,182,212,.38) !important; }
+
+        /* ===== Employees desk ===== */
+        .emp-desk .emp-grid { display: grid; grid-template-columns: minmax(300px, 390px) 1fr; gap: 1.5rem; align-items: start; }
+        .emp-team { position: sticky; top: 1rem; background: rgba(255,255,255,.04); border: 1px solid rgba(147,180,221,.16); border-radius: 20px; padding: 1rem; }
+        .emp-team-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+        .emp-team-top h3 { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #d5e0ef; }
+        .emp-team-top span { font-size: 11px; color: #94A3B8; }
+        #emp-search { width: 100%; padding: .6rem .8rem; font-size: 13px; margin-bottom: .75rem; outline: none; }
+        #worker-selection-list { max-height: 640px !important; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: .6rem; }
+        .emp-row { background: rgba(255,255,255,.05); border: 1px solid rgba(147,180,221,.14); border-radius: 16px; padding: .8rem .85rem; cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
+        .emp-row:hover { background: rgba(255,255,255,.09); border-color: rgba(147,180,221,.35); }
+        .emp-row.is-selected { background: rgba(47,90,143,.28); border-color: #d1863f; box-shadow: 0 0 0 3px rgba(209,134,63,.18); }
+        .emp-row-top { display: flex; align-items: center; gap: .65rem; }
+        .emp-avatar { flex: none; width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #2f5a8f, #345a85); }
+        .emp-who { min-width: 0; flex: 1; }
+        .emp-who h4 { font-size: 13px; font-weight: 700; color: #F1F5F9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .emp-who p { font-size: 11px; color: #94A3B8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .emp-role { flex: none; font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #d5e0ef; background: rgba(209,134,63,.14); border: 1px solid rgba(147,180,221,.25); padding: 3px 7px; border-radius: 999px; }
+        .emp-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; margin-top: .7rem; padding-top: .65rem; border-top: 1px dashed rgba(147,180,221,.18); }
+        .emp-stats span { display: block; font-size: 10px; color: #94A3B8; }
+        .emp-stats strong { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .c-amber { color: #FCD34D; } .c-rose { color: #FDA4AF; } .c-green { color: #6EE7B7; }
+        .emp-tabs { display: flex; flex-wrap: wrap; gap: .4rem; padding: .35rem; background: rgba(255,255,255,.05); border: 1px solid rgba(147,180,221,.14); border-radius: 16px; margin-bottom: 1rem; }
+        .emp-tab { flex: 1 1 auto; padding: .6rem .9rem; border-radius: 12px; font-size: 12px; font-weight: 600; color: #B6C3D6; cursor: pointer; transition: background .15s, color .15s; border: 0; background: transparent; white-space: nowrap; }
+        .emp-tab:hover { color: #fff; background: rgba(255,255,255,.08); }
+        .emp-tab.on { color: #fff; background: linear-gradient(135deg, #1e3a5f, #2f5a8f); box-shadow: 0 8px 18px -10px rgba(47,90,143,.9); }
+        .emp-panels { background: rgba(255,255,255,.04); border: 1px solid rgba(147,180,221,.16); border-radius: 20px; padding: 1.25rem 1.35rem; }
+        .emp-form { display: none; }
+        .emp-form.on { display: block; }
+        .emp-form > * + * { margin-top: .85rem; }
+        .emp-form h3 { font-size: 15px !important; font-weight: 700 !important; letter-spacing: 0 !important; text-transform: none !important; color: #F1F5F9 !important; }
+        .emp-form svg { color: #e0a262 !important; width: 18px !important; height: 18px !important; }
+        .emp-form label { display: block; font-size: 11px !important; font-weight: 600 !important; letter-spacing: .04em; text-transform: uppercase; color: #9FB4D9 !important; margin-bottom: .35rem !important; }
+        .emp-form p, .emp-form [class*="text-[#"] { color: #94A3B8; }
+        .emp-form input:not([type="checkbox"]), .emp-form select { padding: .65rem .8rem !important; font-size: 13px !important; border-radius: 12px !important; }
+        .emp-form input[type="checkbox"] { accent-color: #2f5a8f !important; }
+        .emp-form label.flex { text-transform: none; letter-spacing: 0; font-weight: 500 !important; font-size: 12px !important; color: #CBD5E1 !important; }
+        .emp-form [class*="border-t"] { border-color: rgba(147,180,221,.18) !important; }
+        .emp-form button { padding: .7rem 1rem !important; font-size: 12px !important; font-weight: 700 !important; letter-spacing: .02em !important; text-transform: none !important; border-radius: 12px !important; }
+        .emp-form button[class*="bg-["] { background: linear-gradient(135deg, #1e3a5f, #2f5a8f) !important; color: #fff !important; box-shadow: 0 8px 18px -10px rgba(47,90,143,.9); border: 0 !important; }
+        .emp-form button[class*="bg-white"] { background: transparent !important; color: #d5e0ef !important; border: 1px solid rgba(147,180,221,.4) !important; box-shadow: none !important; }
+        .emp-form button[class*="bg-[#E1E7EB]"] { background: rgba(255,255,255,.1) !important; color: #E2E8F0 !important; box-shadow: none !important; }
+        .emp-form button:hover { filter: brightness(1.12); }
+        #emp-edit-slot { margin-top: 1.25rem; }
+        #balance-adjustment-card { border-radius: 20px !important; padding: 1.25rem 1.35rem !important; }
+        #balance-adjustment-card h3 { font-size: 15px !important; text-transform: none !important; letter-spacing: 0 !important; color: #fff !important; }
+
+        /* ===== page hero strips + segmented controls ===== */
+        .hero-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .8rem; margin-bottom: 1.25rem; }
+        .hero-tile { position: relative; border-radius: 18px; padding: .9rem 1rem .95rem 1.15rem; background: linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border: 1px solid rgba(147,180,221,.16); overflow: hidden; }
+        .hero-tile::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 4px 4px 0; background: var(--tone, #d1863f); }
+        .hero-tile span { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: #9FB4D9; }
+        .hero-tile strong { display: block; margin-top: .3rem; font-size: 1.55rem; line-height: 1.1; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+        .hero-tile em { display: block; margin-top: .2rem; font-size: 11px; font-style: normal; color: #94A3B8; }
+        #tab-Pending, #tab-Approved, #tab-Active, #tab-All { padding: .5rem .9rem !important; border-radius: 10px !important; color: #B6C3D6 !important; font-size: 11px !important; }
+        #tab-Pending.bg-white, #tab-Approved.bg-white, #tab-Active.bg-white, #tab-All.bg-white { background: linear-gradient(135deg, #1e3a5f, #2f5a8f) !important; color: #fff !important; box-shadow: 0 8px 18px -10px rgba(47,90,143,.9) !important; }
+        [id^="menu-view-"] .bg-slate-100.rounded-lg.p-1 { background: rgba(255,255,255,.06) !important; border: 1px solid rgba(147,180,221,.16); border-radius: 14px !important; padding: .3rem !important; }
+        [id^="menu-view-"] section .flex.gap-2 > input[type="text"], [id^="menu-view-"] #shift-search-input { padding: .7rem .9rem !important; font-size: 13px !important; }
+        [id^="menu-view-"] button.bg-slate-100, [id^="menu-view-"] button.bg-white.border { border: 1px solid rgba(147,180,221,.22) !important; color: #E2E8F0 !important; }
+
+        /* ===== monthly statement ===== */
+        #stmt-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: 1.1rem; }
+        .stmt-view-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #9FB4D9; margin-right: .25rem; }
+        .stmt-chip { padding: .5rem .95rem; border-radius: 999px; font-size: 12px; font-weight: 600; color: #B6C3D6; background: rgba(255,255,255,.06); border: 1px solid rgba(147,180,221,.18); cursor: pointer; transition: all .15s; }
+        .stmt-chip:hover { color: #fff; background: rgba(255,255,255,.1); }
+        .stmt-chip.on { color: #fff; background: linear-gradient(135deg, #1e3a5f, #2f5a8f); border-color: transparent; box-shadow: 0 8px 18px -10px rgba(47,90,143,.9); }
+        .stmt-card { background: rgba(255,255,255,.04); border: 1px solid rgba(147,180,221,.16); border-radius: 22px; padding: 1.4rem; }
+        .stmt-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; }
+        .stmt-eyebrow { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: #9FB4D9; font-weight: 600; }
+        .stmt-head h3 { font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: -.01em; }
+        .stmt-pdf { padding: .5rem .95rem; border-radius: 12px; font-size: 12px; font-weight: 700; color: #d5e0ef; border: 1px solid rgba(147,180,221,.4); background: transparent; cursor: pointer; }
+        .stmt-pdf:hover { background: rgba(47,90,143,.25); }
+        .stmt-total { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.1rem 1.25rem; border-radius: 18px; background: linear-gradient(135deg, #0f1c2e, #1e3a5f); border: 1px solid rgba(147,180,221,.25); }
+        .stmt-total p { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #d5e0ef; }
+        .stmt-total small { font-size: 11px; color: #93B4E8; }
+        .stmt-total strong { font-size: 1.8rem; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+        .stmt-split { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7rem; margin: .8rem 0 1.2rem; }
+        .stmt-split div, .stmt-mini { background: rgba(255,255,255,.05); border: 1px solid rgba(147,180,221,.14); border-radius: 14px; padding: .65rem .8rem; }
+        .stmt-split span, .stmt-mini span { display: block; font-size: 10.5px; color: #94A3B8; text-transform: uppercase; letter-spacing: .06em; }
+        .stmt-split strong, .stmt-mini strong { display: block; margin-top: .15rem; font-size: 1.05rem; font-weight: 700; color: #F1F5F9; font-variant-numeric: tabular-nums; }
+        .stmt-sub { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #9FB4D9; margin-bottom: .6rem; }
+        .stmt-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: .6rem; }
+        .stmt-row { background: rgba(255,255,255,.04); border: 1px solid rgba(147,180,221,.14); border-radius: 14px; overflow: hidden; }
+        .stmt-row-head { display: flex; align-items: center; gap: .7rem; padding: .7rem .85rem; cursor: pointer; }
+        .stmt-row-head:hover { background: rgba(255,255,255,.05); }
+        .stmt-who { flex: 1; min-width: 0; }
+        .stmt-who strong { display: block; font-size: 13px; color: #F1F5F9; }
+        .stmt-who span { display: block; font-size: 11px; color: #94A3B8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .stmt-shifts { font-size: 11px; font-weight: 700; color: #d5e0ef; background: rgba(209,134,63,.14); border: 1px solid rgba(147,180,221,.25); padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+        .stmt-row .chevron-icon { color: #e0a262; transition: transform .15s; }
+        .stmt-detail { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; padding: 0 .85rem .85rem; }
+        .stmt-detail.hidden { display: none; }
+        .stmt-mini strong { font-size: .95rem; }
+
+        /* ===== shift logs ===== */
+        .month-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: .7rem; }
+        .month-card { text-align: left; background: rgba(255,255,255,.05); border: 1px solid rgba(147,180,221,.16); border-radius: 16px; padding: .8rem .9rem; cursor: pointer; transition: border-color .15s, background .15s, transform .15s; }
+        .month-card:hover { background: rgba(255,255,255,.09); border-color: #d1863f; transform: translateY(-1px); }
+        .month-card-top { display: flex; justify-content: space-between; align-items: baseline; }
+        .month-card-top strong { font-size: 14px; color: #fff; }
+        .month-card-top span { font-size: 11px; color: #94A3B8; }
+        .month-bar { display: flex; height: 7px; border-radius: 99px; overflow: hidden; background: rgba(255,255,255,.1); margin: .6rem 0 .5rem; }
+        .month-bar i { display: block; height: 100%; }
+        .month-legend { display: flex; flex-wrap: wrap; gap: .2rem .7rem; font-size: 10.5px; font-weight: 600; }
+        .shift-card { --tone: #FBBF24; position: relative; background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.03)); border: 1px solid rgba(147,180,221,.16); border-radius: 20px; padding: 1.25rem 1.35rem 1.25rem 1.6rem !important; overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+        .shift-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--tone); }
+        .shift-card:hover { border-color: rgba(147,180,221,.38); box-shadow: 0 18px 36px -22px rgba(0,0,0,.7); }
+        .shift-card[data-status="Approved"] { --tone: #34D399; } .shift-card[data-status="Active"] { --tone: #d1863f; }
+        .shift-card[data-status="Rejected"] { --tone: #FB7185; } .shift-card[data-status="Needs Correction"] { --tone: #FB923C; } .shift-card[data-status="N/A"] { --tone: #A78BFA; }
+        .shift-card strong.text-sm { font-size: 15px; }
+        .shift-card img { border-radius: 14px !important; border: 1px solid rgba(147,180,221,.25) !important; width: 76px !important; height: 76px !important; object-fit: cover; }
+        .shift-card .grid > .space-y-1\.5 { background: rgba(255,255,255,.05) !important; border: 1px solid rgba(147,180,221,.16) !important; border-radius: 16px !important; padding: .85rem !important; }
+        .shift-card [class*="px-2"][class*="uppercase"] { border-radius: 999px !important; padding: 4px 10px !important; }
+        #shift-search-input { padding-left: 2.4rem !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: .8rem center; background-size: 16px; }
+        #menu-view-shifts .mb-4.border, #menu-view-shifts .mb-4.rounded-xl { border-radius: 18px !important; background: rgba(255,255,255,.035); }
+        #menu-view-shifts .mb-4.rounded-xl > .px-3, #menu-view-shifts .mb-4.rounded-xl > button { padding: .9rem 1.1rem !important; background: rgba(255,255,255,.05) !important; }
+        #menu-view-shifts .mb-4.rounded-xl .text-xs.font-bold { font-size: 14px !important; font-weight: 700 !important; letter-spacing: .01em; color: #F1F5F9 !important; }
+
+        /* ===== staff-portal background network ===== */
+        #node-network-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 1.4s ease; }
+        #node-network-canvas.is-ready { opacity: 1; }
+        #main-admin-dashboard-layout { position: relative; z-index: 1; }
+        @media (prefers-reduced-motion: reduce) { #node-network-canvas { display: none; } }
+
+        /* ===== staff palette: emerald primary buttons, navy glass, copper accents ===== */
+        [id^="menu-view-"] button[class*="bg-[#16212E]"], .emp-form button[class*="bg-["], .stmt-total { background: linear-gradient(135deg, #059669, #10B981) !important; box-shadow: 0 8px 18px -10px rgba(16,185,129,.7) !important; }
+        .stmt-total { border-color: rgba(52,211,153,.35) !important; }
+        .stmt-total p, .stmt-total small { color: #d1fae5 !important; }
+        .emp-tab.on, .stmt-chip.on, #tab-Pending.bg-white, #tab-Approved.bg-white, #tab-Active.bg-white, #tab-All.bg-white { background: linear-gradient(135deg, #2f5a8f, #345a85) !important; box-shadow: inset 0 -2px 0 #d1863f, 0 8px 18px -10px rgba(0,0,0,.6) !important; color: #fff !important; }
+        .hero-tile::before, .emp-row.is-selected { }
+        [id^="menu-view-"] section.panel { background: linear-gradient(165deg, #1c3350 0%, #152740 55%, #10213a 100%) !important; border-color: rgba(147,180,221,.20) !important; }
+        #main-admin-dashboard-layout > header { background: linear-gradient(135deg, #1e3a5f, #2f5a8f) !important; }
+        #main-admin-dashboard-layout > nav button[class*="text-white"] { background: linear-gradient(135deg, rgba(209,134,63,.22), rgba(209,134,63,.08)) !important; box-shadow: inset 0 0 0 1px rgba(209,134,63,.35) !important; }
+        #main-admin-dashboard-layout > nav button[class*="text-white"]::before { background: #d1863f !important; }
+        #main-admin-dashboard-layout > nav button[class*="text-white"] svg { color: #e0a262 !important; }
+
+        /* ===== login mascot (same as staff portal) ===== */
+        #login-mascot {
+            animation: mascot-idle-bob 3.6s ease-in-out infinite;
+            transform-style: preserve-3d;
+        }
+        @keyframes mascot-idle-bob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        #login-mascot .mascot-pupil {
+            transition: transform 0.15s ease, opacity 0.2s ease;
+        }
+        #login-mascot .mascot-eye-closed { opacity: 0; transition: opacity 0.2s ease; }
+        #login-mascot .mascot-eyes { transition: transform 0.08s ease; transform-box: fill-box; transform-origin: center; }
+        #login-mascot.is-blinking .mascot-eyes { transform: scaleY(0.12); }
+        #login-mascot .mascot-arm-left,
+        #login-mascot .mascot-arm-right {
+            transform-box: fill-box;
+            transform-origin: 0% 0%;
+            transition: transform 0.35s cubic-bezier(.34,1.56,.64,1);
+        }
+        #login-mascot .mascot-arm-left { transform: rotate(-20deg); }
+        #login-mascot .mascot-arm-right { transform: rotate(20deg); }
+        #login-mascot.is-shy .mascot-arm-left { transform: rotate(-160deg); }
+        #login-mascot.is-shy .mascot-arm-right { transform: rotate(160deg); }
+        #login-mascot.is-shy .mascot-pupil { opacity: 0; }
+        #login-mascot.is-shy .mascot-eye-closed { opacity: 1; }
+        #login-mascot .mascot-light { animation: mascot-light-pulse 2.4s ease-in-out infinite; }
+        @keyframes mascot-light-pulse {
+            0%, 100% { opacity: 0.55; } 50% { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #login-mascot, #login-mascot .mascot-light { animation: none; }
+        }
+
+        /* ===== payment status ===== */
+        #payment-status-view { display: block !important; }
+        .pay-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
+        .pay-card { background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.03)); border: 1px solid rgba(147,180,221,.16); border-radius: 20px; padding: 1.15rem 1.2rem; display: flex; flex-direction: column; gap: .9rem; position: relative; overflow: hidden; }
+        .pay-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #FBBF24; }
+        .pay-card.is-paid::before { background: #34D399; }
+        .pay-card.is-owed::before { background: #FB7185; }
+        .pay-top { display: flex; align-items: center; gap: .7rem; }
+        .pay-who { flex: 1; min-width: 0; }
+        .pay-who strong { display: block; font-size: 14px; color: #F1F5F9; }
+        .pay-who span { font-size: 11px; color: #94A3B8; text-transform: uppercase; letter-spacing: .06em; }
+        .pay-pill { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; }
+        .pay-pill.paid { color: #6EE7B7; background: rgba(16,185,129,.16); border: 1px solid rgba(52,211,153,.35); }
+        .pay-pill.unpaid { color: #FCD34D; background: rgba(245,158,11,.14); border: 1px solid rgba(251,191,36,.35); }
+        .pay-amount { display: flex; align-items: flex-end; justify-content: space-between; gap: .8rem; padding: .85rem 1rem; border-radius: 16px; background: rgba(0,0,0,.18); border: 1px solid rgba(147,180,221,.12); }
+        .pay-amount span { display: block; font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase; color: #9FB4D9; font-weight: 600; }
+        .pay-amount strong { display: block; font-size: 1.7rem; line-height: 1.1; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; margin-top: .15rem; }
+        .pay-amount strong.owed { color: #FDA4AF; }
+        .pay-amount em { display: block; font-style: normal; font-size: 11px; color: #6EE7B7; margin-top: .25rem; }
+        .pay-ledger { display: flex; flex-direction: column; }
+        .pay-line { display: flex; justify-content: space-between; gap: 1rem; padding: .45rem 0; border-bottom: 1px dashed rgba(147,180,221,.16); font-size: 12.5px; color: #CBD5E1; }
+        .pay-line small { display: block; font-size: 10.5px; color: #94A3B8; }
+        .pay-line b { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; color: #F1F5F9; }
+        .pay-bank { font-size: 11.5px; padding: .7rem .85rem; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid rgba(147,180,221,.12); }
+        .copy-chip { padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; color: #e0a262; background: rgba(209,134,63,.12); border: 1px solid rgba(209,134,63,.35); cursor: pointer; white-space: nowrap; }
+        .copy-chip:hover { background: rgba(209,134,63,.22); }
+        .pay-actions { display: flex; gap: .5rem; justify-content: flex-end; margin-top: auto; }
+        .pay-btn { padding: .6rem 1.1rem; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid transparent; transition: filter .15s; }
+        .pay-btn.main { color: #fff; background: linear-gradient(135deg, #059669, #10B981); box-shadow: 0 8px 18px -10px rgba(16,185,129,.7); }
+        .pay-btn.ghost { color: #d5e0ef; background: rgba(255,255,255,.06); border-color: rgba(147,180,221,.3); }
+        .pay-btn:hover { filter: brightness(1.12); }
+        #menu-view-payment [class*="bg-[#FAF6EE]"] { background: rgba(209,134,63,.10) !important; border-color: rgba(209,134,63,.35) !important; }
+        #menu-view-payment [class*="text-[#5C4626]"], #menu-view-payment [class*="text-[#8A6B3A]"] { color: #eec495 !important; }
+
+        /* ===== projects ===== */
+        .proj-grid { display: grid; grid-template-columns: minmax(0, 1fr) 430px; gap: 1.5rem; align-items: start; }
+        .proj-form-col { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; border-radius: 20px; background: rgba(255,255,255,.04); border: 1px solid rgba(147,180,221,.16); padding: 1rem; }
+        .proj-form-col::-webkit-scrollbar { width: 6px; } .proj-form-col::-webkit-scrollbar-thumb { background: rgba(147,180,221,.3); border-radius: 6px; }
+        .proj-form-col #project-invoice-form-card { margin-bottom: 0 !important; background: transparent !important; border: 0 !important; padding: 0 !important; }
+        .proj-form-title { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #9FB4D9; margin: 0 0 .75rem; }
+        .proj-list-col > * + * { margin-top: .6rem; }
+        #project-turnover-banner > div { background: linear-gradient(135deg, #1e3a5f, #2f5a8f) !important; border: 1px solid rgba(255,255,255,.14); border-radius: 22px !important; padding: 1.25rem 1.5rem !important; box-shadow: 0 24px 40px -26px rgba(0,0,0,.8) !important; }
+        #project-turnover-banner p.text-2xl { font-size: 2rem !important; }
+        #project-invoice-summary { gap: .8rem !important; }
+        #project-invoice-summary > div { position: relative; text-align: left !important; padding: .9rem 1rem .9rem 1.15rem !important; border-radius: 18px !important; background: linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.03)) !important; border: 1px solid rgba(147,180,221,.16) !important; overflow: hidden; }
+        #project-invoice-summary > div::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 4px 4px 0; background: #d1863f; }
+        #project-invoice-summary > div:nth-child(2)::before { background: #34D399; } #project-invoice-summary > div:nth-child(3)::before { background: #FBBF24; } #project-invoice-summary > div:nth-child(4)::before { background: #A78BFA; }
+        #project-invoice-summary p:first-child { font-size: 10.5px !important; letter-spacing: .09em !important; color: #9FB4D9 !important; }
+        #project-invoice-summary p.text-sm { font-size: 1.4rem !important; color: #fff !important; margin-top: .25rem; font-variant-numeric: tabular-nums; }
+        #project-invoice-list > div { background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.03)); border-radius: 18px !important; padding: 1rem 1.15rem !important; }
     </style>
 </head>
 <body class="text-slate-800 font-sans min-h-screen flex flex-col justify-between p-4 md:p-8 antialiased">
+    <canvas id="node-network-canvas" aria-hidden="true"></canvas>
 
     <!-- admin login -->
-    <div id="admin-auth-shield" class="fixed inset-0 panel-overlay z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4 border border-slate-200">
-            <div class="text-center">
-                <div id="login-logo-3d" class="w-11 h-11 rounded-xl mx-auto mb-3 overflow-hidden" style="background: #16212E;"></div>
-                <h2 class="font-display text-xl font-bold tracking-tight text-[#16212E]">Admin Login</h2>
-                <p class="text-[11px] text-gray-400 mt-1">Authorized personnel only</p>
-            </div>
+    <div id="admin-auth-shield" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:radial-gradient(900px 500px at 80% 0%,rgba(192,129,60,.28),transparent 60%),radial-gradient(700px 500px at 0% 100%,rgba(52,90,133,.35),transparent 60%),rgba(10,18,32,.55);backdrop-filter:blur(1.5px);">
+        <div class="w-full max-w-sm">
+            <div class="relative bg-white rounded-3xl shadow-2xl" style="box-shadow:0 30px 80px -20px rgba(0,0,0,.6)">
+                <div class="h-1.5 rounded-t-3xl" style="background:linear-gradient(90deg,#d1863f,#eec495 50%,#1e3a5f)"></div>
+                <div id="login-mascot" class="absolute pointer-events-none select-none" style="left:50%; margin-left:-75px; width:150px; height:165px; top:-118px;" aria-hidden="true">
+                                <svg viewBox="0 0 200 220" width="150" height="165" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <linearGradient id="mascotCopper" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#eec495"/>
+                                            <stop offset="55%" stop-color="#d1863f"/>
+                                            <stop offset="100%" stop-color="#9a5a24"/>
+                                        </linearGradient>
+                                        <linearGradient id="mascotNavy" x1="0%" y1="0%" x2="0%" y2="100%">
+                                            <stop offset="0%" stop-color="#345a85"/>
+                                            <stop offset="100%" stop-color="#152740"/>
+                                        </linearGradient>
+                                        <radialGradient id="mascotLightGlow" cx="50%" cy="50%" r="50%">
+                                            <stop offset="0%" stop-color="#fbeee0"/>
+                                            <stop offset="100%" stop-color="#d1863f"/>
+                                        </radialGradient>
+                                    </defs>
+                
+                                    <rect x="60" y="132" width="80" height="76" rx="22" fill="url(#mascotNavy)"/>
+                                    <circle class="mascot-light" cx="100" cy="160" r="15" fill="url(#mascotLightGlow)"/>
+                                    <path d="M103,149 L93,163 L99,163 L96,175 L109,158 L101,158 Z" fill="#0f1c2e" opacity="0.85"/>
+                
+                                    <g transform="translate(62,140)">
+                                        <g class="mascot-arm-left">
+                                            <line x1="0" y1="0" x2="0" y2="46" stroke="url(#mascotCopper)" stroke-width="20" stroke-linecap="round"/>
+                                            <circle cx="0" cy="46" r="13" fill="#e0a262"/>
+                                        </g>
+                                    </g>
+                                    <g transform="translate(138,140)">
+                                        <g class="mascot-arm-right">
+                                            <line x1="0" y1="0" x2="0" y2="46" stroke="url(#mascotCopper)" stroke-width="20" stroke-linecap="round"/>
+                                            <circle cx="0" cy="46" r="13" fill="#e0a262"/>
+                                        </g>
+                                    </g>
+                
+                                    <line x1="100" y1="14" x2="100" y2="35" stroke="url(#mascotCopper)" stroke-width="5" stroke-linecap="round"/>
+                                    <circle class="mascot-light" cx="100" cy="10" r="6" fill="url(#mascotLightGlow)"/>
+                
+                                    <path d="M62,60 A38,36 0 0 1 138,60 L138,68 L62,68 Z" fill="url(#mascotCopper)"/>
+                                    <rect x="58" y="63" width="84" height="7" rx="3.5" fill="#9a5a24"/>
+                
+                                    <rect x="68" y="68" width="64" height="58" rx="18" fill="url(#mascotNavy)"/>
+                
+                                    <g class="mascot-eyes">
+                                        <circle cx="86" cy="96" r="10" fill="#fbeee0"/>
+                                        <circle cx="114" cy="96" r="10" fill="#fbeee0"/>
+                                        <circle class="mascot-pupil" id="mascot-pupil-left" cx="86" cy="96" r="5" fill="#0a1220"/>
+                                        <circle class="mascot-pupil" id="mascot-pupil-right" cx="114" cy="96" r="5" fill="#0a1220"/>
+                                        <path class="mascot-eye-closed" d="M80,96 q6,-7 12,0" stroke="#0a1220" stroke-width="3" fill="none" stroke-linecap="round"/>
+                                        <path class="mascot-eye-closed" d="M108,96 q6,-7 12,0" stroke="#0a1220" stroke-width="3" fill="none" stroke-linecap="round"/>
+                                    </g>
+                
+                                    <rect x="90" y="112" width="20" height="4" rx="2" fill="#0a1220" opacity="0.6"/>
+                                </svg>
+                            </div>
+                <div class="px-7 pb-7 pt-16 space-y-5">
+                    <div class="text-center">
+                        <h2 class="font-display text-2xl font-bold tracking-tight text-[#1e3a5f]">Anant Electrical</h2>
+                        <p class="text-xs text-gray-400 mt-1">Admin console &middot; Authorized personnel only</p>
+                    </div>
 
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Email</label>
-                    <input type="email" id="auth-admin-email" placeholder="you@gmail.com" value="akash@anantelectrical.in" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs text-slate-700 outline-none focus:border-[#16212E]">
+                    <div class="space-y-3.5">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Email</label>
+                            <div class="relative">
+                                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+                                <input type="email" id="auth-admin-email" placeholder="you@gmail.com" value="akash@anantelectrical.in" class="w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none transition focus:bg-white focus:border-[#1e3a5f] focus:ring-4 focus:ring-[#d1863f]/20">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Password</label>
+                            <div class="relative">
+                                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                                <input type="password" id="auth-admin-password" placeholder="Enter password" class="w-full pl-10 pr-16 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none transition focus:bg-white focus:border-[#1e3a5f] focus:ring-4 focus:ring-[#d1863f]/20">
+                                <button type="button" onclick="const i=document.getElementById('auth-admin-password');const show=i.type==='password';i.type=show?'text':'password';this.innerText=show?'Hide':'Show';" class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 hover:text-[#16212E] cursor-pointer">Show</button>
+                            </div>
+                        </div>
+                        <button id="admin-signin-btn" onclick="verifyAdminGatekeeperCredentials()" class="w-full text-white font-bold py-3 rounded-xl text-sm tracking-wide transition cursor-pointer hover:opacity-95 active:scale-[.99]" style="background:linear-gradient(135deg,#16212E,#2a3d54);box-shadow:0 10px 24px -10px rgba(22,33,46,.7)">
+                            Sign In
+                        </button>
+                        <p id="auth-error-log" class="text-xs text-rose-600 font-medium text-center hidden">Incorrect email or password. Please try again.</p>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Password</label>
-                    <input type="password" id="auth-admin-password" placeholder="Enter password" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs tracking-widest outline-none focus:border-[#16212E]">
-                </div>
-                <button id="admin-signin-btn" onclick="verifyAdminGatekeeperCredentials()" class="w-full bg-[#16212E] hover:bg-[#0E1620] text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer shadow-sm">
-                    Sign In
-                </button>
-                <p id="auth-error-log" class="text-[10px] text-rose-600 font-medium text-center hidden">Incorrect email or password. Please try again.</p>
             </div>
+            <p class="text-center text-[11px] text-slate-400/70 mt-5">&copy; 2026 Anant Electrical</p>
         </div>
     </div>
 
@@ -278,14 +739,14 @@
 
         <!-- section menu -->
         <nav class="panel rounded-2xl p-1.5 flex flex-wrap gap-1">
-            <button onclick="switchAdminMenu('shifts')" id="menu-btn-shifts" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Shift Logs</button>
-            <button onclick="switchAdminMenu('analytics')" id="menu-btn-analytics" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Analytics</button>
-            <button onclick="switchAdminMenu('employees')" id="menu-btn-employees" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Employees</button>
-            <button onclick="switchAdminMenu('monthly')" id="menu-btn-monthly" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Monthly Statement</button>
-            <button onclick="switchAdminMenu('payment')" id="menu-btn-payment" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Payment Status</button>
-            <button onclick="switchAdminMenu('projects')" id="menu-btn-projects" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Projects</button>
-            <button onclick="switchAdminMenu('overview')" id="menu-btn-overview" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Company Overview</button>
-            <button onclick="switchAdminMenu('pms')" id="menu-btn-pms" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer">Project Managers</button>
+            <button onclick="switchAdminMenu('shifts')" id="menu-btn-shifts" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Shift Logs</span></button>
+            <button onclick="switchAdminMenu('analytics')" id="menu-btn-analytics" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg><span>Analytics</span></button>
+            <button onclick="switchAdminMenu('employees')" id="menu-btn-employees" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg><span>Employees</span></button>
+            <button onclick="switchAdminMenu('monthly')" id="menu-btn-monthly" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg><span>Monthly Statement</span></button>
+            <button onclick="switchAdminMenu('payment')" id="menu-btn-payment" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg><span>Payment Status</span></button>
+            <button onclick="switchAdminMenu('projects')" id="menu-btn-projects" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg><span>Projects</span></button>
+            <button onclick="switchAdminMenu('overview')" id="menu-btn-overview" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Company Overview</span></button>
+            <button onclick="switchAdminMenu('pms')" id="menu-btn-pms" class="flex-1 min-w-[110px] px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition cursor-pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg><span>Project Managers</span></button>
         </nav>
 
         <div id="punch-in-alerts-banner" class="hidden space-y-2"></div>
@@ -302,24 +763,24 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
                 <!-- bar chart -->
                 <div class="inner-card p-4 rounded-xl space-y-3 flex flex-col">
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-purple-900">Shift Volume by Employee</h3>
-                    <div id="bar-chart-3d" class="w-full h-40 rounded-lg overflow-hidden" style="background: linear-gradient(180deg, #1a2635, #0e1620);"></div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-[#16212E] border-l-[3px] border-[#C0813C] pl-2">Shift Volume by Employee</h3>
+                    <div id="bar-chart-3d" class="w-full h-44 rounded-xl overflow-hidden" style="background:#fff;border:1px solid #E4E7EC;"></div>
                     <div id="custom-bar-chart-container" class="space-y-1.5 overflow-y-auto max-h-28 pr-1">
                         <!-- rendered via JS -->
                     </div>
                 </div>
                 <!-- distribution -->
                 <div class="inner-card p-4 rounded-xl space-y-3 flex flex-col">
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-purple-900">Workforce Distribution</h3>
-                    <div id="donut-chart-3d" class="w-full h-40 rounded-lg overflow-hidden" style="background: linear-gradient(180deg, #1a2635, #0e1620);"></div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-[#16212E] border-l-[3px] border-[#C0813C] pl-2">Workforce Distribution</h3>
+                    <div id="donut-chart-3d" class="w-full h-44 rounded-xl overflow-hidden" style="background:#fff;border:1px solid #E4E7EC;"></div>
                     <div id="pie-breakdown-legend" class="space-y-1.5 overflow-y-auto max-h-28 pr-1">
                         <!-- rendered via JS -->
                     </div>
                 </div>
                 <!-- spend chart -->
                 <div class="inner-card p-4 rounded-xl space-y-3 flex flex-col">
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-purple-900">Approved Expense Spend by Employee</h3>
-                    <div id="spend-chart-3d" class="w-full h-40 rounded-lg overflow-hidden" style="background: linear-gradient(180deg, #1a2635, #0e1620);"></div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-[#16212E] border-l-[3px] border-[#C0813C] pl-2">Approved Expense Spend by Employee</h3>
+                    <div id="spend-chart-3d" class="w-full h-44 rounded-xl overflow-hidden" style="background:#fff;border:1px solid #E4E7EC;"></div>
                     <div id="spend-bar-chart-container" class="space-y-1.5 overflow-y-auto max-h-28 pr-1">
                         <!-- rendered via JS -->
                     </div>
@@ -1007,7 +1468,7 @@
                 <!-- employee balances summary: morning balance + salary advance for everyone -->
                 <div class="mb-4 border border-slate-200 rounded-xl overflow-hidden">
                     <div class="px-3 py-2.5 bg-slate-50 flex items-center justify-between gap-2 flex-wrap">
-                        <span class="text-xs font-bold text-slate-700">📊 Employee Balances &mdash; Morning Balance &amp; Salary Advance</span>
+                        <span class="text-xs font-bold text-slate-700">Employee Balances &mdash; Morning Balance &amp; Salary Advance</span>
                         <div class="flex items-center gap-1.5 shrink-0">
                             <input type="month" id="balances-summary-month-filter" onchange="renderBalancesSummary()" class="p-1.5 bg-white border border-gray-200 rounded-lg text-[10px] font-semibold outline-none">
                             <button type="button" id="balances-summary-all-time-btn" onclick="clearBalancesSummaryMonth()" class="px-2.5 py-1.5 bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap">All Time</button>
@@ -1035,7 +1496,7 @@
                 <!-- morning / mid-day balance records -->
                 <div class="mb-4 border border-slate-200 rounded-xl overflow-hidden">
                     <button onclick="toggleBalanceRecordsPanel()" class="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition cursor-pointer">
-                        <span class="text-xs font-bold text-slate-700">📒 Morning &amp; Mid-Day Balance Records</span>
+                        <span class="text-xs font-bold text-slate-700">Morning &amp; Mid-Day Balance Records</span>
                         <span id="balance-records-toggle-icon" class="text-slate-400 text-xs">▼ Show</span>
                     </button>
                     <div id="balance-records-panel" class="hidden p-3">
@@ -1056,7 +1517,7 @@
                 <!-- salary advance records -->
                 <div class="mb-4 border border-slate-200 rounded-xl overflow-hidden">
                     <button onclick="toggleSalaryAdvanceRecordsPanel()" class="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition cursor-pointer">
-                        <span class="text-xs font-bold text-slate-700">💰 Salary Advance Records</span>
+                        <span class="text-xs font-bold text-slate-700">Salary Advance Records</span>
                         <span id="salary-advance-records-toggle-icon" class="text-slate-400 text-xs">▼ Show</span>
                     </button>
                     <div id="salary-advance-records-panel" class="hidden p-3">
@@ -1077,7 +1538,7 @@
                 <!-- salary raise history -->
                 <div class="mb-4 border border-slate-200 rounded-xl overflow-hidden">
                     <button onclick="toggleSalaryRaiseHistoryPanel()" class="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition cursor-pointer">
-                        <span class="text-xs font-bold text-slate-700">📈 Salary Raise History</span>
+                        <span class="text-xs font-bold text-slate-700">Salary Raise History</span>
                         <span id="salary-raise-history-toggle-icon" class="text-slate-400 text-xs">▼ Show</span>
                     </button>
                     <div id="salary-raise-history-panel" class="hidden p-3">
@@ -1099,7 +1560,7 @@
     <!-- footer -->
     <footer class="mt-8 text-center text-[11px] text-slate-400 tracking-wide w-full py-4 border-t border-slate-200 max-w-6xl mx-auto">
         <div>&copy; 2026 Anant Electrical. All Rights Reserved.</div>
-        <div class="text-[10px] font-semibold mt-0.5">Developed by <span style="color:#2563eb;">Akash</span></div>
+        <div class="text-[10px] font-semibold mt-0.5">Developed by <span style="color:#2f5a8f;">Akash</span></div>
     </footer>
 
     <script>
@@ -1713,8 +2174,8 @@
                 if ((e.for_month || (e.created_at || '').slice(0, 7)) === targetMonth) extra(e.worker_email).midday += parseFloat(e.amount || 0);
             });
             const money = n => (n < 0 ? '−' : '') + '₹' + Math.abs(n).toLocaleString('en-IN');
-            const row = (label, amt, sign, cls, sub) => `<div class="flex items-start justify-between gap-3 py-1.5"><div class="min-w-0"><p class="text-xs text-slate-600">${label}</p>${sub ? `<p class="text-[10px] text-slate-400">${sub}</p>` : ''}</div><span class="text-xs font-bold whitespace-nowrap ${cls}">${sign}₹${amt.toLocaleString('en-IN')}</span></div>`;
-            const copyBtn = (label, value) => `<button type="button" data-copy="${value}" onclick="copyPayText(this.dataset.copy, this)" class="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold cursor-pointer">${label}</button>`;
+            const row = (label, amt, sign, cls, sub) => `<div class="pay-line"><span>${label}${sub ? `<small>${sub}</small>` : ''}</span><b class="${cls}">${sign}₹${amt.toLocaleString('en-IN')}</b></div>`;
+            const copyBtn = (label, value) => `<button type="button" data-copy="${value}" onclick="copyPayText(this.dataset.copy, this)" class="copy-chip">${label}</button>`;
 
             let toTransfer = 0, unpaidCount = 0, paidTotal = 0, paidCount = 0;
             const cards = activeWorkers.map(w => {
@@ -1745,44 +2206,39 @@
                 const dedRows = (salaryAdvance > 0 ? row('Salary advance', salaryAdvance, '− ', 'text-rose-600') : '')
                     + (ex.midday > 0 ? row('Mid-day advances', ex.midday, '− ', 'text-rose-600') : '');
 
+                const ini = (w.name || '?').trim().split(/\s+/).slice(0, 2).map(x => x[0] || '').join('').toUpperCase();
                 return `
-                <div class="border ${isPaid ? 'border-emerald-200' : 'border-gray-200'} rounded-2xl overflow-hidden">
-                    <div class="flex items-start justify-between gap-3 p-4 ${isPaid ? 'bg-emerald-50/60' : 'bg-slate-50'}">
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="font-bold text-sm text-slate-900">${w.name}</span>
-                                <span class="text-[10px] text-slate-400 uppercase">${w.role || ''}</span>
-                                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${status}</span>
-                            </div>
-                            ${isPaid && snapshot ? `<p class="text-[10px] text-emerald-600 mt-1">Paid on ${snapshot.payment_date || '--'}${snapshot.payment_reference ? ` &middot; Ref: ${snapshot.payment_reference}` : ''}</p>` : ''}
-                        </div>
-                        <div class="text-right shrink-0">
-                            <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">${netPayable < 0 ? 'Balance owed' : 'Net to transfer'}</p>
-                            <p class="text-xl font-black leading-tight ${netPayable < 0 ? 'text-rose-600' : (isPaid ? 'text-emerald-700' : 'text-slate-900')}">${money(netPayable)}</p>
-                            ${netPayable > 0 ? `<div class="mt-1">${copyBtn('Copy amount', String(netPayable))}</div>` : ''}
-                        </div>
+                <div class="pay-card ${isPaid ? 'is-paid' : ''} ${netPayable < 0 ? 'is-owed' : ''}">
+                    <div class="pay-top">
+                        <span class="emp-avatar">${ini}</span>
+                        <div class="pay-who"><strong>${w.name}</strong><span>${w.role || ''}</span></div>
+                        <span class="pay-pill ${isPaid ? 'paid' : 'unpaid'}">${status}</span>
                     </div>
-                    <div class="grid sm:grid-cols-2 gap-x-6 px-4 py-3 border-t border-gray-100">
-                        <div><p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Earnings</p><div class="divide-y divide-gray-100">${earnRows}</div></div>
-                        <div class="mt-3 sm:mt-0"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Deductions</p>${dedRows ? `<div class="divide-y divide-gray-100">${dedRows}</div>` : '<p class="text-[11px] text-slate-400 italic py-1.5">None</p>'}</div>
-                    </div>
-                    <div class="px-4 py-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div class="min-w-0">${bankBlock}</div>
-                        <div class="flex gap-1.5 justify-end shrink-0">
-                            <button onclick="giveMonthlyBonus('${w.email}', '${targetMonth}')" class="bg-violet-100 hover:bg-violet-200 text-violet-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">${bonusAmount > 0 ? 'Edit Bonus' : 'Give Bonus'}</button>
-                            ${isPaid
-                                ? `<button onclick="markPaymentUnpaid('${w.email}', '${targetMonth}')" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Mark Unpaid</button>`
-                                : `<button onclick="markPaymentPaid('${w.email}', '${targetMonth}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Mark Paid</button>`}
+                    <div class="pay-amount">
+                        <div>
+                            <span>${netPayable < 0 ? 'Balance owed' : 'Net to transfer'}</span>
+                            <strong class="${netPayable < 0 ? 'owed' : ''}">${money(netPayable)}</strong>
+                            ${isPaid && snapshot ? `<em>Paid on ${snapshot.payment_date || '--'}${snapshot.payment_reference ? ` &middot; Ref ${snapshot.payment_reference}` : ''}</em>` : ''}
                         </div>
+                        ${netPayable > 0 ? copyBtn('Copy amount', String(netPayable)) : ''}
+                    </div>
+                    <div class="pay-ledger">${earnRows}${dedRows}</div>
+                    <div class="pay-bank">${bankBlock}</div>
+                    <div class="pay-actions">
+                        <button onclick="giveMonthlyBonus('${w.email}', '${targetMonth}')" class="pay-btn ghost">${bonusAmount > 0 ? 'Edit bonus' : 'Give bonus'}</button>
+                        ${isPaid
+                            ? `<button onclick="markPaymentUnpaid('${w.email}', '${targetMonth}')" class="pay-btn ghost">Mark unpaid</button>`
+                            : `<button onclick="markPaymentPaid('${w.email}', '${targetMonth}')" class="pay-btn main">Mark paid</button>`}
                     </div>
                 </div>`;
             });
             const summary = `
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="rounded-xl border border-amber-200 bg-amber-50 p-3"><p class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Left to transfer</p><p class="text-lg font-black text-amber-900">${money(toTransfer)}</p><p class="text-[10px] text-amber-700">${unpaidCount} employee${unpaidCount === 1 ? '' : 's'}</p></div>
-                    <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Already paid</p><p class="text-lg font-black text-emerald-900">${money(paidTotal)}</p><p class="text-[10px] text-emerald-700">${paidCount} employee${paidCount === 1 ? '' : 's'}</p></div>
+                <div class="hero-strip">
+                    <div class="hero-tile" style="--tone:#FBBF24"><span>Left to transfer</span><strong>${money(toTransfer)}</strong><em>${unpaidCount} employee${unpaidCount === 1 ? '' : 's'}</em></div>
+                    <div class="hero-tile" style="--tone:#34D399"><span>Already paid</span><strong>${money(paidTotal)}</strong><em>${paidCount} employee${paidCount === 1 ? '' : 's'}</em></div>
+                    <div class="hero-tile" style="--tone:#d1863f"><span>Month</span><strong>${targetMonth}</strong><em>salary for this month</em></div>
                 </div>`;
-            container.innerHTML = summary + cards.join('');
+            container.innerHTML = summary + `<div class="pay-grid">${cards.join('')}</div>`;
         }
 
         function copyPayText(text, btn) {
@@ -3138,127 +3594,78 @@
             const netCompanyProfit = totalTurnover - totalPayrollAllIn - totalMaterialOther;
             const isProfit = netCompanyProfit >= 0;
 
+            const fm = n => '₹' + Math.round(n).toLocaleString('en-IN');
+            const turnoverBase = totalTurnover > 0 ? totalTurnover : 0;
+            const pctOf = (v, base) => base > 0 ? Math.round(v / base * 100) : 0;
+            const margin = turnoverBase > 0 ? Math.round(netCompanyProfit / turnoverBase * 100) : 0;
+            const payrollV = Math.max(totalPayrollAllIn, 0), matV = Math.max(totalMaterialOther, 0), netV = Math.max(netCompanyProfit, 0);
+            const flowTotal = (payrollV + matV + netV) || 1;
+            const segs = [
+                { label: 'Payroll outflow', v: payrollV, color: '#2f5a8f' },
+                { label: 'Material + other', v: matV, color: '#F59E0B' },
+                isProfit ? { label: 'Net profit', v: netV, color: '#10B981' } : { label: 'Overspend', v: Math.abs(netCompanyProfit), color: '#F43F5E', outside: true }
+            ];
+            const line = (label, val, opts = {}) => `<div class="flex items-baseline justify-between gap-4 py-2.5 ${opts.top ? 'border-t-2 border-[#CFDDFB] mt-1' : 'border-b border-[#EDF2FC]'}">
+                    <div class="min-w-0"><p class="${opts.top ? 'text-sm font-bold text-[#152740]' : 'text-[13px] text-slate-600'}">${label}</p>${opts.sub ? `<p class="text-[10px] text-slate-400">${opts.sub}</p>` : ''}</div>
+                    <p class="${opts.top ? 'text-base' : 'text-sm'} font-bold tabular-nums whitespace-nowrap ${opts.cls || 'text-slate-900'}">${val}</p></div>`;
+            const card = (title, body, extra = '') => `<div class="rounded-2xl bg-white p-5 ${extra}" style="border:1px solid #DCE6FA;box-shadow:0 1px 2px rgba(15,42,107,.04)"><h3 class="text-[11px] font-bold uppercase tracking-[.12em] text-[#345a85] mb-2 flex items-center gap-2"><span style="width:6px;height:6px;border-radius:50%;background:#2f5a8f"></span>${title}</h3>${body}</div>`;
+            const expBar = (label, v, color) => `<div class="py-2"><div class="flex justify-between text-[13px] mb-1.5"><span class="text-slate-600">${label}</span><span class="font-bold tabular-nums text-slate-900">${fm(v)}</span></div><div style="height:7px;border-radius:99px;background:#EDF2FC;overflow:hidden"><div style="height:100%;width:${pctOf(v, totalDailyExpenses)}%;background:${color};border-radius:99px"></div></div></div>`;
+            const periodLabel = monthLabel || 'All time';
+            const receivedPct = pctOf(totalReceived, totalInvoiced);
+
             container.innerHTML = `
-                <div class="bg-gradient-to-r from-[#16212E] to-[#2A3B52] text-white rounded-2xl p-4 flex items-center justify-between shadow-sm mb-4">
-                    <div>
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Net Company Profit${isProfit ? '' : ' (Loss)'}${monthLabel ? ` — ${monthLabel}` : ' — All Time'}</p>
-                        <p class="text-[9px] text-slate-400">Turnover minus full payroll outflow minus material/other project costs</p>
+                <div class="rounded-3xl p-6 text-white mb-5" style="background:${isProfit ? 'linear-gradient(135deg,#0f1c2e,#1e3a5f 70%,#1e3a5f)' : 'linear-gradient(135deg,#1b1530,#3a1a38 70%,#4a1d3b)'};border:1px solid ${isProfit ? 'rgba(147,180,221,.25)' : 'rgba(251,113,133,.35)'};box-shadow:0 24px 40px -26px rgba(0,0,0,.8)">
+                    <div class="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                            <p class="text-[11px] font-semibold uppercase tracking-[.14em] text-white/70">Net company ${isProfit ? 'profit' : 'loss'} &middot; ${periodLabel} <span class="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold align-middle ${isProfit ? 'bg-emerald-400/20 text-emerald-300' : 'bg-rose-400/20 text-rose-300'}">${isProfit ? 'PROFIT' : 'LOSS'}</span></p>
+                            <p class="text-4xl font-black tracking-tight mt-1.5 tabular-nums ${isProfit ? 'text-white' : 'text-rose-300'}">${isProfit ? '' : '−'}${fm(Math.abs(netCompanyProfit))}</p>
+                            <p class="text-[11px] text-white/60 mt-1.5">Turnover minus payroll outflow minus material and other project costs</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="rounded-2xl px-4 py-2.5 text-right" style="background:rgba(255,255,255,.12)"><p class="text-[10px] uppercase tracking-wider text-white/60">Margin</p><p class="text-lg font-black">${turnoverBase > 0 ? margin + '%' : '—'}</p></div>
+                            <div class="rounded-2xl px-4 py-2.5 text-right" style="background:rgba(255,255,255,.12)"><p class="text-[10px] uppercase tracking-wider text-white/60">Turnover</p><p class="text-lg font-black">${fm(totalTurnover)}</p></div>
+                        </div>
                     </div>
-                    <p class="text-2xl font-black ${isProfit ? '' : 'text-rose-400'}">₹${Math.abs(netCompanyProfit).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                </div>
-
-                <div class="bg-white border border-slate-200 rounded-xl p-4 mb-5">
-                    <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">Where Your Turnover Went${monthLabel ? ` — ${monthLabel}` : ' — All Time'}</h3>
-                    <div class="h-56 sm:h-64">
-                        <canvas id="overview-pie-chart"></canvas>
-                    </div>
-                </div>
-
-                <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">Revenue (Projects)</h3>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Turnover</p>
-                        <p class="text-sm font-black text-slate-900">₹${totalTurnover.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                    </div>
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Invoiced (incl. GST)</p>
-                        <p class="text-sm font-black text-slate-900">₹${totalInvoiced.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                    </div>
-                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-emerald-700 uppercase tracking-wider">Received</p>
-                        <p class="text-sm font-black text-emerald-700">₹${totalReceived.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                        <p class="text-[8px] text-emerald-600/70 mt-0.5">Incl. advances</p>
-                    </div>
-                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-amber-700 uppercase tracking-wider">Pending</p>
-                        <p class="text-sm font-black text-amber-700">₹${totalPending.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    <div class="mt-6">
+                        <p class="text-[10px] uppercase tracking-[.14em] text-white/60 mb-2">Where the turnover went</p>
+                        <div class="flex overflow-hidden" style="height:14px;border-radius:99px;background:rgba(255,255,255,.15)">
+                            ${segs.filter(x => !x.outside && x.v > 0).map(x => `<div style="width:${x.v / flowTotal * 100}%;background:${x.color}"></div>`).join('')}
+                            ${isProfit ? '' : `<div style="width:${Math.abs(netCompanyProfit) / (flowTotal + Math.abs(netCompanyProfit)) * 100}%;background:#F43F5E"></div>`}
+                        </div>
+                        <div class="flex flex-wrap gap-x-6 gap-y-2 mt-3">
+                            ${segs.map(x => `<div class="flex items-center gap-2 text-[12px]"><span style="width:9px;height:9px;border-radius:3px;background:${x.color}"></span><span class="text-white/75">${x.label}</span><strong class="tabular-nums">${fm(x.v)}</strong><span class="text-white/50">${pctOf(x.v, turnoverBase)}%</span></div>`).join('')}
+                        </div>
                     </div>
                 </div>
 
-                <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">Payroll Outflow (all employees${monthLabel ? `, ${monthLabel}` : ', all-time'})</h3>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Salary</p>
-                        <p class="text-sm font-black text-slate-900">₹${totalSalary.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                        <p class="text-[8px] text-slate-400 mt-0.5">Approved shifts &times; rate</p>
-                    </div>
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Broker Charges</p>
-                        <p class="text-sm font-black text-slate-900">₹${totalBrokerCharges.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                        <p class="text-[8px] text-slate-400 mt-0.5">Approved shifts &times; broker rate</p>
-                    </div>
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Daily Expenses</p>
-                        <p class="text-sm font-black text-slate-900">₹${totalDailyExpenses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                        <p class="text-[8px] text-slate-400 mt-0.5">Approved transport+food+material</p>
-                    </div>
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Bonuses</p>
-                        <p class="text-sm font-black text-slate-900">₹${totalBonuses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                    </div>
-                </div>
-                <div class="bg-slate-100 border border-slate-300 rounded-xl p-3 text-center mb-5">
-                    <p class="text-[9px] font-bold text-slate-600 uppercase tracking-wider">Total Payroll Outflow</p>
-                    <p class="text-base font-black text-slate-900">₹${totalPayrollAllIn.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+                    ${card('Revenue from projects',
+                        line('Turnover', fm(totalTurnover), { sub: 'Before GST' })
+                        + line('Invoiced', fm(totalInvoiced), { sub: 'Including GST' })
+                        + line('Received', fm(totalReceived), { cls: 'text-emerald-600', sub: 'Including advances' })
+                        + line('Pending', fm(totalPending), { cls: 'text-amber-600' })
+                        + `<div class="mt-3"><div class="flex justify-between text-[10px] text-slate-400 mb-1"><span>Collected</span><span>${receivedPct}%</span></div><div style="height:7px;border-radius:99px;background:#EDF2FC;overflow:hidden"><div style="height:100%;width:${Math.min(100, receivedPct)}%;background:#10B981;border-radius:99px"></div></div></div>`)}
+                    ${card('Payroll outflow &middot; ' + periodLabel,
+                        line('Salary', fm(totalSalary), { sub: 'Approved shifts × rate' })
+                        + line('Broker charges', fm(totalBrokerCharges), { sub: 'Approved shifts × broker rate' })
+                        + line('Daily expenses', fm(totalDailyExpenses), { sub: 'Approved transport, food and material' })
+                        + line('Bonuses', fm(totalBonuses))
+                        + line('Total payroll outflow', fm(totalPayrollAllIn), { top: true }))}
                 </div>
 
-                <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">Daily Expense Breakdown${monthLabel ? ` — ${monthLabel}` : ' — All Time'}</h3>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Transport</p>
-                        <p class="text-sm font-black text-slate-900">₹${totalTransportExpense.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                    </div>
-                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-amber-700 uppercase tracking-wider">Food</p>
-                        <p class="text-sm font-black text-amber-700">₹${totalFoodExpense.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                    </div>
-                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-blue-700 uppercase tracking-wider">Material</p>
-                        <p class="text-sm font-black text-blue-700">₹${totalMaterialExpense.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                    </div>
-                    <div class="bg-slate-800 border border-slate-800 rounded-xl p-3 text-center">
-                        <p class="text-[9px] font-bold text-slate-300 uppercase tracking-wider">Total Expense</p>
-                        <p class="text-sm font-black text-emerald-400">₹${totalDailyExpenses.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                    </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    ${card('Daily expense breakdown &middot; ' + periodLabel,
+                        expBar('Transport', totalTransportExpense, '#0EA5E9')
+                        + expBar('Food', totalFoodExpense, '#F59E0B')
+                        + expBar('Material', totalMaterialExpense, '#8B5CF6')
+                        + line('Total expense', fm(totalDailyExpenses), { top: true }))}
+                    ${card('Project costs',
+                        line('Material + other', fm(totalMaterialOther), { sub: 'From project invoices' })
+                        + `<p class="text-[10px] leading-relaxed text-slate-400 mt-3">Note: "Total Payroll Outflow" above is your company-wide cost across all employees and shifts (salary + broker + daily expenses + bonuses), while each project's own "Labor Cost" (₹${totalProjectLabor.toLocaleString('en-IN', { maximumFractionDigits: 0 })} total) is the portion of that same payroll you've specifically attributed to a project in the Projects tab &mdash; the two aren't added together here to avoid double-counting.</p>`)}
                 </div>
+            `;
 
-                <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2">Project Costs</h3>
-                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center">
-                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Material + Other</p>
-                    <p class="text-sm font-black text-slate-900">₹${totalMaterialOther.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                    <p class="text-[8px] text-slate-400 mt-0.5">From project invoices</p>
-                </div>
-                <p class="text-[9px] text-gray-400 mt-3">Note: "Total Payroll Outflow" above is your company-wide cost across all employees and shifts (salary + broker + daily expenses + bonuses), while each project's own "Labor Cost" (₹${totalProjectLabor.toLocaleString('en-IN', { maximumFractionDigits: 0 })} total) is the portion of that same payroll you've specifically attributed to a project in the Projects tab &mdash; the two aren't added together here to avoid double-counting.</p>`;
-
-            const pieCanvas = document.getElementById('overview-pie-chart');
-            if (pieCanvas && window.Chart) {
-                if (runtimeOverviewPieChart) runtimeOverviewPieChart.destroy();
-                // these 3 slices add up to turnover, shows where money went instead of double counting
-                const pieLabels = ['Payroll Outflow', 'Material + Other Cost'];
-                const pieValues = [Math.max(totalPayrollAllIn, 0), Math.max(totalMaterialOther, 0)];
-                const pieColors = ['#1e3a5f', '#f59e0b'];
-                if (netCompanyProfit >= 0) {
-                    pieLabels.push('Net Profit');
-                    pieValues.push(netCompanyProfit);
-                    pieColors.push('#10b981');
-                } else {
-                    pieLabels.push('Net Loss (overspend)');
-                    pieValues.push(Math.abs(netCompanyProfit));
-                    pieColors.push('#f43f5e');
-                }
-                runtimeOverviewPieChart = new Chart(pieCanvas.getContext('2d'), {
-                    type: 'pie',
-                    data: { labels: pieLabels, datasets: [{ data: pieValues, backgroundColor: pieColors, borderWidth: 1.5, borderColor: '#ffffff' }] },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 }, color: '#4b5563' } },
-                            tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ₹${ctx.raw.toLocaleString('en-IN')}` } }
-                        }
-                    }
-                });
-            }
+            if (runtimeOverviewPieChart) { runtimeOverviewPieChart.destroy(); runtimeOverviewPieChart = null; }
         }
 
         // --- project managers ---
@@ -3582,148 +3989,59 @@
             }
         }
 
-        // --- 3D charts (Three.js) ---
-        const threeSceneRegistry = {};
+        // --- flat charts (no 3D) ---
+        function disposeThreeScene() {}
 
-        function disposeThreeScene(containerId) {
-            const existing = threeSceneRegistry[containerId];
-            if (!existing) return;
-            cancelAnimationFrame(existing.frameId);
-            existing.renderer.dispose();
-            delete threeSceneRegistry[containerId];
-        }
+        const hexCss = h => '#' + Number(h).toString(16).padStart(6, '0');
 
-        function setupThreeCanvas(containerId) {
-            const container = document.getElementById(containerId);
-            if (!container || !window.THREE) return null;
-            container.innerHTML = '';
-            const width = container.clientWidth || 260;
-            const height = container.clientHeight || 160;
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
-            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(width, height);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-            container.appendChild(renderer.domElement);
-            scene.add(new THREE.AmbientLight(0xffffff, 0.65));
-            const dir = new THREE.DirectionalLight(0xffffff, 0.9);
-            dir.position.set(4, 7, 5);
-            scene.add(dir);
-            const rim = new THREE.DirectionalLight(0x93c5fd, 0.3);
-            rim.position.set(-4, 2, -4);
-            scene.add(rim);
-            return { scene, camera, renderer, container, width, height };
-        }
-
-        // rotating 3D bar chart - top 8 values as extruded boxes on a slowly spinning turntable
+        // flat vertical bar chart (top 8 values)
         function create3DBarChart(containerId, items, colorHexes) {
-            disposeThreeScene(containerId);
-            const ctx = setupThreeCanvas(containerId);
-            if (!ctx) return;
-            const { scene, camera, renderer, container } = ctx;
-            camera.position.set(0, 3.6, 8.5);
-            camera.lookAt(0, 0.5, 0);
-
+            const el = document.getElementById(containerId);
+            if (!el) return;
             const bars = items.slice(0, 8);
-            const maxVal = Math.max(...bars.map(b => b.value), 1);
-            const group = new THREE.Group();
-            const spacing = 1.15;
-            const startX = -((bars.length - 1) * spacing) / 2;
-
-            bars.forEach((item, i) => {
-                const h = Math.max(0.25, (item.value / maxVal) * 3.4);
-                const geo = new THREE.BoxGeometry(0.75, h, 0.75);
-                const mat = new THREE.MeshStandardMaterial({ color: colorHexes[i % colorHexes.length], metalness: 0.25, roughness: 0.4 });
-                const bar = new THREE.Mesh(geo, mat);
-                bar.position.set(startX + i * spacing, h / 2 - 1.4, 0);
-                group.add(bar);
-            });
-            scene.add(group);
-
-            let frameId;
-            (function animate() {
-                group.rotation.y += 0.006;
-                renderer.render(scene, camera);
-                frameId = requestAnimationFrame(animate);
-            })();
-            threeSceneRegistry[containerId] = { renderer, frameId };
+            const maxVal = Math.max(1, ...bars.map(i => i.value));
+            const W = 280, H = 170, padL = 8, padR = 8, top = 22, bottom = 22;
+            const plotH = H - top - bottom;
+            const gap = 10;
+            const bw = Math.min(30, (W - padL - padR - gap * (bars.length - 1)) / Math.max(1, bars.length));
+            const totalW = bw * bars.length + gap * (bars.length - 1);
+            const startX = (W - totalW) / 2;
+            const grid = [0, .25, .5, .75, 1].map(t => `<line x1="${padL}" x2="${W - padR}" y1="${(top + plotH * (1 - t)).toFixed(1)}" y2="${(top + plotH * (1 - t)).toFixed(1)}" stroke="rgba(147,180,221,.18)" stroke-width="1" ${t === 0 ? '' : 'stroke-dasharray="3 4"'}/>`).join('');
+            const svg = bars.map((it, i) => {
+                const h = it.value > 0 ? Math.max(4, (it.value / maxVal) * plotH) : 2;
+                const x = startX + i * (bw + gap), y = top + plotH - h;
+                const col = hexCss(colorHexes[i % colorHexes.length]);
+                const r = Math.min(6, bw / 2, h);
+                return `<path d="M${x.toFixed(1)} ${(y + h).toFixed(1)} V${(y + r).toFixed(1)} Q${x.toFixed(1)} ${y.toFixed(1)} ${(x + r).toFixed(1)} ${y.toFixed(1)} H${(x + bw - r).toFixed(1)} Q${(x + bw).toFixed(1)} ${y.toFixed(1)} ${(x + bw).toFixed(1)} ${(y + r).toFixed(1)} V${(y + h).toFixed(1)} Z" fill="${col}"/>
+                        <text x="${(x + bw / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#E2E8F0">${Math.round(it.value).toLocaleString('en-IN')}</text>
+                        <text x="${(x + bw / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="8.5" fill="#94a3b8">${String(it.name || '').split(' ')[0].slice(0, 7)}</text>`;
+            }).join('');
+            el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">${grid}${svg}</svg>`;
         }
 
-        // rotating 3D donut - each employee's share of approved shifts as an extruded ring segment
+        // flat donut - each employee's share
         function create3DDonutChart(containerId, items, colorHexes) {
-            disposeThreeScene(containerId);
-            const ctx = setupThreeCanvas(containerId);
-            if (!ctx) return;
-            const { scene, camera, renderer } = ctx;
-            camera.position.set(0, 3.2, 6.5);
-            camera.lookAt(0, 0, 0);
-
-            const slices = items.slice(0, 8);
-            const total = slices.reduce((sum, i) => sum + i.value, 0) || 1;
-            const group = new THREE.Group();
-            const innerR = 1.05, outerR = 2.0, depth = 0.65;
-            let angle = 0;
-
-            slices.forEach((item, i) => {
-                const sweep = (item.value / total) * Math.PI * 2;
-                if (sweep <= 0.0005) return;
-                const gap = 0.015;
-                const shape = new THREE.Shape();
-                shape.absarc(0, 0, outerR, angle + gap, angle + sweep - gap, false);
-                shape.absarc(0, 0, innerR, angle + sweep - gap, angle + gap, true);
-                const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
-                const mat = new THREE.MeshStandardMaterial({ color: colorHexes[i % colorHexes.length], metalness: 0.25, roughness: 0.45 });
-                const mesh = new THREE.Mesh(geo, mat);
-                mesh.rotation.x = -Math.PI / 2;
-                mesh.position.y = -depth / 2;
-                group.add(mesh);
-                angle += sweep;
-            });
-            scene.add(group);
-
-            let frameId;
-            (function animate() {
-                group.rotation.y += 0.008;
-                renderer.render(scene, camera);
-                frameId = requestAnimationFrame(animate);
-            })();
-            threeSceneRegistry[containerId] = { renderer, frameId };
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            const slices = items.slice(0, 8).filter(i => i.value > 0);
+            const total = slices.reduce((sum, i) => sum + i.value, 0);
+            if (!total) { el.innerHTML = '<p class="text-[10px] text-slate-400 italic flex items-center justify-center h-full">No data</p>'; return; }
+            const r = 48, c = 2 * Math.PI * r, gapLen = slices.length > 1 ? 3 : 0;
+            let offset = 0;
+            const rings = slices.map((it, i) => {
+                const len = (it.value / total) * c;
+                const seg = `<circle cx="70" cy="70" r="${r}" fill="none" stroke="${hexCss(colorHexes[i % colorHexes.length])}" stroke-width="18" stroke-dasharray="${Math.max(0.5, len - gapLen).toFixed(2)} ${(c - Math.max(0.5, len - gapLen)).toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 70 70)"/>`;
+                offset += len;
+                return seg;
+            }).join('');
+            el.innerHTML = `<svg viewBox="0 0 140 140" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"><circle cx="70" cy="70" r="${r}" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="18"/>${rings}<text x="70" y="68" text-anchor="middle" font-size="26" font-weight="800" fill="#FFFFFF">${total}</text><text x="70" y="83" text-anchor="middle" font-size="8.5" fill="#94a3b8">approved shifts</text></svg>`;
         }
 
-        // small rotating cube used for the header/login logo, "AE" drawn onto a canvas texture
+        // static logo (was a spinning cube)
         function createLogoCube3D(containerId) {
-            disposeThreeScene(containerId);
-            const ctx = setupThreeCanvas(containerId);
-            if (!ctx) return;
-            const { scene, camera, renderer } = ctx;
-            camera.position.set(0, 0, 2.6);
-            camera.lookAt(0, 0, 0);
-
-            const canvas = document.createElement('canvas');
-            canvas.width = 128; canvas.height = 128;
-            const c2d = canvas.getContext('2d');
-            c2d.fillStyle = '#16212E';
-            c2d.fillRect(0, 0, 128, 128);
-            c2d.fillStyle = '#ffffff';
-            c2d.font = "bold 58px 'Space Grotesk', Arial, sans-serif";
-            c2d.textAlign = 'center';
-            c2d.textBaseline = 'middle';
-            c2d.fillText('AE', 64, 68);
-            const faceTexture = new THREE.CanvasTexture(canvas);
-            const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
-            const sideMat = new THREE.MeshStandardMaterial({ color: 0x16212E });
-            const materials = [sideMat, sideMat, sideMat, sideMat, faceMat, faceMat];
-            const cube = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), materials);
-            cube.rotation.x = 0.35;
-            scene.add(cube);
-
-            let frameId;
-            (function animate() {
-                cube.rotation.y += 0.014;
-                renderer.render(scene, camera);
-                frameId = requestAnimationFrame(animate);
-            })();
-            threeSceneRegistry[containerId] = { renderer, frameId };
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            el.innerHTML = `<img src="${ANANT_LOGO_B64}" alt="Anant Electrical" style="width:100%;height:100%;object-fit:cover;display:block">`;
         }
 
         function renderAnalyticsCharts() {
@@ -3746,8 +4064,8 @@
                 return;
             }
 
-            const palette = ['bg-amber-300', 'bg-purple-300', 'bg-emerald-300', 'bg-rose-300', 'bg-blue-300', 'bg-indigo-300'];
-            const paletteHex = [0xfcd34d, 0xd8b4fe, 0x6ee7b7, 0xfda4af, 0x93c5fd, 0xa5b4fc];
+            const palette = ['bg-[#2f5a8f]', 'bg-[#0EA5E9]', 'bg-[#10B981]', 'bg-[#8B5CF6]', 'bg-[#F59E0B]', 'bg-[#F43F5E]'];
+            const paletteHex = [0x2563EB, 0x0EA5E9, 0x10B981, 0x8B5CF6, 0xF59E0B, 0xF43F5E];
 
             // compact text row - the actual bar is now the 3D chart above, this is just the readout
             const renderLegendRow = (container, item, index, valueLabel) => {
@@ -3781,7 +4099,7 @@
                         <div class="w-3 h-3 rounded-full ${palette[index % palette.length]} border border-black/10 shrink-0"></div>
                         <span class="font-semibold text-slate-800 truncate">${item.name}</span>
                     </div>
-                    <span class="text-purple-900 font-semibold whitespace-nowrap pl-2">${item.value} Approved Shifts</span>
+                    <span class="text-[#16212E] font-semibold whitespace-nowrap pl-2">${item.value} shift${item.value === 1 ? '' : 's'} &middot; ${Math.round(item.value / Math.max(1, workerShiftCounts.reduce((a, b) => a + b.value, 0)) * 100)}%</span>
                 `;
                 legendContainer.appendChild(legendItem);
             });
@@ -3902,7 +4220,7 @@
 
             monthlyAggregationStore = monthlyAggregation;
 
-            const sortingMonths = Object.keys(monthlyAggregation);
+            const sortingMonths = Object.keys(monthlyAggregation).sort((x, y) => (new Date('1 ' + y)) - (new Date('1 ' + x)));
             if(sortingMonths.length === 0) {
                 container.innerHTML = `<p class="text-xs text-gray-400 italic col-span-full text-center py-4">No approved shifts available to generate monthly statements.</p>`;
                 return;
@@ -3928,81 +4246,72 @@
 
                 const monthlyTurnover = grandMonthWorkerSalary + grandMonthBrokerInvoiced + grandMonthTransport + grandMonthFood + grandMonthMaterial;
 
-                let monthHtmlBlock = `
-                    <div class="inner-card p-5 rounded-2xl border border-purple-100 flex flex-col justify-between space-y-4">
-                        <div class="border-b border-purple-100 pb-2.5 flex justify-between items-center gap-2">
-                            <h3 class="text-sm font-bold tracking-wide uppercase text-purple-950">Statement Period: ${month}</h3>
-                            <div class="flex items-center gap-1.5 shrink-0">
-                                <span class="text-[10px] font-semibold bg-purple-100 text-[#16212E] px-2.5 py-1 rounded-full">Monthly</span>
-                                <button onclick="downloadMonthlyStatementPDF('${month}')" class="text-[9px] font-semibold uppercase tracking-wide bg-white border border-purple-200 text-[#16212E] px-2.5 py-1 rounded-full hover:bg-purple-50 transition cursor-pointer">
-                                    PDF
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="bg-gradient-to-br from-[#16212E] to-[#0E1620] text-white p-4 rounded-xl flex justify-between items-center shadow-sm">
-                            <div>
-                                <p class="text-[10px] uppercase tracking-wider text-purple-200 font-semibold">Monthly Turnover</p>
-                                <p class="text-[9px] text-purple-300">Total paid out for ${month}: salary + broker charges + expenses</p>
-                            </div>
-                            <span class="text-lg font-bold font-mono">₹${monthlyTurnover.toLocaleString('en-IN')}</span>
-                        </div>
-
-                        <div class="space-y-2 max-h-[340px] overflow-y-auto pr-1">
-                `;
-
-                Object.values(monthlyAggregation[month]).forEach(item => {
+                const inrF = n => '₹' + Math.round(n).toLocaleString('en-IN');
+                const people = Object.values(monthlyAggregation[month]);
+                const rowsHtml = people.map(item => {
                     const totalWorkerEarnings = item.shiftCount * item.workerSalaryRate;
                     const totalBrokerOutflow = item.shiftCount * item.brokerTotalRate;
                     const rowId = `emp-detail-${monthSlug}-${item.email.replace(/[^a-zA-Z0-9]/g, '-')}`;
-
-                    monthHtmlBlock += `
-                        <div class="text-[11px] bg-white rounded-xl border border-slate-200 overflow-hidden">
-                            <div class="flex justify-between items-center p-3.5 cursor-pointer hover:bg-purple-50/40 transition" onclick="toggleEmployeeMonthlyDetail('${rowId}', this)">
-                                <div class="flex items-center gap-2">
-                                    <span class="chevron-icon text-[9px] text-purple-900 transition-transform">▶</span>
-                                    <div>
-                                        <strong class="text-slate-900 font-bold text-xs">${item.name}</strong>
-                                        <span class="text-[9px] text-gray-400 block">${item.email}</span>
-                                    </div>
-                                </div>
-                                <span class="bg-purple-50 text-[#16212E] border border-purple-200 font-semibold text-[10px] px-2 py-0.5 rounded-lg whitespace-nowrap">${item.shiftCount} Approved Shifts</span>
+                    const ini = (item.name || '?').trim().split(/\s+/).slice(0, 2).map(x => x[0] || '').join('').toUpperCase();
+                    return `
+                        <div class="stmt-row">
+                            <div class="stmt-row-head" onclick="toggleEmployeeMonthlyDetail('${rowId}', this)">
+                                <span class="emp-avatar">${ini}</span>
+                                <div class="stmt-who"><strong>${item.name}</strong><span>${item.email}</span></div>
+                                <span class="stmt-shifts">${item.shiftCount} shifts</span>
+                                <span class="chevron-icon">&#9656;</span>
                             </div>
-                            <div id="${rowId}" class="hidden px-3.5 pb-3.5 space-y-2">
-                                <div class="grid grid-cols-3 gap-2 text-[10px] bg-slate-50 p-2 rounded-lg border border-slate-100 text-center">
-                                    <div class="bg-white p-1.5 rounded-lg border border-slate-200"><span class="text-gray-400 block text-[9px]">Transport</span><strong class="text-slate-700 font-mono">₹${item.totalTransport.toLocaleString('en-IN')}</strong></div>
-                                    <div class="bg-white p-1.5 rounded-lg border border-slate-200"><span class="text-amber-800 block text-[9px]">Food</span><strong class="text-amber-700 font-mono">₹${item.totalFood.toLocaleString('en-IN')}</strong></div>
-                                    <div class="bg-white p-1.5 rounded-lg border border-slate-200"><span class="text-blue-800 block text-[9px]">Materials</span><strong class="text-blue-700 font-mono">₹${item.totalMaterial.toLocaleString('en-IN')}</strong></div>
-                                </div>
-                                <div class="flex justify-between items-center text-slate-600 text-[10px] pt-1 border-t border-slate-100">
-                                    <span>Worker Pay Earned: <strong class="text-emerald-700 font-bold font-mono">₹${totalWorkerEarnings.toLocaleString('en-IN')}</strong></span>
-                                    <span class="text-rose-700 font-bold">Broker Rate: <span class="font-mono">₹${totalBrokerOutflow.toLocaleString('en-IN')}</span></span>
-                                </div>
+                            <div id="${rowId}" class="hidden stmt-detail">
+                                <div class="stmt-mini"><span>Transport</span><strong>${inrF(item.totalTransport)}</strong></div>
+                                <div class="stmt-mini"><span>Food</span><strong>${inrF(item.totalFood)}</strong></div>
+                                <div class="stmt-mini"><span>Materials</span><strong>${inrF(item.totalMaterial)}</strong></div>
+                                <div class="stmt-mini"><span>Pay earned</span><strong class="c-green">${inrF(totalWorkerEarnings)}</strong></div>
+                                <div class="stmt-mini"><span>Broker</span><strong class="c-rose">${inrF(totalBrokerOutflow)}</strong></div>
                             </div>
+                        </div>`;
+                }).join('');
+                const monthHtmlBlock = `
+                    <div class="stmt-card" data-month="${month}">
+                        <div class="stmt-head">
+                            <div><p class="stmt-eyebrow">Statement period</p><h3>${month}</h3></div>
+                            <button onclick="downloadMonthlyStatementPDF('${month}')" class="stmt-pdf">Download PDF</button>
                         </div>
-                    `;
-                });
-
-                monthHtmlBlock += `
+                        <div class="stmt-total">
+                            <div><p>Monthly turnover</p><small>Salary + broker charges + expenses paid out</small></div>
+                            <strong>${inrF(monthlyTurnover)}</strong>
                         </div>
-                        <div class="pt-3 border-t-2 border-dashed border-purple-200 text-[11px] space-y-1 bg-purple-50/50 p-3 rounded-xl border border-purple-100">
-                            <div class="flex justify-between text-slate-600 text-[10px]">
-                                <span>Monthly Expenses (Transport + Food + Material):</span>
-                                <strong class="text-slate-800 font-mono">₹${(grandMonthTransport + grandMonthFood + grandMonthMaterial).toLocaleString('en-IN')}</strong>
-                            </div>
-                            <div class="flex justify-between text-slate-700">
-                                <span>Total Workers Salary:</span>
-                                <strong class="text-emerald-700 font-mono">₹${grandMonthWorkerSalary.toLocaleString('en-IN')}</strong>
-                            </div>
-                            <div class="flex justify-between text-rose-800 font-bold pt-1 border-t border-purple-200">
-                                <span>Total Broker Invoiced Amount:</span>
-                                <strong class="font-mono">₹${grandMonthBrokerInvoiced.toLocaleString('en-IN')}</strong>
-                            </div>
+                        <div class="stmt-split">
+                            <div><span>Workers salary</span><strong class="c-green">${inrF(grandMonthWorkerSalary)}</strong></div>
+                            <div><span>Broker invoiced</span><strong class="c-rose">${inrF(grandMonthBrokerInvoiced)}</strong></div>
+                            <div><span>Expenses</span><strong class="c-amber">${inrF(grandMonthTransport + grandMonthFood + grandMonthMaterial)}</strong></div>
                         </div>
-                    </div>
-                `;
+                        <p class="stmt-sub">Employees &middot; ${people.length}</p>
+                        <div class="stmt-rows">${rowsHtml}</div>
+                    </div>`;
                 container.innerHTML += monthHtmlBlock;
             });
+            buildStatementControls(sortingMonths);
+        }
+
+        let selectedStatementMonth = null;
+        function buildStatementControls(months) {
+            const grid = document.getElementById('monthly-reconciliation-view');
+            if (!grid) return;
+            if (!selectedStatementMonth || (selectedStatementMonth !== '__all' && !months.includes(selectedStatementMonth))) selectedStatementMonth = months[0];
+            let bar = document.getElementById('stmt-controls');
+            if (!bar) { bar = document.createElement('div'); bar.id = 'stmt-controls'; grid.parentNode.insertBefore(bar, grid); }
+            bar.innerHTML = '<span class="stmt-view-label">View</span>' + months.map(m => `<button type="button" class="stmt-chip" data-m="${m}">${m}</button>`).join('') + '<button type="button" class="stmt-chip" data-m="__all">All months</button>';
+            bar.querySelectorAll('button').forEach(btn => { btn.onclick = () => { selectedStatementMonth = btn.dataset.m; applyStatementView(); }; });
+            applyStatementView();
+        }
+        function applyStatementView() {
+            const grid = document.getElementById('monthly-reconciliation-view');
+            const bar = document.getElementById('stmt-controls');
+            if (!grid || !bar) return;
+            const all = selectedStatementMonth === '__all';
+            bar.querySelectorAll('.stmt-chip').forEach(c => c.classList.toggle('on', c.dataset.m === selectedStatementMonth));
+            grid.querySelectorAll('.stmt-card').forEach(c => { c.style.display = (all || c.dataset.month === selectedStatementMonth) ? '' : 'none'; });
+            grid.style.gridTemplateColumns = all ? '' : '1fr';
         }
 
         function toggleEmployeeMonthlyDetail(rowId, headerEl) {
@@ -4209,24 +4518,21 @@
                 const salaryAdvanceLoan = parseFloat(w.salary_advance_taken || 0);
                 const isSelected = w.email === currentlySelectedWorkerEmail;
 
+                const initials = (w.name || '?').trim().split(/\s+/).slice(0, 2).map(x => x[0] || '').join('').toUpperCase();
+                const inr = n => '₹' + Number(n).toLocaleString('en-IN');
                 let div = document.createElement('div');
-                div.className = `p-3 rounded-xl border transition cursor-pointer flex flex-col gap-2 ${isSelected ? 'bg-purple-50 border-purple-300 ring-2 ring-purple-100' : 'bg-white border-slate-200 hover:bg-slate-50'}`;
+                div.className = 'emp-row' + (isSelected ? ' is-selected' : '');
                 div.setAttribute('onclick', `selectActiveWorkerRow('${w.email}')`);
                 div.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-800">${w.name || 'Unnamed'}</h4>
-                            <p class="text-[10px] text-gray-400">${w.email}</p>
-                        </div>
-                        <span class="text-[9px] uppercase font-semibold tracking-wide px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded text-slate-600">${w.role || 'Field Operator'}</span>
+                    <div class="emp-row-top">
+                        <span class="emp-avatar">${initials}</span>
+                        <div class="emp-who"><h4>${w.name || 'Unnamed'}</h4><p>${w.email}</p></div>
+                        <span class="emp-role">${w.role || 'Field Operator'}</span>
                     </div>
-                    <div class="grid grid-cols-2 gap-1.5 text-[10px] bg-slate-50 p-2 rounded-lg border border-slate-100">
-                        <div><span class="text-gray-400">Morning Balance:</span> <strong class="text-amber-600 font-mono">₹${morningWallet.toLocaleString('en-IN')}</strong></div>
-                        <div><span class="text-gray-400">Salary Advance:</span> <strong class="text-rose-600 font-mono">₹${salaryAdvanceLoan.toLocaleString('en-IN')}</strong></div>
-                        <div class="col-span-2 pt-1 border-t border-dashed border-slate-200 flex justify-between">
-                            <span class="text-gray-400">Net Earned:</span>
-                            <strong class="text-emerald-600 font-mono">₹${grossPayable.toLocaleString('en-IN')}</strong>
-                        </div>
+                    <div class="emp-stats">
+                        <div><span>Morning</span><strong class="c-amber">${inr(morningWallet)}</strong></div>
+                        <div><span>Advance</span><strong class="c-rose">${inr(salaryAdvanceLoan)}</strong></div>
+                        <div><span>Net earned</span><strong class="c-green">${inr(grossPayable)}</strong></div>
                     </div>
                 `;
                 container.appendChild(div);
@@ -4237,6 +4543,11 @@
             currentlySelectedWorkerEmail = email;
             renderRegistrySelectorPanel();
             populateBalanceAdjustmentForm(email);
+            ['morning-dispatch-email', 'salary-advance-dispatch-email', 'salary-raise-email', 'alert-dispatch-email'].forEach(id => {
+                const sel = document.getElementById(id);
+                if (sel && [...sel.options].some(o => o.value === email)) sel.value = email;
+            });
+            if (typeof updateSalaryRaisePreview === 'function') { try { updateSalaryRaisePreview(); } catch (e) {} }
         }
 
         function populateBalanceAdjustmentForm(email) {
@@ -5173,30 +5484,17 @@
             const months = Object.keys(byMonth).sort((a, b) => b.localeCompare(a));
             if (months.length === 0) { container.innerHTML = ''; return; }
 
-            container.innerHTML = `
-                <div class="border border-slate-200 rounded-xl overflow-hidden">
-                    <div class="grid grid-cols-5 gap-1 bg-slate-50 px-3 py-2 text-[9px] font-black uppercase tracking-wider text-slate-500">
-                        <span>Month</span>
-                        <span class="text-center text-emerald-700">Approved</span>
-                        <span class="text-center text-rose-700">Rejected</span>
-                        <span class="text-center text-amber-700">Pending</span>
-                        <span class="text-center text-blue-700">Active</span>
-                    </div>
-                    <div class="max-h-40 overflow-y-auto divide-y divide-slate-100">
-                        ${months.map(key => {
-                            const c = byMonth[key];
-                            const label = new Date(key + '-01').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
-                            return `
-                            <button type="button" onclick="jumpToShiftsMonth('${key}')" class="w-full grid grid-cols-5 gap-1 px-3 py-2 text-[10px] hover:bg-slate-50 transition cursor-pointer text-left">
-                                <span class="font-semibold text-slate-700">${label}</span>
-                                <span class="text-center font-mono text-emerald-700">${c.Approved}</span>
-                                <span class="text-center font-mono text-rose-700">${c.Rejected}</span>
-                                <span class="text-center font-mono text-amber-700">${c.Pending}</span>
-                                <span class="text-center font-mono text-blue-700">${c.Active}</span>
-                            </button>`;
-                        }).join('')}
-                    </div>
-                </div>`;
+            container.innerHTML = `<div class="month-strip">${months.map(key => {
+                const c = byMonth[key];
+                const label = new Date(key + '-01').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+                const total = Math.max(1, c.Approved + c.Rejected + c.Pending + c.Active);
+                const seg = (n, col) => n ? `<i style="width:${n / total * 100}%;background:${col}"></i>` : '';
+                return `<button type="button" class="month-card" onclick="jumpToShiftsMonth('${key}')">
+                    <div class="month-card-top"><strong>${label}</strong><span>${c.Approved + c.Rejected + c.Pending + c.Active} shifts</span></div>
+                    <div class="month-bar">${seg(c.Approved, '#34D399')}${seg(c.Pending, '#FBBF24')}${seg(c.Active, '#d1863f')}${seg(c.Rejected, '#FB7185')}</div>
+                    <div class="month-legend"><span style="color:#6EE7B7">${c.Approved} approved</span><span style="color:#FCD34D">${c.Pending} pending</span><span style="color:#FDA4AF">${c.Rejected} rejected</span></div>
+                </button>`;
+            }).join('')}</div>`;
         }
 
         function renderShiftsStreamDisplay() {
@@ -5268,7 +5566,8 @@
                 const isActionable = log.status === 'Pending' || (hasExpenseClaim && expenseStatus === 'Pending');
 
                 let div = document.createElement('div');
-                div.className = "bg-white p-5 rounded-xl border border-slate-200 space-y-4 hover:border-purple-200 transition";
+                div.className = "shift-card space-y-4";
+                div.dataset.status = log.status;
                 div.innerHTML = `
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-slate-100">
                         <div class="flex items-center gap-2.5">
@@ -5515,6 +5814,354 @@
             if (savedEmail && emailInput) emailInput.value = savedEmail;
             const restored = restoreAdminSession();
             if (!restored) createLogoCube3D('login-logo-3d');
+        })();
+    </script>
+    <script>
+        // section header icons - reuse the menu icons so each page matches its tab
+        (function decorateSectionHeaders() {
+            ['shifts', 'analytics', 'employees', 'monthly', 'payment', 'projects', 'overview', 'pms'].forEach(v => {
+                const view = document.getElementById('menu-view-' + v);
+                const icon = document.querySelector('#menu-btn-' + v + ' svg');
+                const h2 = view && view.querySelector('section h2, h2');
+                if (!h2 || !icon || h2.querySelector('.sec-ico')) return;
+                const chip = document.createElement('span');
+                chip.className = 'sec-ico';
+                chip.appendChild(icon.cloneNode(true));
+                h2.insertBefore(chip, h2.firstChild);
+            });
+        })();
+    </script>
+    <script>
+        // Employees page: team list on the left, one tabbed action panel on the right
+        (function buildEmployeesDesk() {
+            const sec = document.querySelector('#menu-view-employees section.panel');
+            if (!sec) return;
+            const kids = [...sec.children];
+            const holder = id => { const el = document.getElementById(id); return el && kids.find(k => k.contains(el)); };
+            const forms = [
+                ['morning', 'Morning balance', holder('morning-dispatch-email')],
+                ['salary', 'Salary advance', holder('salary-advance-dispatch-email')],
+                ['raise', 'Raise daily rate', holder('salary-raise-email')],
+                ['alert', 'Send alert', holder('alert-dispatch-email')],
+                ['add', 'New employee', holder('new-worker-name')]
+            ];
+            const heading = kids.find(k => k.querySelector && k.querySelector(':scope > h2'));
+            const list = document.getElementById('worker-selection-list');
+            const edit = document.getElementById('balance-adjustment-card');
+            if (forms.some(f => !f[2]) || !heading || !list || !edit) return;
+
+            const desk = document.createElement('div');
+            desk.className = 'emp-desk';
+            desk.innerHTML = '<div class="emp-grid"><aside class="emp-team"><div class="emp-team-top"><h3>Team</h3><span id="emp-count"></span></div><input id="emp-search" type="search" placeholder="Search employees"><div id="emp-list-slot"></div></aside><div class="emp-main"><div class="emp-tabs" id="emp-tabs"></div><div class="emp-panels" id="emp-panels"></div><div id="emp-edit-slot"></div></div></div>';
+
+            const tabs = desk.querySelector('#emp-tabs'), panels = desk.querySelector('#emp-panels');
+            forms.forEach(([key, label, block], i) => {
+                block.className = 'emp-form' + (i === 0 ? ' on' : '');
+                panels.appendChild(block);
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'emp-tab' + (i === 0 ? ' on' : ''); b.textContent = label;
+                b.onclick = () => {
+                    tabs.querySelectorAll('.emp-tab').forEach(t => t.classList.toggle('on', t === b));
+                    forms.forEach(f => f[2].classList.toggle('on', f[2] === block));
+                };
+                tabs.appendChild(b);
+            });
+            desk.querySelector('#emp-list-slot').appendChild(list);
+            desk.querySelector('#emp-edit-slot').appendChild(edit);
+
+            heading.className = 'mb-4';
+            sec.innerHTML = '';
+            sec.appendChild(heading);
+            sec.appendChild(desk);
+
+            const search = desk.querySelector('#emp-search'), count = desk.querySelector('#emp-count');
+            const applyFilter = () => {
+                const q = search.value.trim().toLowerCase();
+                let shown = 0, total = 0;
+                [...list.children].forEach(c => {
+                    if (!c.classList.contains('emp-row')) return;
+                    total++;
+                    const hit = !q || c.textContent.toLowerCase().includes(q);
+                    c.style.display = hit ? '' : 'none';
+                    if (hit) shown++;
+                });
+                count.textContent = total ? (q ? shown + ' of ' + total : total + ' people') : '';
+            };
+            search.addEventListener('input', applyFilter);
+            new MutationObserver(applyFilter).observe(list, { childList: true });
+            applyFilter();
+        })();
+    </script>
+    <script>
+        // short summary tiles at the top of each page
+        (function setupPageHeroes() {
+            const inr = n => '₹' + Math.round(n).toLocaleString('en-IN');
+            const num = n => Number(n || 0).toLocaleString('en-IN');
+            const expenseOf = l => parseFloat(l.transport_expense || 0) + parseFloat(l.food_expense || 0) + parseFloat(l.material_expense || 0);
+            const kids = id => { const el = document.getElementById(id); return el ? [...el.children].filter(c => c.tagName !== 'P').length : 0; };
+            const defs = {
+                shifts: () => {
+                    const L = runtimeShifts || [];
+                    const pend = L.filter(l => l.status === 'Pending'), exp = L.filter(l => l.status !== 'Active' && l.expense_status === 'Pending');
+                    return [
+                        ['Waiting for approval', num(pend.length), 'shifts', '#FBBF24'],
+                        ['Expenses to review', inr(exp.reduce((a, l) => a + expenseOf(l), 0)), exp.length + ' claims', '#A78BFA'],
+                        ['On shift now', num(L.filter(l => l.status === 'Active').length), 'punched in', '#d1863f'],
+                        ['Approved shifts', num(L.filter(l => l.status === 'Approved').length), 'all time', '#34D399']
+                    ];
+                },
+                employees: () => {
+                    const W = runtimeWorkers || [];
+                    return [
+                        ['People', num(W.length), 'on the team', '#d1863f'],
+                        ['Morning balances', inr(W.reduce((a, w) => a + parseFloat(w.morning_advance || 0), 0)), 'with employees', '#FBBF24'],
+                        ['Salary advances', inr(W.reduce((a, w) => a + parseFloat(w.salary_advance_taken || 0), 0)), 'outstanding', '#FB7185']
+                    ];
+                },
+                analytics: () => {
+                    const A = (runtimeShifts || []).filter(l => l.status === 'Approved');
+                    return [
+                        ['Approved shifts', num(A.length), 'all time', '#34D399'],
+                        ['Approved expenses', inr(A.filter(l => l.expense_status === 'Approved').reduce((a, l) => a + expenseOf(l), 0)), 'transport, food, material', '#A78BFA'],
+                        ['Employees', num((runtimeWorkers || []).length), 'on the team', '#d1863f']
+                    ];
+                },
+                projects: () => [['Projects listed', num(kids('project-invoice-list')), 'for this filter', '#d1863f']],
+                pms: () => [
+                    ['Project managers', num(kids('pm-accounts-list')), 'accounts', '#d1863f'],
+                    ['Fund requests', num(kids('pm-fund-requests-list')), 'waiting', '#FBBF24']
+                ],
+                monthly: () => [
+                    ['Employees', num((runtimeWorkers || []).length), 'on the team', '#d1863f'],
+                    ['Shifts logged', num((runtimeShifts || []).length), 'all time', '#34D399']
+                ]
+            };
+            function render(view) {
+                const make = defs[view];
+                const host = document.getElementById('menu-view-' + view);
+                if (!make || !host) return;
+                const sec = host.querySelector('section.panel');
+                if (!sec) return;
+                let strip = sec.querySelector(':scope > .hero-strip');
+                if (!strip) {
+                    strip = document.createElement('div');
+                    strip.className = 'hero-strip';
+                    const head = sec.querySelector(':scope > div.mb-4');
+                    if (head && head.nextSibling) sec.insertBefore(strip, head.nextSibling); else sec.insertBefore(strip, sec.firstChild);
+                }
+                let tiles;
+                try { tiles = make(); } catch (e) { return; }
+                strip.innerHTML = tiles.map(t => `<div class="hero-tile" style="--tone:${t[3]}"><span>${t[0]}</span><strong>${t[1]}</strong><em>${t[2]}</em></div>`).join('');
+            }
+            const original = window.switchAdminMenu;
+            if (typeof original === 'function') {
+                window.switchAdminMenu = function (view) { const r = original.apply(this, arguments); render(view); return r; };
+            }
+            setInterval(() => {
+                Object.keys(defs).forEach(v => { const h = document.getElementById('menu-view-' + v); if (h && !h.classList.contains('hidden')) render(v); });
+            }, 2500);
+            Object.keys(defs).forEach(render);
+        })();
+    </script>
+    <script>
+        (function initNodeNetworkBackground() {
+            const canvas = document.getElementById('node-network-canvas');
+            if (!canvas || typeof THREE === 'undefined') return;
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+            let renderer, scene, camera, nodesPoints, linesMesh, pulseGroup;
+            let width = window.innerWidth, height = window.innerHeight;
+            let animId = null;
+            let mouseX = 0, mouseY = 0;
+            const NODE_COUNT = window.innerWidth < 640 ? 26 : 42;
+            const NODE_SPREAD = { x: 34, y: 20, z: 14 };
+            const LINK_DISTANCE = 9.5;
+            const MAX_LINKS_PER_NODE = 3;
+
+            try {
+                renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+                renderer.setSize(width, height);
+            } catch (e) { return; } // no WebGL, quietly skip - CSS gradient background still stands on its own
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
+            camera.position.z = 22;
+
+            const nodePositions = [];
+            for (let i = 0; i < NODE_COUNT; i++) {
+                nodePositions.push(new THREE.Vector3(
+                    (Math.random() - 0.5) * NODE_SPREAD.x,
+                    (Math.random() - 0.5) * NODE_SPREAD.y,
+                    (Math.random() - 0.5) * NODE_SPREAD.z
+                ));
+            }
+
+            const nodeGeo = new THREE.BufferGeometry().setFromPoints(nodePositions);
+            const nodeMat = new THREE.PointsMaterial({
+                color: 0xd1863f, size: 0.22, transparent: true, opacity: 0.75,
+                sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            nodesPoints = new THREE.Points(nodeGeo, nodeMat);
+            scene.add(nodesPoints);
+
+            const edgeList = [];
+            const linePositions = [];
+            for (let i = 0; i < nodePositions.length; i++) {
+                const dists = [];
+                for (let j = 0; j < nodePositions.length; j++) {
+                    if (i === j) continue;
+                    const d = nodePositions[i].distanceTo(nodePositions[j]);
+                    if (d < LINK_DISTANCE) dists.push([j, d]);
+                }
+                dists.sort((a, b) => a[1] - b[1]);
+                dists.slice(0, MAX_LINKS_PER_NODE).forEach(([j]) => {
+                    const key = i < j ? `${i}-${j}` : `${j}-${i}`;
+                    if (edgeList.some(e => e.key === key)) return;
+                    edgeList.push({ key, a: i, b: j });
+                    linePositions.push(
+                        nodePositions[i].x, nodePositions[i].y, nodePositions[i].z,
+                        nodePositions[j].x, nodePositions[j].y, nodePositions[j].z
+                    );
+                });
+            }
+            const lineGeo = new THREE.BufferGeometry();
+            lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+            const lineMat = new THREE.LineBasicMaterial({ color: 0x345a85, transparent: true, opacity: 0.22 });
+            linesMesh = new THREE.LineSegments(lineGeo, lineMat);
+            scene.add(linesMesh);
+
+            const PULSE_COUNT = 5;
+            pulseGroup = new THREE.Group();
+            const pulseGeo = new THREE.SphereGeometry(0.16, 8, 8);
+            const pulses = [];
+            for (let i = 0; i < PULSE_COUNT; i++) {
+                const mat = new THREE.MeshBasicMaterial({ color: 0xeec495, transparent: true, opacity: 0 });
+                const mesh = new THREE.Mesh(pulseGeo, mat);
+                pulseGroup.add(mesh);
+                pulses.push({ mesh, edge: null, t: 1, delay: Math.random() * 6 });
+            }
+            scene.add(pulseGroup);
+
+            function respawnPulse(p) {
+                p.edge = edgeList[Math.floor(Math.random() * edgeList.length)];
+                p.t = 0;
+                p.delay = 2 + Math.random() * 5;
+            }
+            pulses.forEach(respawnPulse);
+
+            const clock = new THREE.Clock();
+            const isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+            let boostUntil = 0;
+            window.nodeNetworkBoost = function (durationMs) {
+                boostUntil = performance.now() + (durationMs || 4000);
+            };
+
+            function onPointerMove(e) {
+                mouseX = (e.clientX / width) - 0.5;
+                mouseY = (e.clientY / height) - 0.5;
+            }
+            if (!isTouch) window.addEventListener('mousemove', onPointerMove, { passive: true });
+
+            function animate() {
+                animId = requestAnimationFrame(animate);
+                const dt = Math.min(clock.getDelta(), 0.05);
+                const elapsed = clock.getElapsedTime();
+                const boosted = performance.now() < boostUntil;
+                const pulseSpeedMult = boosted ? 2.4 : 1;
+                nodeMat.opacity = boosted ? 0.95 : 0.75;
+                lineMat.opacity = boosted ? 0.4 : 0.22;
+
+                nodesPoints.rotation.y += dt * (boosted ? 0.05 : 0.02);
+                linesMesh.rotation.y = nodesPoints.rotation.y;
+                pulseGroup.rotation.y = nodesPoints.rotation.y;
+                nodesPoints.rotation.x = Math.sin(elapsed * 0.08) * 0.06;
+                linesMesh.rotation.x = nodesPoints.rotation.x;
+                pulseGroup.rotation.x = nodesPoints.rotation.x;
+
+                camera.position.x += (mouseX * 3 - camera.position.x) * 0.02;
+                camera.position.y += (-mouseY * 2 - camera.position.y) * 0.02;
+                camera.lookAt(0, 0, 0);
+
+                pulses.forEach(p => {
+                    if (p.delay > 0) { p.delay -= dt; p.mesh.material.opacity = 0; return; }
+                    p.t += dt * 0.6 * pulseSpeedMult;
+                    if (p.t >= 1) { respawnPulse(p); return; }
+                    const a = nodePositions[p.edge.a], b = nodePositions[p.edge.b];
+                    p.mesh.position.lerpVectors(a, b, p.t);
+                    p.mesh.material.opacity = Math.sin(p.t * Math.PI) * 0.9;
+                });
+
+                renderer.render(scene, camera);
+            }
+
+            function onResize() {
+                width = window.innerWidth; height = window.innerHeight;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            }
+            window.addEventListener('resize', onResize);
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    if (animId) cancelAnimationFrame(animId);
+                    animId = null;
+                } else if (!animId) {
+                    animate();
+                }
+            });
+
+            animate();
+            requestAnimationFrame(() => canvas.classList.add('is-ready'));
+        })();
+    </script>
+    <script>
+        (function initAdminLoginMascot() {
+            const mascot = document.getElementById('login-mascot');
+            const pupilLeft = document.getElementById('mascot-pupil-left');
+            const pupilRight = document.getElementById('mascot-pupil-right');
+            const emailField = document.getElementById('auth-admin-email');
+            const passwordField = document.getElementById('auth-admin-password');
+            if (!mascot || !emailField || !passwordField) return;
+            const MAX = 3.5;
+            const gaze = px => { const t = `translateX(${px.toFixed(1)}px)`; if (pupilLeft) pupilLeft.style.transform = t; if (pupilRight) pupilRight.style.transform = t; };
+            emailField.addEventListener('focus', () => mascot.classList.add('is-reading'));
+            emailField.addEventListener('blur', () => { mascot.classList.remove('is-reading'); gaze(0); });
+            emailField.addEventListener('input', () => gaze((((emailField.value.length % 10) / 10) - 0.5) * 2 * MAX));
+            passwordField.addEventListener('focus', () => mascot.classList.add('is-shy'));
+            passwordField.addEventListener('blur', () => mascot.classList.remove('is-shy'));
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                (function blink() {
+                    setTimeout(() => {
+                        if (!mascot.classList.contains('is-shy')) { mascot.classList.add('is-blinking'); setTimeout(() => mascot.classList.remove('is-blinking'), 150); }
+                        blink();
+                    }, 2600 + Math.random() * 2200);
+                })();
+            }
+        })();
+    </script>
+    <script>
+        (function buildProjectsDesk() {
+            const sec = document.querySelector('#menu-view-projects section.panel');
+            if (!sec) return;
+            const kids = [...sec.children];
+            const holder = id => { const el = document.getElementById(id); return el && kids.find(k => k.contains(el)); };
+            const head = kids[0];
+            const banner = holder('project-turnover-banner'), summary = holder('project-invoice-summary');
+            const typeRow = holder('proj-list-filter-btn-invoice'), form = holder('project-invoice-form-card');
+            if (!head || !banner || !summary || !typeRow || !form) return;
+            const formIdx = kids.indexOf(form);
+            const rest = kids.slice(formIdx + 1);
+            const grid = document.createElement('div');
+            grid.className = 'proj-grid';
+            const listCol = document.createElement('div'); listCol.className = 'proj-list-col';
+            [typeRow, ...rest].forEach(k => listCol.appendChild(k));
+            const formCol = document.createElement('aside'); formCol.className = 'proj-form-col';
+            const t = document.createElement('p'); t.className = 'proj-form-title'; t.textContent = 'Create or edit a document';
+            formCol.appendChild(t); formCol.appendChild(form);
+            grid.appendChild(listCol); grid.appendChild(formCol);
+            sec.appendChild(grid);
         })();
     </script>
 </body>
