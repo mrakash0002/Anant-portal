@@ -477,7 +477,7 @@
                     <p class="text-[11px] text-violet-100" id="bonus-banner-subtitle"></p>
                 </div>
             </div>
-            <button onclick="dismissBonusBanner()" class="text-white/70 hover:text-white text-sm font-bold px-2 py-1 shrink-0 cursor-pointer">✕</button>
+            <button onclick="dismissBonusBanner()" class="text-white/70 hover:text-white text-sm font-bold px-2 py-1 shrink-0 cursor-pointer">×</button>
         </div>
 
         <div id="portal-dashboard" class="hidden w-full lg:columns-2 lg:gap-6">
@@ -646,7 +646,7 @@
                                     <span class="text-[10px] font-black text-slate-700 uppercase tracking-wider">Bill Submission Rules</span>
                                 </div>
                                 <div class="flex items-start gap-2.5">
-                                    <span class="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[9px] font-bold">✓</span>
+                                    <span class="shrink-0 mt-0.5 w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[9px] font-bold"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>
                                     <p class="text-[10px] leading-snug text-slate-600">Attach a clear photo or UPI screenshot for <span class="font-bold text-slate-800">every expense entered above</span> before you can punch out.</p>
                                 </div>
                                 <div class="flex items-start gap-2.5">
@@ -1152,7 +1152,7 @@
         <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5 space-y-3 max-h-[85vh] overflow-y-auto">
             <div class="flex items-center justify-between">
                 <h2 id="correction-modal-title" class="text-sm font-bold text-slate-800">Fix &amp; Resubmit</h2>
-                <button onclick="closeCorrectionModal()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">✕</button>
+                <button onclick="closeCorrectionModal()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">×</button>
             </div>
             <div id="correction-modal-notes" class="hidden bg-orange-50 border border-orange-200 rounded-lg p-2.5 text-[11px] text-orange-800 space-y-1"></div>
 
@@ -2628,7 +2628,7 @@
                         showShiftAlert(message);
                     })
                     .subscribe((status, err) => {
-                        if (status === 'SUBSCRIBED') setStatus('Alerts: connected ✓', 'text-emerald-400');
+                        if (status === 'SUBSCRIBED') setStatus('Alerts: connected', 'text-emerald-400');
                         else if (status === 'CHANNEL_ERROR') setStatus(`Alerts: connection error${err ? ' - ' + err.message : ''}`, 'text-rose-400');
                         else if (status === 'TIMED_OUT') setStatus('Alerts: connection timed out', 'text-rose-400');
                         else if (status === 'CLOSED') setStatus('Alerts: connection closed', 'text-slate-500');
@@ -2937,13 +2937,13 @@
             const existingThumbs = correctionExistingBills[type].map((url, i) => `
                 <div class="relative">
                     <a href="${url}" target="_blank"><img src="${url}" class="w-12 h-12 rounded-md object-cover border border-slate-200"></a>
-                    <button onclick="removeCorrectionExistingBill('${type}', ${i})" class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center cursor-pointer">✕</button>
+                    <button onclick="removeCorrectionExistingBill('${type}', ${i})" class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center cursor-pointer">×</button>
                 </div>`).join('');
             const pendingThumbs = correctionPendingBills[type].map((base64, i) => `
                 <div class="relative">
                     <img src="${base64}" class="w-12 h-12 rounded-md object-cover border-2 border-blue-400">
                     <span class="absolute bottom-0 left-0 right-0 bg-blue-500 text-white text-[7px] text-center rounded-b-md">NEW</span>
-                    <button onclick="removeCorrectionPendingBill('${type}', ${i})" class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center cursor-pointer">✕</button>
+                    <button onclick="removeCorrectionPendingBill('${type}', ${i})" class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center cursor-pointer">×</button>
                 </div>`).join('');
             container.innerHTML = existingThumbs + pendingThumbs || `<p class="text-[9px] text-slate-400 italic">No photos yet</p>`;
         }
