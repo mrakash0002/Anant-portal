@@ -523,6 +523,48 @@
         #project-invoice-summary p:first-child { font-size: 10.5px !important; letter-spacing: .09em !important; color: #9FB4D9 !important; }
         #project-invoice-summary p.text-sm { font-size: 1.4rem !important; color: #fff !important; margin-top: .25rem; font-variant-numeric: tabular-nums; }
         #project-invoice-list > div { background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.03)); border-radius: 18px !important; padding: 1rem 1.15rem !important; }
+
+        /* ===== analytics ===== */
+        .an-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 1.1rem; padding-top: .35rem; }
+        .an-card { background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.03)); border: 1px solid rgba(147,180,221,.16); border-radius: 20px; padding: 1.1rem 1.2rem; }
+        .an-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; margin-bottom: .75rem; }
+        .an-card-head h3 { font-size: 13px; font-weight: 700; color: #F1F5F9; letter-spacing: .01em; }
+        .an-card-head span { font-size: 10.5px; color: #94A3B8; }
+        .an-chart { height: 215px; border-radius: 14px; background: rgba(0,0,0,.16) !important; border: 1px solid rgba(147,180,221,.12) !important; overflow: hidden; }
+        .an-chart-donut { height: 190px; }
+        .an-legend { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem .8rem; margin-top: .8rem; max-height: 170px; overflow-y: auto; padding-right: 4px; }
+        .an-legend > div { background: transparent !important; border: 0 !important; padding: 0 !important; font-size: 11px !important; }
+        .an-legend > div span.pl-2 { color: #94A3B8 !important; font-weight: 500 !important; }
+        .an-rank { display: flex; gap: .75rem; padding: .6rem 0; border-bottom: 1px dashed rgba(147,180,221,.16); }
+        .an-rank:last-child { border-bottom: 0; }
+        .an-rank-no { flex: none; width: 24px; height: 24px; border-radius: 8px; background: rgba(209,134,63,.16); color: #e0a262; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+        .an-rank-body { flex: 1; min-width: 0; }
+        .an-rank-top { display: flex; justify-content: space-between; gap: .5rem; }
+        .an-rank-top strong { font-size: 12.5px; color: #F1F5F9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .an-rank-top b { font-size: 12.5px; color: #6EE7B7; font-variant-numeric: tabular-nums; }
+        .an-rank-bar { height: 5px; border-radius: 99px; background: rgba(255,255,255,.1); margin: .35rem 0 .25rem; overflow: hidden; }
+        .an-rank-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #d1863f, #eec495); }
+        .an-rank small { font-size: 10.5px; color: #94A3B8; }
+
+        /* ===== punch in / out alerts ===== */
+        #punch-in-alerts-banner { display: flex; flex-direction: column; gap: .6rem; }
+        #punch-in-alerts-banner.hidden { display: none; }
+        .punch-alert { --tone: #34D399; display: flex; align-items: flex-start; gap: .9rem; padding: .85rem 1rem .9rem 1.1rem; border-radius: 18px; background: linear-gradient(160deg, rgba(255,255,255,.10), rgba(255,255,255,.04)); border: 1px solid rgba(147,180,221,.22); border-left: 4px solid var(--tone); box-shadow: 0 20px 40px -24px rgba(0,0,0,.85); backdrop-filter: blur(10px); animation: punchSlide .4s cubic-bezier(.2,.8,.2,1); }
+        .punch-alert.out { --tone: #d1863f; }
+        .punch-alert-main { flex: 1; min-width: 0; }
+        .punch-alert-top { display: flex; align-items: center; gap: .6rem; }
+        .punch-pill { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; color: #6EE7B7; background: rgba(16,185,129,.16); border: 1px solid rgba(52,211,153,.4); }
+        .punch-alert.out .punch-pill { color: #eec495; background: rgba(209,134,63,.16); border-color: rgba(209,134,63,.45); }
+        .punch-time { font-size: 11px; color: #94A3B8; font-variant-numeric: tabular-nums; }
+        .punch-who { margin-top: .4rem; font-size: 13.5px; line-height: 1.35; color: #CBD5E1; }
+        .punch-who strong { color: #fff; font-weight: 700; }
+        .punch-gps-row { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .55rem; }
+        .punch-gps { display: inline-flex; align-items: center; gap: .45rem; font-size: 11px; font-variant-numeric: tabular-nums; color: #BFD3F5; background: rgba(0,0,0,.2); border: 1px solid rgba(147,180,221,.22); padding: 3px 9px 3px 4px; border-radius: 999px; text-decoration: none; transition: border-color .15s, background .15s; }
+        .punch-gps b { font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #0f1c2e; background: var(--tone); padding: 2px 7px; border-radius: 999px; }
+        .punch-gps:hover { background: rgba(255,255,255,.08); border-color: var(--tone); }
+        .punch-x { flex: none; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; line-height: 1; color: #94A3B8; background: rgba(255,255,255,.06); border: 1px solid rgba(147,180,221,.2); cursor: pointer; }
+        .punch-x:hover { color: #fff; background: rgba(255,255,255,.14); }
+        @keyframes punchSlide { from { opacity: 0; transform: translateY(-8px) scale(.99); } to { opacity: 1; transform: none; } }
     </style>
 </head>
 <body class="text-slate-800 font-sans min-h-screen flex flex-col justify-between p-4 md:p-8 antialiased">
@@ -652,7 +694,7 @@
             <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 border border-slate-200 max-h-[85vh] overflow-y-auto">
                 <div class="flex items-center justify-between">
                     <h2 class="font-display text-lg font-bold tracking-tight text-[#16212E]">Admin Accounts</h2>
-                    <button onclick="closeAdminAccountsPanel()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">✕</button>
+                    <button onclick="closeAdminAccountsPanel()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">×</button>
                 </div>
                 <div id="admin-accounts-list" class="space-y-2"></div>
                 <div class="pt-3 border-t border-slate-200 space-y-2">
@@ -670,7 +712,7 @@
             <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-3 border border-slate-200 max-h-[85vh] overflow-y-auto">
                 <div class="flex items-center justify-between">
                     <h2 class="font-display text-lg font-bold tracking-tight text-[#16212E]">Add Shift &amp; Expense</h2>
-                    <button onclick="closeAddShiftModal()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">✕</button>
+                    <button onclick="closeAddShiftModal()" class="text-slate-400 hover:text-slate-600 text-lg cursor-pointer">×</button>
                 </div>
                 <p class="text-[10px] text-slate-400">For manually logging a shift the employee forgot to punch, or a correction. Saved as Approved by default.</p>
 
@@ -760,30 +802,25 @@
                     <p class="text-xs text-slate-500">Approved shifts by employee.</p>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                <!-- bar chart -->
-                <div class="inner-card p-4 rounded-xl space-y-3 flex flex-col">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-[#16212E] border-l-[3px] border-[#C0813C] pl-2">Shift Volume by Employee</h3>
-                    <div id="bar-chart-3d" class="w-full h-44 rounded-xl overflow-hidden" style="background:#fff;border:1px solid #E4E7EC;"></div>
-                    <div id="custom-bar-chart-container" class="space-y-1.5 overflow-y-auto max-h-28 pr-1">
-                        <!-- rendered via JS -->
-                    </div>
+            <div class="an-grid">
+                <div class="an-card an-wide">
+                    <div class="an-card-head"><h3>Shift volume by employee</h3><span>Top 8 &middot; approved shifts</span></div>
+                    <div id="bar-chart-3d" class="an-chart"></div>
+                    <div id="custom-bar-chart-container" class="hidden"></div>
                 </div>
-                <!-- distribution -->
-                <div class="inner-card p-4 rounded-xl space-y-3 flex flex-col">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-[#16212E] border-l-[3px] border-[#C0813C] pl-2">Workforce Distribution</h3>
-                    <div id="donut-chart-3d" class="w-full h-44 rounded-xl overflow-hidden" style="background:#fff;border:1px solid #E4E7EC;"></div>
-                    <div id="pie-breakdown-legend" class="space-y-1.5 overflow-y-auto max-h-28 pr-1">
-                        <!-- rendered via JS -->
-                    </div>
+                <div class="an-card">
+                    <div class="an-card-head"><h3>Workforce share</h3><span>Of all approved shifts</span></div>
+                    <div id="donut-chart-3d" class="an-chart an-chart-donut"></div>
+                    <div id="pie-breakdown-legend" class="an-legend"></div>
                 </div>
-                <!-- spend chart -->
-                <div class="inner-card p-4 rounded-xl space-y-3 flex flex-col">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-[#16212E] border-l-[3px] border-[#C0813C] pl-2">Approved Expense Spend by Employee</h3>
-                    <div id="spend-chart-3d" class="w-full h-44 rounded-xl overflow-hidden" style="background:#fff;border:1px solid #E4E7EC;"></div>
-                    <div id="spend-bar-chart-container" class="space-y-1.5 overflow-y-auto max-h-28 pr-1">
-                        <!-- rendered via JS -->
-                    </div>
+                <div class="an-card an-wide">
+                    <div class="an-card-head"><h3>Approved expense spend</h3><span>Top 8 &middot; transport, food, material</span></div>
+                    <div id="spend-chart-3d" class="an-chart"></div>
+                    <div id="spend-bar-chart-container" class="hidden"></div>
+                </div>
+                <div class="an-card">
+                    <div class="an-card-head"><h3>Leaderboard</h3><span>Shifts and spend</span></div>
+                    <div id="an-leaderboard"></div>
                 </div>
             </div>
         </section>
@@ -1467,8 +1504,13 @@
 
                 <!-- employee balances summary: morning balance + salary advance for everyone -->
                 <div class="mb-4 border border-slate-200 rounded-xl overflow-hidden">
-                    <div class="px-3 py-2.5 bg-slate-50 flex items-center justify-between gap-2 flex-wrap">
+                    <button type="button" onclick="toggleEmployeeBalancesPanel()" class="w-full flex items-center justify-between px-3 py-2.5 bg-slate-50 hover:bg-slate-100 transition cursor-pointer">
                         <span class="text-xs font-bold text-slate-700">Employee Balances &mdash; Morning Balance &amp; Salary Advance</span>
+                        <span id="emp-balances-toggle-icon" class="text-slate-400 text-xs">▼ Show</span>
+                    </button>
+                    <div id="emp-balances-panel" class="hidden">
+                    <div class="px-3 py-2.5 bg-slate-50 flex items-center justify-between gap-2 flex-wrap border-t border-slate-200">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Period</span>
                         <div class="flex items-center gap-1.5 shrink-0">
                             <input type="month" id="balances-summary-month-filter" onchange="renderBalancesSummary()" class="p-1.5 bg-white border border-gray-200 rounded-lg text-[10px] font-semibold outline-none">
                             <button type="button" id="balances-summary-all-time-btn" onclick="clearBalancesSummaryMonth()" class="px-2.5 py-1.5 bg-white border border-gray-200 text-slate-600 text-[9px] font-semibold rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap">All Time</button>
@@ -1490,6 +1532,7 @@
                             </table>
                         </div>
                         <p id="balances-summary-note" class="text-[9px] text-slate-400 italic mt-2"></p>
+                    </div>
                     </div>
                 </div>
 
@@ -1832,6 +1875,28 @@
         // same tones reversed for punch-out so they sound related
         function playPunchOutChime() { playAdminToneSequence([[660, 0], [880, 0.12], [1108, 0.24]]); }
 
+        function buildPunchAlert(kind, name, loc) {
+            const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+            const raw = String(loc || '');
+            const m = raw.match(/^(.*?)\s*\((.*GPS.*)\)\s*$/);
+            const site = (m ? m[1] : raw).trim();
+            const gpsText = m ? m[2] : (/GPS/.test(raw) ? raw : '');
+            const pick = label => { const x = gpsText.match(new RegExp(label + ':\\s*(-?\\d+\\.?\\d*),\\s*(-?\\d+\\.?\\d*)')); return x ? { lat: x[1], lng: x[2] } : null; };
+            const gIn = pick('GPS In') || pick('GPS'), gOut = pick('GPS Out');
+            const chip = (label, g) => g ? `<a class="punch-gps" href="https://www.google.com/maps?q=${g.lat},${g.lng}" target="_blank" rel="noopener"><b>${label}</b>${g.lat}, ${g.lng}</a>` : '';
+            const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+            const closeJs = "this.closest('.punch-alert').remove(); if(!document.getElementById('punch-in-alerts-banner').children.length) document.getElementById('punch-in-alerts-banner').classList.add('hidden');";
+            return `
+                <div class="punch-alert ${kind}">
+                    <div class="punch-alert-main">
+                        <div class="punch-alert-top"><span class="punch-pill">${kind === 'in' ? 'Punched in' : 'Punched out'}</span><span class="punch-time">${time}</span></div>
+                        <p class="punch-who"><strong>${esc(name)}</strong>${site ? ' at ' + esc(site) : ''}</p>
+                        ${(gIn || gOut) ? `<div class="punch-gps-row">${chip('In', kind === 'in' ? gIn : gIn)}${chip('Out', gOut)}</div>` : ''}
+                    </div>
+                    <button type="button" class="punch-x" aria-label="Dismiss" onclick="${closeJs}">&times;</button>
+                </div>`;
+        }
+
         function addShiftAlertBanner(html) {
             const banner = document.getElementById('punch-in-alerts-banner');
             banner.insertAdjacentHTML('beforeend', html);
@@ -1857,12 +1922,7 @@
                     playPunchInChime();
                     newOnes.forEach(s => {
                         const worker = runtimeWorkers.find(w => w.email === s.worker_email);
-                        addShiftAlertBanner(`
-                            <div class="flex items-start justify-between gap-2 p-3 rounded-xl border text-xs bg-blue-50 border-blue-200 text-blue-900">
-                                <span><strong>${worker ? worker.name : s.worker_email}</strong> punched in${s.site_location ? ' - ' + s.site_location : ''}</span>
-                                <button onclick="this.parentElement.remove(); if(!document.getElementById('punch-in-alerts-banner').children.length) document.getElementById('punch-in-alerts-banner').classList.add('hidden');" class="shrink-0 font-bold opacity-60 hover:opacity-100 cursor-pointer">&times;</button>
-                            </div>
-                        `);
+                        addShiftAlertBanner(buildPunchAlert('in', worker ? worker.name : s.worker_email, s.site_location));
                     });
                 }
 
@@ -1870,12 +1930,7 @@
                     playPunchOutChime();
                     endedShifts.forEach(s => {
                         const worker = runtimeWorkers.find(w => w.email === s.worker_email);
-                        addShiftAlertBanner(`
-                            <div class="flex items-start justify-between gap-2 p-3 rounded-xl border text-xs bg-amber-50 border-amber-200 text-amber-900">
-                                <span><strong>${worker ? worker.name : s.worker_email}</strong> punched out${s.site_location ? ' - ' + s.site_location : ''}</span>
-                                <button onclick="this.parentElement.remove(); if(!document.getElementById('punch-in-alerts-banner').children.length) document.getElementById('punch-in-alerts-banner').classList.add('hidden');" class="shrink-0 font-bold opacity-60 hover:opacity-100 cursor-pointer">&times;</button>
-                            </div>
-                        `);
+                        addShiftAlertBanner(buildPunchAlert('out', worker ? worker.name : s.worker_email, s.site_location));
                     });
                 }
             }
@@ -2424,7 +2479,7 @@
                     <span class="font-semibold text-slate-700">${line.name}</span>
                     <span class="text-slate-400">${line.days} day${line.days === 1 ? '' : 's'} &times; ₹${line.rate.toLocaleString('en-IN')}</span>
                     <span class="font-mono font-bold text-slate-800">₹${line.cost.toLocaleString('en-IN')}</span>
-                    <button type="button" onclick="removeLaborLine(${i})" class="text-rose-500 hover:text-rose-700 font-bold px-1 cursor-pointer">✕</button>
+                    <button type="button" onclick="removeLaborLine(${i})" class="text-rose-500 hover:text-rose-700 font-bold px-1 cursor-pointer">×</button>
                 </div>`).join('');
         }
 
@@ -2479,7 +2534,7 @@
                     <span class="font-semibold text-slate-700 truncate flex-1">${item.description}</span>
                     <span class="text-slate-400 whitespace-nowrap">${item.hsn_sac || '--'} &middot; ${item.quantity || '--'} ${item.unit || 'Nos'} &times; ₹${item.rate.toLocaleString('en-IN')}</span>
                     <span class="font-mono font-bold text-slate-800 whitespace-nowrap">₹${item.amount.toLocaleString('en-IN')}</span>
-                    <button type="button" onclick="removeInvoiceLineItem(${i})" class="text-rose-500 hover:text-rose-700 font-bold px-1 cursor-pointer">✕</button>
+                    <button type="button" onclick="removeInvoiceLineItem(${i})" class="text-rose-500 hover:text-rose-700 font-bold px-1 cursor-pointer">×</button>
                 </div>`).join('');
         }
 
@@ -2710,7 +2765,7 @@
             document.getElementById('proj-saved-client-select').value = '';
             document.getElementById('proj-invoice-file').value = '';
             document.getElementById('proj-invoice-file-current').innerHTML = inv.source_invoice_url
-                ? `<a href="${inv.source_invoice_url}" target="_blank" class="text-[10px] text-blue-600 hover:underline">📎 View currently attached file</a> <span class="text-[9px] text-gray-400">(choose a new file above to replace it)</span>`
+                ? `<a href="${inv.source_invoice_url}" target="_blank" class="text-[10px] text-blue-600 hover:underline">View currently attached file</a> <span class="text-[9px] text-gray-400">(choose a new file above to replace it)</span>`
                 : '';
             pendingLaborLines = Array.isArray(inv.labor_details) ? [...inv.labor_details] : [];
             renderLaborLines();
@@ -3435,7 +3490,7 @@
                 <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
                     <p class="text-[9px] font-bold text-amber-700 uppercase tracking-wider">Pending</p>
                     <p class="text-sm font-black text-amber-700">₹${totalPending.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                    ${overdueInvoices.length > 0 ? `<p class="text-[8px] font-bold text-rose-600 mt-0.5">⚠ ${overdueInvoices.length} overdue 30d+</p>` : ''}
+                    ${overdueInvoices.length > 0 ? `<p class="text-[8px] font-bold text-rose-600 mt-0.5">${overdueInvoices.length} overdue 30d+</p>` : ''}
                 </div>
                 <div class="${totalProfit >= 0 ? 'bg-violet-50 border-violet-200' : 'bg-rose-50 border-rose-200'} border rounded-xl p-3 text-center">
                     <p class="text-[9px] font-bold ${totalProfit >= 0 ? 'text-violet-700' : 'text-rose-700'} uppercase tracking-wider">${totalProfit >= 0 ? 'Total Profit' : 'Total Loss'}</p>
@@ -3482,7 +3537,7 @@
                             ${inv.document_type === 'quotation' ? `<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">Quotation</span>` : ''}
                             <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${isReceived ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${inv.payment_status}</span>
                             ${!isReceived && advanceReceived > 0 ? `<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Advance ₹${advanceReceived.toLocaleString('en-IN')}</span>` : ''}
-                            ${isOverdue ? `<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">⚠ Overdue ${daysSinceInvoice}d</span>` : ''}
+                            ${isOverdue ? `<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">Overdue ${daysSinceInvoice}d</span>` : ''}
                             <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${isProfit ? 'bg-violet-100 text-violet-700' : 'bg-rose-100 text-rose-700'}">${isProfit ? 'Profit' : 'Loss'} ₹${Math.abs(profit).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                         </div>
                         <p class="text-[11px] text-slate-500 mt-1">${inv.client_name || 'No client name'} ${inv.invoice_no ? `&middot; Invoice #${inv.invoice_no}` : ''} ${inv.invoice_date ? `&middot; ${new Date(inv.invoice_date).toLocaleDateString('en-IN')}` : ''}</p>
@@ -3498,7 +3553,7 @@
                         <p class="text-base font-bold text-slate-900 mb-2">₹${parseFloat(inv.grand_total || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
                         <div class="flex gap-1.5 justify-end">
                             <button onclick="downloadProjectInvoicePDF(${inv.id})" class="bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">${inv.document_type === 'quotation' ? 'Quotation PDF' : 'Invoice PDF'}</button>
-                            ${inv.source_invoice_url ? `<a href="${inv.source_invoice_url}" target="_blank" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer inline-block">📎 Attached File</a>` : ''}
+                            ${inv.source_invoice_url ? `<a href="${inv.source_invoice_url}" target="_blank" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer inline-block">Attached File</a>` : ''}
                             <button onclick="editFullProjectInvoice(${inv.id})" class="bg-slate-700 hover:bg-slate-800 text-white text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Edit</button>
                             <button onclick="editProjectCosts(${inv.id})" class="bg-violet-100 hover:bg-violet-200 text-violet-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">Edit Cost</button>
                             ${!isReceived ? `<button onclick="recordAdvancePayment(${inv.id})" class="bg-blue-100 hover:bg-blue-200 text-blue-700 text-[10px] font-semibold px-3 py-2 rounded-lg uppercase tracking-wide transition cursor-pointer">${advanceReceived > 0 ? 'Edit Advance' : 'Record Advance'}</button>` : ''}
@@ -4064,8 +4119,8 @@
                 return;
             }
 
-            const palette = ['bg-[#2f5a8f]', 'bg-[#0EA5E9]', 'bg-[#10B981]', 'bg-[#8B5CF6]', 'bg-[#F59E0B]', 'bg-[#F43F5E]'];
-            const paletteHex = [0x2563EB, 0x0EA5E9, 0x10B981, 0x8B5CF6, 0xF59E0B, 0xF43F5E];
+            const palette = ['bg-[#d1863f]', 'bg-[#4F8FD6]', 'bg-[#10B981]', 'bg-[#8B5CF6]', 'bg-[#F59E0B]', 'bg-[#F43F5E]'];
+            const paletteHex = [0xd1863f, 0x4F8FD6, 0x10B981, 0x8B5CF6, 0xF59E0B, 0xF43F5E];
 
             // compact text row - the actual bar is now the 3D chart above, this is just the readout
             const renderLegendRow = (container, item, index, valueLabel) => {
@@ -4119,6 +4174,23 @@
             workerSpend.forEach((item, index) => {
                 renderLegendRow(spendContainer, item, index, `₹${item.value.toLocaleString('en-IN')}`);
             });
+
+            // leaderboard: top 6 by approved shifts, with their approved expense spend
+            const board = document.getElementById('an-leaderboard');
+            if (board) {
+                const spendOf = {};
+                workerSpend.forEach(x => { spendOf[x.name] = x.value; });
+                const topShifts = Math.max(1, workerShiftCounts[0] ? workerShiftCounts[0].value : 1);
+                board.innerHTML = workerShiftCounts.slice(0, 6).map((it, i) => `
+                    <div class="an-rank">
+                        <span class="an-rank-no">${i + 1}</span>
+                        <div class="an-rank-body">
+                            <div class="an-rank-top"><strong>${it.name}</strong><b>${it.value}</b></div>
+                            <div class="an-rank-bar"><i style="width:${it.value / topShifts * 100}%"></i></div>
+                            <small>₹${Math.round(spendOf[it.name] || 0).toLocaleString('en-IN')} expenses approved</small>
+                        </div>
+                    </div>`).join('');
+            }
         }
 
         async function createNewWorkerAccount() {
@@ -4819,7 +4891,7 @@
         function renderShiftGpsLine(raw) {
             const { gIn, gOut } = parseShiftGps(raw);
             const piece = (label, g) => g
-                ? `<a href="https://www.google.com/maps?q=${g.lat},${g.lng}" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-semibold">${label} 📍 ${g.lat}, ${g.lng}</a>`
+                ? `<a href="https://www.google.com/maps?q=${g.lat},${g.lng}" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-semibold">${label} &middot; ${g.lat}, ${g.lng}</a>`
                 : `<span class="text-slate-400">${label}: not recorded</span>`;
             return `<p class="text-[10px] mt-1 flex flex-col gap-0.5">${piece('GPS In', gIn)}${piece('GPS Out', gOut)}</p>`;
         }
@@ -5041,6 +5113,15 @@
             `;
         }
 
+        function toggleEmployeeBalancesPanel() {
+            const panel = document.getElementById('emp-balances-panel');
+            const icon = document.getElementById('emp-balances-toggle-icon');
+            if (!panel || !icon) return;
+            const nowHidden = panel.classList.toggle('hidden');
+            icon.innerText = nowHidden ? '▼ Show' : '▲ Hide';
+            if (!nowHidden && typeof renderBalancesSummary === 'function') { try { renderBalancesSummary(); } catch (e) {} }
+        }
+
         function toggleBalanceRecordsPanel() {
             balanceRecordsPanelOpen = !balanceRecordsPanelOpen;
             const panel = document.getElementById('balance-records-panel');
@@ -5144,7 +5225,7 @@
                                 <span class="text-slate-500">${timeLabel} &middot; by ${entry.given_by_name || entry.given_by_type}${isRepayment ? ' &middot; Repaid' : ''}${entry.note ? ` &middot; ${entry.note}` : ''}${backDatedNote}</span>
                                 <span class="flex items-center gap-1.5 shrink-0">
                                     <span class="font-mono font-bold ${isRepayment ? 'text-rose-600' : 'text-emerald-600'}">${isRepayment ? '&minus;' : '+'} ₹${Math.abs(entryAmt).toLocaleString('en-IN')}</span>
-                                    <button type="button" onclick="deleteMorningAdvanceEntry('${entry.id}', '${w.email}', ${entryAmt}, '${entryMonth}')" title="Delete this entry" class="text-slate-300 hover:text-rose-600 transition cursor-pointer px-1">✕</button>
+                                    <button type="button" onclick="deleteMorningAdvanceEntry('${entry.id}', '${w.email}', ${entryAmt}, '${entryMonth}')" title="Delete this entry" class="text-slate-300 hover:text-rose-600 transition cursor-pointer px-1">×</button>
                                 </span>
                             </div>`;
                         }).join('');
@@ -5309,7 +5390,7 @@
                                 <span class="text-slate-500">${timeLabel} &middot; by ${entry.given_by_name || entry.given_by_type}${isRepayment ? ' &middot; Repaid' : ''}${entry.note ? ` &middot; ${entry.note}` : ''}${backDatedNote}</span>
                                 <span class="flex items-center gap-1.5 shrink-0">
                                     <span class="font-mono font-bold ${isRepayment ? 'text-emerald-600' : 'text-rose-600'}">${isRepayment ? '&minus;' : '+'} ₹${Math.abs(entryAmt).toLocaleString('en-IN')}</span>
-                                    <button type="button" onclick="deleteSalaryAdvanceEntry('${entry.id}', '${w.email}', ${entryAmt}, '${entryMonth}')" title="Delete this entry" class="text-slate-300 hover:text-rose-600 transition cursor-pointer px-1">✕</button>
+                                    <button type="button" onclick="deleteSalaryAdvanceEntry('${entry.id}', '${w.email}', ${entryAmt}, '${entryMonth}')" title="Delete this entry" class="text-slate-300 hover:text-rose-600 transition cursor-pointer px-1">×</button>
                                 </span>
                             </div>`;
                         }).join('');
