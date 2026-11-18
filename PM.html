@@ -5,56 +5,248 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anant Electrical - Project Manager Portal</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <style>
-    body { font-family: 'Inter', system-ui, sans-serif; background: #F4F1EA; }
-    .panel { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    body { font-family: 'Inter', system-ui, sans-serif; color: #E2E8F0;
+        background-color: #0f1c2e;
+        background-image: radial-gradient(circle at 15% 0%, rgba(209,134,63,0.10), transparent 40%), radial-gradient(circle at 100% 20%, rgba(52,90,133,0.35), transparent 45%), linear-gradient(180deg, #0a1220 0%, #14243a 55%, #0f1c2e 100%);
+        background-attachment: fixed; }
+    .panel { background: linear-gradient(165deg, #1c3350 0%, #152740 55%, #10213a 100%); border: 1px solid rgba(147,180,221,.20); color: #E2E8F0; box-shadow: 0 28px 55px -28px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.05); }
+    #node-network-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 1.4s ease; }
+    #node-network-canvas.is-ready { opacity: 1; }
+    #pm-dashboard, footer { position: relative; z-index: 1; }
+    @media (prefers-reduced-motion: reduce) { #node-network-canvas { display: none; } }
+    /* header + wallet hero */
+    .pm-hero { background: linear-gradient(135deg, #1e3a5f, #2f5a8f) !important; border: 1px solid rgba(255,255,255,.14) !important; }
+    .pm-avatar { flex: none; width: 46px; height: 46px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: #fff; background: rgba(255,255,255,.16); box-shadow: 0 0 0 3px rgba(255,255,255,.18); }
+    .pm-pill { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: .5rem .95rem; border-radius: 999px; cursor: pointer; }
+    .wallet-card { background: linear-gradient(135deg, #0f1c2e, #1e3a5f 65%, #2f5a8f) !important; border: 1px solid rgba(209,134,63,.35) !important; }
+    .wallet-card #pm-wallet-balance { color: #fff !important; font-size: 2.6rem; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .hero-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; }
+    .hero-tile { position: relative; border-radius: 18px; padding: .85rem 1rem .9rem 1.15rem; background: linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border: 1px solid rgba(147,180,221,.16); overflow: hidden; }
+    .hero-tile::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 4px 4px 0; background: var(--tone, #d1863f); }
+    .hero-tile span { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: #9FB4D9; }
+    .hero-tile strong { display: block; margin-top: .25rem; font-size: 1.5rem; line-height: 1.1; font-weight: 800; color: #fff; }
+    /* sections */
+    #pm-dashboard section.panel { border-radius: 24px !important; padding: 1.4rem !important; }
+    #pm-dashboard section.panel > h2, #pm-dashboard section.panel > div > h2 { font-size: 1.05rem; font-weight: 700; color: #fff !important; }
+    #pm-dashboard section.panel h2::before { content: ""; display: inline-block; width: 4px; height: 1em; border-radius: 3px; background: #d1863f; margin-right: .6rem; vertical-align: -.12em; }
+    .shift-card { --tone: #FBBF24; position: relative; background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.03)); border: 1px solid rgba(147,180,221,.16); border-radius: 18px; padding: 1rem 1rem 1rem 1.3rem !important; overflow: hidden; }
+    .shift-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--tone); }
+    .shift-card[data-status="Approved"] { --tone: #34D399; } .shift-card[data-status="Active"] { --tone: #60A5FA; } .shift-card[data-status="Rejected"] { --tone: #FB7185; }
+    .shift-card img { border-radius: 12px !important; border: 1px solid rgba(147,180,221,.25) !important; }
+    #pm-dashboard [id^="pm-shift-tab-"] { padding: .45rem .8rem !important; border-radius: 10px !important; color: #B6C3D6 !important; }
+    #pm-dashboard [id^="pm-shift-tab-"].bg-white { background: linear-gradient(135deg, #2f5a8f, #345a85) !important; color: #fff !important; box-shadow: inset 0 -2px 0 #d1863f !important; }
+    #pm-dashboard .bg-slate-100.p-1 { background: rgba(255,255,255,.06) !important; border: 1px solid rgba(147,180,221,.16); border-radius: 14px !important; }
+    /* dark theme for everything inside */
+    #pm-dashboard .text-slate-900, #pm-dashboard .text-slate-800, #pm-dashboard .text-slate-700, #pm-dashboard .text-gray-800, #pm-dashboard .text-gray-700, #pm-dashboard .text-\[\#16212E\], #pm-request-modal .text-slate-900, #pm-request-modal .text-slate-800, #pm-request-modal .text-slate-700, #pm-request-modal .text-gray-800, #pm-request-modal .text-gray-700, #pm-request-modal .text-\[\#16212E\] { color: #F1F5F9 !important; }
+    #pm-dashboard .text-slate-600, #pm-dashboard .text-slate-500, #pm-dashboard .text-gray-600, #pm-dashboard .text-gray-500, #pm-request-modal .text-slate-600, #pm-request-modal .text-slate-500, #pm-request-modal .text-gray-600, #pm-request-modal .text-gray-500 { color: #CBD5E1 !important; }
+    #pm-dashboard .text-slate-400, #pm-dashboard .text-gray-400, #pm-dashboard .text-slate-300, #pm-request-modal .text-slate-400, #pm-request-modal .text-gray-400, #pm-request-modal .text-slate-300 { color: #94A3B8 !important; }
+    #pm-dashboard .bg-white, #pm-request-modal .bg-white { background: rgba(255,255,255,.06) !important; }
+    #pm-dashboard .bg-slate-50, #pm-dashboard .bg-gray-50, #pm-request-modal .bg-slate-50, #pm-request-modal .bg-gray-50 { background: rgba(255,255,255,.05) !important; }
+    #pm-dashboard .bg-slate-100, #pm-dashboard .bg-gray-100, #pm-request-modal .bg-slate-100, #pm-request-modal .bg-gray-100 { background: rgba(255,255,255,.10) !important; }
+    #pm-dashboard .border-slate-50, #pm-dashboard .border-slate-100, #pm-dashboard .border-slate-200, #pm-dashboard .border-gray-100, #pm-dashboard .border-gray-200, #pm-dashboard .border-t, #pm-request-modal .border-slate-50, #pm-request-modal .border-slate-100, #pm-request-modal .border-slate-200, #pm-request-modal .border-gray-100, #pm-request-modal .border-gray-200, #pm-request-modal .border-t { border-color: rgba(147,180,221,.18) !important; }
+    #pm-dashboard input:not([type="checkbox"]), #pm-dashboard select, #pm-dashboard textarea, #pm-request-modal input:not([type="checkbox"]), #pm-request-modal select, #pm-request-modal textarea { background: rgba(255,255,255,.07) !important; color: #F1F5F9 !important; border-color: rgba(147,180,221,.28) !important; border-radius: 12px !important; color-scheme: dark; padding: .7rem .85rem !important; font-size: 13px !important; }
+    #pm-dashboard input:focus, #pm-dashboard select:focus, #pm-dashboard textarea:focus, #pm-request-modal input:focus, #pm-request-modal select:focus, #pm-request-modal textarea:focus { border-color: #d1863f !important; box-shadow: 0 0 0 3px rgba(209,134,63,.18) !important; outline: none; }
+    #pm-dashboard input::placeholder, #pm-dashboard textarea::placeholder, #pm-request-modal input::placeholder, #pm-request-modal textarea::placeholder { color: #94A3B8 !important; }
+    #pm-dashboard select option, #pm-request-modal select option { background: #152740; color: #F1F5F9; }
+    #pm-dashboard label, #pm-request-modal label { color: #9FB4D9 !important; }
+    #pm-dashboard button.bg-blue-600, #pm-request-modal button.bg-blue-600 { background: linear-gradient(135deg, #d1863f, #b36f2a) !important; box-shadow: 0 8px 18px -10px rgba(209,134,63,.8); border-radius: 12px !important; }
+    #pm-dashboard button.bg-emerald-600, #pm-request-modal button.bg-emerald-600 { background: linear-gradient(135deg, #059669, #10B981) !important; box-shadow: 0 8px 18px -10px rgba(16,185,129,.7); border-radius: 12px !important; }
+    #pm-dashboard button[class*="bg-[#16212E]"], #pm-request-modal button[class*="bg-[#16212E]"] { background: linear-gradient(135deg, #2f5a8f, #345a85) !important; color: #fff !important; border-radius: 10px !important; }
+    #pm-dashboard button[style*="background:#9B5A56"], #pm-request-modal button[style*="background:#9B5A56"] { background: linear-gradient(135deg, #be5a56, #9B4642) !important; border-radius: 12px !important; }
+    #pm-dashboard button.bg-slate-100, #pm-request-modal button.bg-slate-100 { border: 1px solid rgba(147,180,221,.25) !important; color: #E2E8F0 !important; }
+    #pm-dashboard .bg-rose-50, #pm-dashboard .bg-rose-100, #pm-request-modal .bg-rose-50, #pm-request-modal .bg-rose-100 { background: rgba(244,63,94,.14) !important; }
+    #pm-dashboard .bg-emerald-50, #pm-dashboard .bg-emerald-100, #pm-dashboard .bg-emerald-50\/40, #pm-request-modal .bg-emerald-50, #pm-request-modal .bg-emerald-100, #pm-request-modal .bg-emerald-50\/40 { background: rgba(16,185,129,.16) !important; }
+    #pm-dashboard .text-emerald-600, #pm-dashboard .text-emerald-700, #pm-dashboard .text-emerald-800, #pm-dashboard .text-emerald-500, #pm-request-modal .text-emerald-600, #pm-request-modal .text-emerald-700, #pm-request-modal .text-emerald-800, #pm-request-modal .text-emerald-500 { color: #6EE7B7 !important; }
+    #pm-dashboard .border-emerald-100, #pm-dashboard .border-emerald-200, #pm-request-modal .border-emerald-100, #pm-request-modal .border-emerald-200 { border-color: rgba(16,185,129,.38) !important; }
+    #pm-dashboard .bg-green-50, #pm-dashboard .bg-green-100, #pm-dashboard .bg-green-50\/40, #pm-request-modal .bg-green-50, #pm-request-modal .bg-green-100, #pm-request-modal .bg-green-50\/40 { background: rgba(34,197,94,.16) !important; }
+    #pm-dashboard .text-green-600, #pm-dashboard .text-green-700, #pm-dashboard .text-green-800, #pm-dashboard .text-green-500, #pm-request-modal .text-green-600, #pm-request-modal .text-green-700, #pm-request-modal .text-green-800, #pm-request-modal .text-green-500 { color: #86EFAC !important; }
+    #pm-dashboard .border-green-100, #pm-dashboard .border-green-200, #pm-request-modal .border-green-100, #pm-request-modal .border-green-200 { border-color: rgba(34,197,94,.38) !important; }
+    #pm-dashboard .bg-amber-50, #pm-dashboard .bg-amber-100, #pm-dashboard .bg-amber-50\/40, #pm-request-modal .bg-amber-50, #pm-request-modal .bg-amber-100, #pm-request-modal .bg-amber-50\/40 { background: rgba(245,158,11,.16) !important; }
+    #pm-dashboard .text-amber-600, #pm-dashboard .text-amber-700, #pm-dashboard .text-amber-800, #pm-dashboard .text-amber-500, #pm-request-modal .text-amber-600, #pm-request-modal .text-amber-700, #pm-request-modal .text-amber-800, #pm-request-modal .text-amber-500 { color: #FCD34D !important; }
+    #pm-dashboard .border-amber-100, #pm-dashboard .border-amber-200, #pm-request-modal .border-amber-100, #pm-request-modal .border-amber-200 { border-color: rgba(245,158,11,.38) !important; }
+    #pm-dashboard .bg-yellow-50, #pm-dashboard .bg-yellow-100, #pm-dashboard .bg-yellow-50\/40, #pm-request-modal .bg-yellow-50, #pm-request-modal .bg-yellow-100, #pm-request-modal .bg-yellow-50\/40 { background: rgba(234,179,8,.16) !important; }
+    #pm-dashboard .text-yellow-600, #pm-dashboard .text-yellow-700, #pm-dashboard .text-yellow-800, #pm-dashboard .text-yellow-500, #pm-request-modal .text-yellow-600, #pm-request-modal .text-yellow-700, #pm-request-modal .text-yellow-800, #pm-request-modal .text-yellow-500 { color: #FDE047 !important; }
+    #pm-dashboard .border-yellow-100, #pm-dashboard .border-yellow-200, #pm-request-modal .border-yellow-100, #pm-request-modal .border-yellow-200 { border-color: rgba(234,179,8,.38) !important; }
+    #pm-dashboard .bg-orange-50, #pm-dashboard .bg-orange-100, #pm-dashboard .bg-orange-50\/40, #pm-request-modal .bg-orange-50, #pm-request-modal .bg-orange-100, #pm-request-modal .bg-orange-50\/40 { background: rgba(249,115,22,.16) !important; }
+    #pm-dashboard .text-orange-600, #pm-dashboard .text-orange-700, #pm-dashboard .text-orange-800, #pm-dashboard .text-orange-500, #pm-request-modal .text-orange-600, #pm-request-modal .text-orange-700, #pm-request-modal .text-orange-800, #pm-request-modal .text-orange-500 { color: #FDBA74 !important; }
+    #pm-dashboard .border-orange-100, #pm-dashboard .border-orange-200, #pm-request-modal .border-orange-100, #pm-request-modal .border-orange-200 { border-color: rgba(249,115,22,.38) !important; }
+    #pm-dashboard .bg-rose-50, #pm-dashboard .bg-rose-100, #pm-dashboard .bg-rose-50\/40, #pm-request-modal .bg-rose-50, #pm-request-modal .bg-rose-100, #pm-request-modal .bg-rose-50\/40 { background: rgba(244,63,94,.16) !important; }
+    #pm-dashboard .text-rose-600, #pm-dashboard .text-rose-700, #pm-dashboard .text-rose-800, #pm-dashboard .text-rose-500, #pm-request-modal .text-rose-600, #pm-request-modal .text-rose-700, #pm-request-modal .text-rose-800, #pm-request-modal .text-rose-500 { color: #FDA4AF !important; }
+    #pm-dashboard .border-rose-100, #pm-dashboard .border-rose-200, #pm-request-modal .border-rose-100, #pm-request-modal .border-rose-200 { border-color: rgba(244,63,94,.38) !important; }
+    #pm-dashboard .bg-red-50, #pm-dashboard .bg-red-100, #pm-dashboard .bg-red-50\/40, #pm-request-modal .bg-red-50, #pm-request-modal .bg-red-100, #pm-request-modal .bg-red-50\/40 { background: rgba(239,68,68,.16) !important; }
+    #pm-dashboard .text-red-600, #pm-dashboard .text-red-700, #pm-dashboard .text-red-800, #pm-dashboard .text-red-500, #pm-request-modal .text-red-600, #pm-request-modal .text-red-700, #pm-request-modal .text-red-800, #pm-request-modal .text-red-500 { color: #FCA5A5 !important; }
+    #pm-dashboard .border-red-100, #pm-dashboard .border-red-200, #pm-request-modal .border-red-100, #pm-request-modal .border-red-200 { border-color: rgba(239,68,68,.38) !important; }
+    #pm-dashboard .bg-blue-50, #pm-dashboard .bg-blue-100, #pm-dashboard .bg-blue-50\/40, #pm-request-modal .bg-blue-50, #pm-request-modal .bg-blue-100, #pm-request-modal .bg-blue-50\/40 { background: rgba(59,130,246,.16) !important; }
+    #pm-dashboard .text-blue-600, #pm-dashboard .text-blue-700, #pm-dashboard .text-blue-800, #pm-dashboard .text-blue-500, #pm-request-modal .text-blue-600, #pm-request-modal .text-blue-700, #pm-request-modal .text-blue-800, #pm-request-modal .text-blue-500 { color: #93C5FD !important; }
+    #pm-dashboard .border-blue-100, #pm-dashboard .border-blue-200, #pm-request-modal .border-blue-100, #pm-request-modal .border-blue-200 { border-color: rgba(59,130,246,.38) !important; }
+    #pm-dashboard .bg-sky-50, #pm-dashboard .bg-sky-100, #pm-dashboard .bg-sky-50\/40, #pm-request-modal .bg-sky-50, #pm-request-modal .bg-sky-100, #pm-request-modal .bg-sky-50\/40 { background: rgba(14,165,233,.16) !important; }
+    #pm-dashboard .text-sky-600, #pm-dashboard .text-sky-700, #pm-dashboard .text-sky-800, #pm-dashboard .text-sky-500, #pm-request-modal .text-sky-600, #pm-request-modal .text-sky-700, #pm-request-modal .text-sky-800, #pm-request-modal .text-sky-500 { color: #7DD3FC !important; }
+    #pm-dashboard .border-sky-100, #pm-dashboard .border-sky-200, #pm-request-modal .border-sky-100, #pm-request-modal .border-sky-200 { border-color: rgba(14,165,233,.38) !important; }
+    #pm-dashboard .bg-indigo-50, #pm-dashboard .bg-indigo-100, #pm-dashboard .bg-indigo-50\/40, #pm-request-modal .bg-indigo-50, #pm-request-modal .bg-indigo-100, #pm-request-modal .bg-indigo-50\/40 { background: rgba(99,102,241,.16) !important; }
+    #pm-dashboard .text-indigo-600, #pm-dashboard .text-indigo-700, #pm-dashboard .text-indigo-800, #pm-dashboard .text-indigo-500, #pm-request-modal .text-indigo-600, #pm-request-modal .text-indigo-700, #pm-request-modal .text-indigo-800, #pm-request-modal .text-indigo-500 { color: #A5B4FC !important; }
+    #pm-dashboard .border-indigo-100, #pm-dashboard .border-indigo-200, #pm-request-modal .border-indigo-100, #pm-request-modal .border-indigo-200 { border-color: rgba(99,102,241,.38) !important; }
+    #pm-dashboard .bg-purple-50, #pm-dashboard .bg-purple-100, #pm-dashboard .bg-purple-50\/40, #pm-request-modal .bg-purple-50, #pm-request-modal .bg-purple-100, #pm-request-modal .bg-purple-50\/40 { background: rgba(168,85,247,.16) !important; }
+    #pm-dashboard .text-purple-600, #pm-dashboard .text-purple-700, #pm-dashboard .text-purple-800, #pm-dashboard .text-purple-500, #pm-request-modal .text-purple-600, #pm-request-modal .text-purple-700, #pm-request-modal .text-purple-800, #pm-request-modal .text-purple-500 { color: #D8B4FE !important; }
+    #pm-dashboard .border-purple-100, #pm-dashboard .border-purple-200, #pm-request-modal .border-purple-100, #pm-request-modal .border-purple-200 { border-color: rgba(168,85,247,.38) !important; }
+    #pm-dashboard .bg-violet-50, #pm-dashboard .bg-violet-100, #pm-dashboard .bg-violet-50\/40, #pm-request-modal .bg-violet-50, #pm-request-modal .bg-violet-100, #pm-request-modal .bg-violet-50\/40 { background: rgba(139,92,246,.16) !important; }
+    #pm-dashboard .text-violet-600, #pm-dashboard .text-violet-700, #pm-dashboard .text-violet-800, #pm-dashboard .text-violet-500, #pm-request-modal .text-violet-600, #pm-request-modal .text-violet-700, #pm-request-modal .text-violet-800, #pm-request-modal .text-violet-500 { color: #C4B5FD !important; }
+    #pm-dashboard .border-violet-100, #pm-dashboard .border-violet-200, #pm-request-modal .border-violet-100, #pm-request-modal .border-violet-200 { border-color: rgba(139,92,246,.38) !important; }
+    #pm-dashboard .bg-teal-50, #pm-dashboard .bg-teal-100, #pm-dashboard .bg-teal-50\/40, #pm-request-modal .bg-teal-50, #pm-request-modal .bg-teal-100, #pm-request-modal .bg-teal-50\/40 { background: rgba(20,184,166,.16) !important; }
+    #pm-dashboard .text-teal-600, #pm-dashboard .text-teal-700, #pm-dashboard .text-teal-800, #pm-dashboard .text-teal-500, #pm-request-modal .text-teal-600, #pm-request-modal .text-teal-700, #pm-request-modal .text-teal-800, #pm-request-modal .text-teal-500 { color: #5EEAD4 !important; }
+    #pm-dashboard .border-teal-100, #pm-dashboard .border-teal-200, #pm-request-modal .border-teal-100, #pm-request-modal .border-teal-200 { border-color: rgba(20,184,166,.38) !important; }
+    #pm-request-modal { background: rgba(5,12,24,.7) !important; backdrop-filter: blur(4px); }
+    #pm-dashboard [style*="border-left-color"] { border-left-color: #be5a56 !important; }
+    /* login */
+    #pm-auth-shield { background: radial-gradient(900px 500px at 80% 0%, rgba(209,134,63,.28), transparent 60%), radial-gradient(700px 500px at 0% 100%, rgba(52,90,133,.35), transparent 60%), rgba(10,18,32,.55) !important; backdrop-filter: blur(1.5px); }
+    .login-card { background: #fff; color: #16212E; box-shadow: 0 30px 80px -20px rgba(0,0,0,.6); }
+    .login-card input { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: .75rem .9rem; font-size: 13px; outline: none; width: 100%; transition: border-color .15s, box-shadow .15s; }
+    .login-card input:focus { background: #fff; border-color: #1e3a5f; box-shadow: 0 0 0 4px rgba(209,134,63,.2); }
+    .login-card label { display: block; font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .08em; margin-bottom: .35rem; }
+
+
+/* login mascot (same as staff portal) */
+        #login-mascot {
+            animation: mascot-idle-bob 3.6s ease-in-out infinite;
+            transform-style: preserve-3d;
+        }
+        @keyframes mascot-idle-bob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        #login-mascot .mascot-pupil {
+            transition: transform 0.15s ease, opacity 0.2s ease;
+        }
+        #login-mascot .mascot-eye-closed { opacity: 0; transition: opacity 0.2s ease; }
+        #login-mascot .mascot-eyes { transition: transform 0.08s ease; transform-box: fill-box; transform-origin: center; }
+        #login-mascot.is-blinking .mascot-eyes { transform: scaleY(0.12); }
+        #login-mascot .mascot-arm-left,
+        #login-mascot .mascot-arm-right {
+            transform-box: fill-box;
+            transform-origin: 0% 0%;
+            transition: transform 0.35s cubic-bezier(.34,1.56,.64,1);
+        }
+        #login-mascot .mascot-arm-left { transform: rotate(-20deg); }
+        #login-mascot .mascot-arm-right { transform: rotate(20deg); }
+        #login-mascot.is-shy .mascot-arm-left { transform: rotate(-160deg); }
+        #login-mascot.is-shy .mascot-arm-right { transform: rotate(160deg); }
+        #login-mascot.is-shy .mascot-pupil { opacity: 0; }
+        #login-mascot.is-shy .mascot-eye-closed { opacity: 1; }
+        #login-mascot .mascot-light { animation: mascot-light-pulse 2.4s ease-in-out infinite; }
+        @keyframes mascot-light-pulse {
+            0%, 100% { opacity: 0.55; } 50% { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #login-mascot, #login-mascot .mascot-light { animation: none; }
+        }
 </style>
 </head>
 <body class="min-h-screen p-4 sm:p-6">
+<canvas id="node-network-canvas" aria-hidden="true"></canvas>
 
 <!-- LOGIN SHIELD -->
-<div id="pm-auth-shield" class="fixed inset-0 bg-slate-900/90 z-50 flex items-center justify-center p-4">
-    <div class="panel rounded-2xl max-w-sm w-full p-6 space-y-4">
-        <div class="text-center mb-2">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2 font-bold text-white text-sm" style="background:#16212E;">AE</div>
-            <h2 class="text-xl font-bold tracking-tight text-[#16212E]">Project Manager Login</h2>
-            <p class="text-xs text-gray-500 mt-1">Sign in with your assigned email and password.</p>
+<div id="pm-auth-shield" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="w-full max-w-sm">
+        <div class="login-card relative rounded-3xl">
+            <div class="h-1.5 rounded-t-3xl" style="background:linear-gradient(90deg,#d1863f,#eec495 50%,#1e3a5f)"></div>
+            <div id="login-mascot" class="absolute pointer-events-none select-none" style="left:50%; margin-left:-75px; width:150px; height:165px; top:-118px;" aria-hidden="true">
+                            <svg viewBox="0 0 200 220" width="150" height="165" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="mascotCopper" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#eec495"/>
+                                        <stop offset="55%" stop-color="#d1863f"/>
+                                        <stop offset="100%" stop-color="#9a5a24"/>
+                                    </linearGradient>
+                                    <linearGradient id="mascotNavy" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stop-color="#345a85"/>
+                                        <stop offset="100%" stop-color="#152740"/>
+                                    </linearGradient>
+                                    <radialGradient id="mascotLightGlow" cx="50%" cy="50%" r="50%">
+                                        <stop offset="0%" stop-color="#fbeee0"/>
+                                        <stop offset="100%" stop-color="#d1863f"/>
+                                    </radialGradient>
+                                </defs>
+            
+                                <rect x="60" y="132" width="80" height="76" rx="22" fill="url(#mascotNavy)"/>
+                                <circle class="mascot-light" cx="100" cy="160" r="15" fill="url(#mascotLightGlow)"/>
+                                <path d="M103,149 L93,163 L99,163 L96,175 L109,158 L101,158 Z" fill="#0f1c2e" opacity="0.85"/>
+            
+                                <g transform="translate(62,140)">
+                                    <g class="mascot-arm-left">
+                                        <line x1="0" y1="0" x2="0" y2="46" stroke="url(#mascotCopper)" stroke-width="20" stroke-linecap="round"/>
+                                        <circle cx="0" cy="46" r="13" fill="#e0a262"/>
+                                    </g>
+                                </g>
+                                <g transform="translate(138,140)">
+                                    <g class="mascot-arm-right">
+                                        <line x1="0" y1="0" x2="0" y2="46" stroke="url(#mascotCopper)" stroke-width="20" stroke-linecap="round"/>
+                                        <circle cx="0" cy="46" r="13" fill="#e0a262"/>
+                                    </g>
+                                </g>
+            
+                                <line x1="100" y1="14" x2="100" y2="35" stroke="url(#mascotCopper)" stroke-width="5" stroke-linecap="round"/>
+                                <circle class="mascot-light" cx="100" cy="10" r="6" fill="url(#mascotLightGlow)"/>
+            
+                                <path d="M62,60 A38,36 0 0 1 138,60 L138,68 L62,68 Z" fill="url(#mascotCopper)"/>
+                                <rect x="58" y="63" width="84" height="7" rx="3.5" fill="#9a5a24"/>
+            
+                                <rect x="68" y="68" width="64" height="58" rx="18" fill="url(#mascotNavy)"/>
+            
+                                <g class="mascot-eyes">
+                                    <circle cx="86" cy="96" r="10" fill="#fbeee0"/>
+                                    <circle cx="114" cy="96" r="10" fill="#fbeee0"/>
+                                    <circle class="mascot-pupil" id="mascot-pupil-left" cx="86" cy="96" r="5" fill="#0a1220"/>
+                                    <circle class="mascot-pupil" id="mascot-pupil-right" cx="114" cy="96" r="5" fill="#0a1220"/>
+                                    <path class="mascot-eye-closed" d="M80,96 q6,-7 12,0" stroke="#0a1220" stroke-width="3" fill="none" stroke-linecap="round"/>
+                                    <path class="mascot-eye-closed" d="M108,96 q6,-7 12,0" stroke="#0a1220" stroke-width="3" fill="none" stroke-linecap="round"/>
+                                </g>
+            
+                                <rect x="90" y="112" width="20" height="4" rx="2" fill="#0a1220" opacity="0.6"/>
+                            </svg>
+                        </div>
+            <div class="px-7 pb-7 pt-16 space-y-4">
+                <div class="text-center">
+                    <h2 class="text-2xl font-bold tracking-tight" style="color:#1e3a5f">Anant Electrical</h2>
+                    <p class="text-xs text-gray-400 mt-1">Project Manager login &middot; use your assigned email</p>
+                </div>
+                <div><label>Email</label><input type="email" id="pm-auth-email" placeholder="you@anantelectrical.in" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
+                <div><label>Password</label><div class="relative"><input style="padding-right:4rem" type="password" id="pm-auth-password" placeholder="Enter password" autocomplete="new-password"><button type="button" onclick="const i=document.getElementById('pm-auth-password');const show=i.type==='password';i.type=show?'text':'password';this.innerText=show?'Hide':'Show';" class="pw-toggle absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 hover:text-slate-700 cursor-pointer" style="background:none;border:0;padding:4px">Show</button></div></div>
+                <button id="pm-signin-btn" onclick="attemptPmLogin()" class="w-full text-white font-bold py-3 rounded-xl text-sm tracking-wide transition cursor-pointer hover:opacity-95" style="background:linear-gradient(135deg,#1e3a5f,#2f5a8f);box-shadow:0 10px 24px -10px rgba(22,33,46,.7)">Sign In</button>
+                <p id="pm-auth-error" class="text-xs text-rose-600 font-medium text-center hidden">Incorrect email or password. Please try again.</p>
+            </div>
         </div>
-        <div>
-            <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Email</label>
-            <input type="email" id="pm-auth-email" placeholder="you@anantelectrical.in" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
-        </div>
-        <div>
-            <label class="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Password</label>
-            <input type="password" id="pm-auth-password" placeholder="Enter password" class="w-full p-2.5 bg-white border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]">
-        </div>
-        <button id="pm-signin-btn" onclick="attemptPmLogin()" class="w-full bg-[#16212E] hover:bg-[#0E1620] text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition cursor-pointer">Sign In</button>
-        <p id="pm-auth-error" class="text-[10px] text-rose-600 font-medium text-center hidden">Incorrect email or password. Please try again.</p>
+        <p class="text-center text-[11px] text-slate-400/70 mt-5">&copy; 2026 Anant Electrical</p>
     </div>
 </div>
 
 <!-- DASHBOARD -->
 <div id="pm-dashboard" class="hidden max-w-3xl mx-auto w-full space-y-6">
 
-    <header class="panel rounded-2xl p-5 flex justify-between items-center">
-        <div>
-            <h1 class="text-lg font-bold tracking-tight text-[#16212E]">Anant Electrical</h1>
-            <p class="text-xs text-gray-500 mt-0.5">Project Manager &middot; <span id="pm-name-tag" class="font-semibold"></span></p>
+    <header class="panel pm-hero rounded-3xl p-5 flex justify-between items-center gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+            <span id="pm-avatar" class="pm-avatar">PM</span>
+            <div class="min-w-0">
+                <h1 class="text-lg font-bold tracking-tight text-white">Anant Electrical</h1>
+                <p class="text-xs mt-0.5" style="color:#cbd5e1">Project Manager &middot; <span id="pm-name-tag" class="font-semibold text-white"></span></p>
+            </div>
         </div>
-        <button onclick="pmLogout()" class="text-[10px] font-semibold text-rose-600 hover:text-rose-700 uppercase tracking-wide cursor-pointer">Log Out</button>
+        <button onclick="pmLogout()" class="pm-pill" style="color:#fecdd3;background:rgba(244,63,94,.18);border:1px solid rgba(244,63,94,.35)">Log out</button>
     </header>
 
     <!-- WALLET -->
-    <section class="panel rounded-2xl p-5">
-        <div class="flex items-center justify-between mb-1">
+    <section class="panel wallet-card rounded-3xl p-5">
+        <div class="flex items-center justify-between gap-3 mb-2">
             <div>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Wallet Balance</p>
-                <p id="pm-wallet-balance" class="text-3xl font-black text-[#16212E]">₹0</p>
+                <p class="text-[11px] font-bold uppercase tracking-[.14em]" style="color:#9FB4D9">Wallet balance</p>
+                <p id="pm-wallet-balance" class="font-black">&#8377;0</p>
             </div>
-            <button onclick="openRequestFundsModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-semibold px-3 py-2.5 rounded-lg uppercase tracking-wide transition cursor-pointer whitespace-nowrap">Request More Funds</button>
+            <button onclick="openRequestFundsModal()" class="pm-pill text-white whitespace-nowrap">Request funds</button>
         </div>
-        <p class="text-[10px] text-slate-400">This is a running balance &mdash; admin tops it up whenever you need more, no daily reset.</p>
+        <p class="text-[11px]" style="color:#94A3B8">A running balance. Admin tops it up whenever you need more, with no daily reset.</p>
     </section>
+
+    <div id="pm-strip" class="hero-strip"></div>
 
     <!-- GIVE MID-DAY ADVANCE -->
     <section class="panel rounded-2xl p-5 space-y-3">
@@ -125,7 +317,13 @@
 
     <!-- WALLET HISTORY -->
     <section class="panel rounded-2xl p-5">
-        <h2 class="text-sm font-bold text-slate-800 mb-3">Wallet History</h2>
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h2 class="text-sm font-bold text-slate-800">Wallet History</h2>
+            <div class="flex items-center gap-1.5">
+                <input type="month" id="pm-wallet-month-filter" onchange="renderPmWalletHistory()" class="p-1.5 bg-slate-50 border border-gray-200 rounded-lg text-[10px] font-semibold outline-none">
+                <button onclick="clearPmWalletMonthFilter()" class="px-2 py-1.5 bg-[#16212E] text-white text-[9px] font-semibold rounded-lg uppercase tracking-wide cursor-pointer whitespace-nowrap">All Time</button>
+            </div>
+        </div>
         <div id="pm-wallet-history" class="space-y-1.5">
             <p class="text-xs text-slate-400 italic">Loading...</p>
         </div>
@@ -157,7 +355,7 @@
     <div class="panel rounded-2xl max-w-sm w-full p-6 space-y-3">
         <div class="flex items-center justify-between">
             <h2 class="text-sm font-bold text-slate-800">Request More Funds</h2>
-            <button onclick="closeRequestFundsModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+            <button onclick="closeRequestFundsModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">×</button>
         </div>
         <input type="number" id="pm-request-amount" placeholder="Amount (₹)" class="w-full p-2.5 bg-slate-50 border border-gray-200 rounded-lg text-xs font-mono outline-none focus:border-[#16212E]">
         <textarea id="pm-request-note" rows="2" placeholder="Reason (optional)" class="w-full p-2.5 bg-slate-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-[#16212E]"></textarea>
@@ -167,7 +365,7 @@
 </div>
 
 <footer class="max-w-3xl mx-auto w-full text-center py-4">
-    <p class="text-[10px] text-slate-400">&copy; 2026 Anant Electrical. All rights reserved. &middot; Developed by <span style="color:#2563eb; font-weight:600;">Akash</span></p>
+    <p class="text-[10px]" style="color:#64748b">&copy; 2026 Anant Electrical. All rights reserved. &middot; Developed by <span style="color:#2563eb; font-weight:600;">Akash</span></p>
 </footer>
 
 <script>
@@ -257,11 +455,11 @@
         // PM list endpoint isn't available to anon without the RPC, so we just re-prompt
         // login if the quick profile fetch fails. For simplicity we re-verify silently
         // is not possible without the password, so we just show the login screen pre-filled.
-        document.getElementById('pm-auth-email').value = saved.email;
     }
 
     async function bootPmDashboard() {
         document.getElementById('pm-name-tag').innerText = currentPm.name;
+        document.getElementById('pm-avatar').innerText = (currentPm.name || 'PM').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || 'PM';
         document.getElementById('pm-wallet-balance').innerText = `₹${parseFloat(currentPm.wallet_balance).toLocaleString('en-IN')}`;
         document.getElementById('pm-salary-advance-date').value = new Date().toISOString().slice(0, 10);
         document.getElementById('pm-salary-advance-month').value = getCurrentMonthString();
@@ -270,11 +468,18 @@
         // it to the current month; "All Time" is still one click away.
         const salaryHistoryMonthInput = document.getElementById('pm-salary-advance-history-month-filter');
         if (salaryHistoryMonthInput) salaryHistoryMonthInput.value = getCurrentMonthString();
+        // the running month is selected automatically for the balances and the wallet history
+        const runningMonth = getCurrentMonthString();
+        const walletMonthInput = document.getElementById('pm-wallet-month-filter');
+        if (walletMonthInput) walletMonthInput.value = runningMonth;
+        const balanceMonthInput = document.getElementById('pm-balance-month-filter');
+        if (balanceMonthInput) balanceMonthInput.value = runningMonth;
         await loadPmWorkers();
         await loadPmShifts();
         await loadPmWalletHistory();
         await loadPmMonthlyBalances();
         await loadPmSalaryAdvanceHistory();
+        await renderMonthlyMidDayBalances();
         filterPmShifts('Pending');
     }
 
@@ -528,35 +733,54 @@
         }
     }
 
+    let pmWalletRows = [];
     async function loadPmWalletHistory() {
         const container = document.getElementById('pm-wallet-history');
         try {
             const res = await fetch(`${SUPABASE_URL}rpc/pm_wallet_history`, {
                 method: 'POST', headers: HEADERS, body: JSON.stringify({ p_pm_id: currentPm.id })
             });
-            const rows = res.ok ? await res.json() : [];
-            if (rows.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 italic">No transactions yet.</p>`; return; }
-            container.innerHTML = rows.map(r => {
-                const isPositive = parseFloat(r.amount) >= 0;
-                const dt = new Date(r.created_at);
-                const dateLabel = dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-                const timeLabel = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-                return `
-                <div class="flex items-center justify-between text-[11px] py-1.5 border-b border-slate-50 last:border-0">
-                    <div class="min-w-0">
-                        <div>
-                            <span class="font-semibold text-slate-700">${r.type}</span>
-                            ${r.worker_email ? `<span class="text-slate-400"> &middot; ${r.worker_email}</span>` : ''}
-                        </div>
-                        <div class="text-[10px] text-slate-400">${dateLabel}, ${timeLabel}${r.note ? ` &middot; ${r.note}` : ''}</div>
-                    </div>
-                    <span class="font-mono font-bold shrink-0 ${isPositive ? 'text-emerald-600' : 'text-rose-600'}">${isPositive ? '+' : ''}₹${Math.abs(r.amount).toLocaleString('en-IN')}</span>
-                </div>`;
-            }).join('');
+            pmWalletRows = res.ok ? await res.json() : [];
+            renderPmWalletHistory();
         } catch (err) {
             console.error(err);
             container.innerHTML = `<p class="text-xs text-rose-500 italic">Failed to load history.</p>`;
         }
+    }
+
+    function clearPmWalletMonthFilter() {
+        document.getElementById('pm-wallet-month-filter').value = '';
+        renderPmWalletHistory();
+    }
+
+    function renderPmWalletHistory() {
+        const container = document.getElementById('pm-wallet-history');
+        const monthVal = (document.getElementById('pm-wallet-month-filter') || {}).value || '';
+        const rows = monthVal
+            ? pmWalletRows.filter(r => { const d = new Date(r.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === monthVal; })
+            : pmWalletRows;
+        if (rows.length === 0) {
+            const label = monthVal ? ` in ${new Date(monthVal + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}` : ' yet';
+            container.innerHTML = `<p class="text-xs text-slate-400 italic">No transactions${label}.</p>`;
+            return;
+        }
+        container.innerHTML = rows.map(r => {
+            const isPositive = parseFloat(r.amount) >= 0;
+            const dt = new Date(r.created_at);
+            const dateLabel = dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            const timeLabel = dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+            return `
+            <div class="flex items-center justify-between text-[11px] py-1.5 border-b border-slate-50 last:border-0">
+                <div class="min-w-0">
+                    <div>
+                        <span class="font-semibold text-slate-700">${r.type}</span>
+                        ${r.worker_email ? `<span class="text-slate-400"> &middot; ${r.worker_email}</span>` : ''}
+                    </div>
+                    <div class="text-[10px] text-slate-400">${dateLabel}, ${timeLabel}${r.note ? ` &middot; ${r.note}` : ''}</div>
+                </div>
+                <span class="font-mono font-bold shrink-0 ${isPositive ? 'text-emerald-600' : 'text-rose-600'}">${isPositive ? '+' : ''}₹${Math.abs(r.amount).toLocaleString('en-IN')}</span>
+            </div>`;
+        }).join('');
     }
 
     function openRequestFundsModal() {
@@ -681,7 +905,7 @@
             const expenseColor = expenseStatus === 'Approved' ? 'bg-emerald-100 text-emerald-700' : expenseStatus === 'Rejected' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700';
 
             return `
-            <div class="border border-gray-200 rounded-xl p-3 space-y-2.5">
+            <div class="shift-card space-y-2.5" data-status="${log.status}">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <p class="text-xs font-semibold text-slate-800 truncate">${nameStr}</p>
@@ -804,5 +1028,195 @@
 
     restorePmSession();
 </script>
+<script>
+        (function initNodeNetworkBackground() {
+            const canvas = document.getElementById('node-network-canvas');
+            if (!canvas || typeof THREE === 'undefined') return;
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+            let renderer, scene, camera, nodesPoints, linesMesh, pulseGroup;
+            let width = window.innerWidth, height = window.innerHeight;
+            let animId = null;
+            let mouseX = 0, mouseY = 0;
+            const NODE_COUNT = window.innerWidth < 640 ? 26 : 42;
+            const NODE_SPREAD = { x: 34, y: 20, z: 14 };
+            const LINK_DISTANCE = 9.5;
+            const MAX_LINKS_PER_NODE = 3;
+
+            try {
+                renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+                renderer.setSize(width, height);
+            } catch (e) { return; } // no WebGL, quietly skip - CSS gradient background still stands on its own
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
+            camera.position.z = 22;
+
+            const nodePositions = [];
+            for (let i = 0; i < NODE_COUNT; i++) {
+                nodePositions.push(new THREE.Vector3(
+                    (Math.random() - 0.5) * NODE_SPREAD.x,
+                    (Math.random() - 0.5) * NODE_SPREAD.y,
+                    (Math.random() - 0.5) * NODE_SPREAD.z
+                ));
+            }
+
+            const nodeGeo = new THREE.BufferGeometry().setFromPoints(nodePositions);
+            const nodeMat = new THREE.PointsMaterial({
+                color: 0xd1863f, size: 0.22, transparent: true, opacity: 0.75,
+                sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            nodesPoints = new THREE.Points(nodeGeo, nodeMat);
+            scene.add(nodesPoints);
+
+            const edgeList = [];
+            const linePositions = [];
+            for (let i = 0; i < nodePositions.length; i++) {
+                const dists = [];
+                for (let j = 0; j < nodePositions.length; j++) {
+                    if (i === j) continue;
+                    const d = nodePositions[i].distanceTo(nodePositions[j]);
+                    if (d < LINK_DISTANCE) dists.push([j, d]);
+                }
+                dists.sort((a, b) => a[1] - b[1]);
+                dists.slice(0, MAX_LINKS_PER_NODE).forEach(([j]) => {
+                    const key = i < j ? `${i}-${j}` : `${j}-${i}`;
+                    if (edgeList.some(e => e.key === key)) return;
+                    edgeList.push({ key, a: i, b: j });
+                    linePositions.push(
+                        nodePositions[i].x, nodePositions[i].y, nodePositions[i].z,
+                        nodePositions[j].x, nodePositions[j].y, nodePositions[j].z
+                    );
+                });
+            }
+            const lineGeo = new THREE.BufferGeometry();
+            lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+            const lineMat = new THREE.LineBasicMaterial({ color: 0x345a85, transparent: true, opacity: 0.22 });
+            linesMesh = new THREE.LineSegments(lineGeo, lineMat);
+            scene.add(linesMesh);
+
+            const PULSE_COUNT = 5;
+            pulseGroup = new THREE.Group();
+            const pulseGeo = new THREE.SphereGeometry(0.16, 8, 8);
+            const pulses = [];
+            for (let i = 0; i < PULSE_COUNT; i++) {
+                const mat = new THREE.MeshBasicMaterial({ color: 0xeec495, transparent: true, opacity: 0 });
+                const mesh = new THREE.Mesh(pulseGeo, mat);
+                pulseGroup.add(mesh);
+                pulses.push({ mesh, edge: null, t: 1, delay: Math.random() * 6 });
+            }
+            scene.add(pulseGroup);
+
+            function respawnPulse(p) {
+                p.edge = edgeList[Math.floor(Math.random() * edgeList.length)];
+                p.t = 0;
+                p.delay = 2 + Math.random() * 5;
+            }
+            pulses.forEach(respawnPulse);
+
+            const clock = new THREE.Clock();
+            const isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+            let boostUntil = 0;
+            window.nodeNetworkBoost = function (durationMs) {
+                boostUntil = performance.now() + (durationMs || 4000);
+            };
+
+            function onPointerMove(e) {
+                mouseX = (e.clientX / width) - 0.5;
+                mouseY = (e.clientY / height) - 0.5;
+            }
+            if (!isTouch) window.addEventListener('mousemove', onPointerMove, { passive: true });
+
+            function animate() {
+                animId = requestAnimationFrame(animate);
+                const dt = Math.min(clock.getDelta(), 0.05);
+                const elapsed = clock.getElapsedTime();
+                const boosted = performance.now() < boostUntil;
+                const pulseSpeedMult = boosted ? 2.4 : 1;
+                nodeMat.opacity = boosted ? 0.95 : 0.75;
+                lineMat.opacity = boosted ? 0.4 : 0.22;
+
+                nodesPoints.rotation.y += dt * (boosted ? 0.05 : 0.02);
+                linesMesh.rotation.y = nodesPoints.rotation.y;
+                pulseGroup.rotation.y = nodesPoints.rotation.y;
+                nodesPoints.rotation.x = Math.sin(elapsed * 0.08) * 0.06;
+                linesMesh.rotation.x = nodesPoints.rotation.x;
+                pulseGroup.rotation.x = nodesPoints.rotation.x;
+
+                camera.position.x += (mouseX * 3 - camera.position.x) * 0.02;
+                camera.position.y += (-mouseY * 2 - camera.position.y) * 0.02;
+                camera.lookAt(0, 0, 0);
+
+                pulses.forEach(p => {
+                    if (p.delay > 0) { p.delay -= dt; p.mesh.material.opacity = 0; return; }
+                    p.t += dt * 0.6 * pulseSpeedMult;
+                    if (p.t >= 1) { respawnPulse(p); return; }
+                    const a = nodePositions[p.edge.a], b = nodePositions[p.edge.b];
+                    p.mesh.position.lerpVectors(a, b, p.t);
+                    p.mesh.material.opacity = Math.sin(p.t * Math.PI) * 0.9;
+                });
+
+                renderer.render(scene, camera);
+            }
+
+            function onResize() {
+                width = window.innerWidth; height = window.innerHeight;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            }
+            window.addEventListener('resize', onResize);
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    if (animId) cancelAnimationFrame(animId);
+                    animId = null;
+                } else if (!animId) {
+                    animate();
+                }
+            });
+
+            animate();
+            requestAnimationFrame(() => canvas.classList.add('is-ready'));
+        })();
+</script>
+<script>
+(function pmLoginMascot() {
+    const mascot = document.getElementById('login-mascot');
+    const pl = document.getElementById('mascot-pupil-left'), pr = document.getElementById('mascot-pupil-right');
+    const email = document.getElementById('pm-auth-email'), pass = document.getElementById('pm-auth-password');
+    if (!mascot || !email || !pass) return;
+    const gaze = px => { const t = 'translateX(' + px.toFixed(1) + 'px)'; if (pl) pl.style.transform = t; if (pr) pr.style.transform = t; };
+    email.addEventListener('focus', () => mascot.classList.add('is-reading'));
+    email.addEventListener('blur', () => { mascot.classList.remove('is-reading'); gaze(0); });
+    email.addEventListener('input', () => gaze((((email.value.length % 10) / 10) - 0.5) * 7));
+    pass.addEventListener('focus', () => mascot.classList.add('is-shy'));
+    pass.addEventListener('blur', () => mascot.classList.remove('is-shy'));
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        (function blink() { setTimeout(() => { if (!mascot.classList.contains('is-shy')) { mascot.classList.add('is-blinking'); setTimeout(() => mascot.classList.remove('is-blinking'), 150); } blink(); }, 2600 + Math.random() * 2200); })();
+    }
+})();
+(function pmSummaryStrip() {
+    const host = document.getElementById('pm-strip');
+    if (!host) return;
+    setInterval(() => {
+        try {
+            const pending = (pmShifts || []).filter(x => x.status === 'Pending').length;
+            const claims = (pmShifts || []).filter(x => x.status !== 'Active' && x.expense_status === 'Pending').length;
+            host.innerHTML = [['Shifts to approve', pending, '#FBBF24'], ['Expense claims', claims, '#A78BFA'], ['Employees', (pmWorkers || []).filter(w => w.role !== 'Project Manager').length, '#d1863f']]
+                .map(t => '<div class="hero-tile" style="--tone:' + t[2] + '"><span>' + t[0] + '</span><strong>' + t[1] + '</strong></div>').join('');
+        } catch (e) {}
+    }, 1500);
+})();
+</script>
+<script>
+        (function clearLoginFields(ids) {
+            const clear = () => ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+            clear();
+            window.addEventListener('pageshow', clear);
+            setTimeout(clear, 300);
+        })(['pm-auth-email', 'pm-auth-password']);
+    </script>
 </body>
 </html>
